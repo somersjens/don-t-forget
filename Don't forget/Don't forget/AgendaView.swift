@@ -2,11 +2,10 @@ import SwiftUI
 import SwiftData
 
 struct AgendaView: View {
-    @Environment(\.modelContext)
-    private var modelContext
-
     @Query(sort: \DayEntry.date, order: .forward)
     private var entries: [DayEntry]
+
+    @FocusState private var focusedField: AgendaField?
 
     private var weeks: [WeekSection] {
         AppCalendar.weekSections(numberOfWeeks: 12)
@@ -19,7 +18,8 @@ struct AgendaView: View {
                     ForEach(weeks) { week in
                         WeekCard(
                             week: week,
-                            entries: entries
+                            entries: entries,
+                            focusedField: $focusedField
                         )
                     }
                 }
@@ -30,19 +30,26 @@ struct AgendaView: View {
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button {
-                        DemoData.insertScreenshotData(in: modelContext)
+                        focusedField = nil
                     } label: {
-                        Image(systemName: "sparkles")
+                        Image(systemName: "checkmark")
                     }
+                    .accessibilityLabel("Toetsenbord sluiten")
                 }
             }
         }
     }
 }
 
+enum AgendaField: Hashable {
+    case entry(UUID)
+    case newEntry(Date)
+}
+
 struct WeekCard: View {
     let week: WeekSection
     let entries: [DayEntry]
+    let focusedField: FocusState<AgendaField?>.Binding
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -54,7 +61,8 @@ struct WeekCard: View {
                 ForEach(week.days) { day in
                     DayBlock(
                         day: day,
-                        entries: entriesForDay(day.date)
+                        entries: entriesForDay(day.date),
+                        focusedField: focusedField
                     )
                 }
             }
@@ -77,6 +85,7 @@ struct WeekCard: View {
 struct DayBlock: View {
     let day: DayInfo
     let entries: [DayEntry]
+    let focusedField: FocusState<AgendaField?>.Binding
 
     private var sortedEntries: [DayEntry] {
         entries.sorted { first, second in
@@ -106,14 +115,16 @@ struct DayBlock: View {
                     dateLabel: day.dateLabel,
                     weekdayLetter: day.weekdayLetter,
                     date: day.date,
-                    nextOrder: 0
+                    nextOrder: 0,
+                    focusedField: focusedField
                 )
             } else {
                 ForEach(Array(sortedEntries.enumerated()), id: \.element.id) { index, entry in
                     AgendaEntryLine(
                         dateLabel: index == 0 ? day.dateLabel : "",
                         weekdayLetter: day.weekdayLetter,
-                        entry: entry
+                        entry: entry,
+                        focusedField: focusedField
                     )
                 }
 
@@ -121,7 +132,8 @@ struct DayBlock: View {
                     dateLabel: "",
                     weekdayLetter: day.weekdayLetter,
                     date: day.date,
-                    nextOrder: Double(sortedEntries.count + 1)
+                    nextOrder: Double(sortedEntries.count + 1),
+                    focusedField: focusedField
                 )
             }
         }
@@ -133,22 +145,14 @@ struct AgendaEntryLine: View {
     let weekdayLetter: String
 
     @Bindable var entry: DayEntry
+    let focusedField: FocusState<AgendaField?>.Binding
 
     @Environment(\.modelContext)
     private var modelContext
 
     var body: some View {
-        HStack(alignment: .firstTextBaseline, spacing: 7) {
-            Text(dateLabel)
-                .frame(width: 52, alignment: .leading)
-                .foregroundStyle(dateLabel.isEmpty ? .clear : .primary)
-
-            Text(weekdayLetter)
-                .frame(width: 18, alignment: .leading)
-                .foregroundStyle(.secondary)
-
-            Text("|")
-                .foregroundStyle(.secondary)
+        HStack(alignment: .firstTextBaseline, spacing: 5) {
+            AgendaLinePrefix(dateLabel: dateLabel, weekdayLetter: weekdayLetter)
 
             Button {
                 entry.toggleDone()
@@ -171,10 +175,11 @@ struct AgendaEntryLine: View {
             }
 
             TextField("", text: $entry.rawText, axis: .vertical)
-                .font(.system(size: 18, design: .monospaced))
+                .font(.system(size: 16, design: .monospaced))
                 .textFieldStyle(.plain)
                 .strikethrough(entry.isDone)
                 .foregroundStyle(entry.isDone ? .secondary : .primary)
+                .focused(focusedField, equals: .entry(entry.id))
                 .onChange(of: entry.rawText) { _, _ in
                     entry.refreshParsedFields()
                 }
@@ -219,6 +224,7 @@ struct AgendaInputLine: View {
     let weekdayLetter: String
     let date: Date
     let nextOrder: Double
+    let focusedField: FocusState<AgendaField?>.Binding
 
     @Environment(\.modelContext)
     private var modelContext
@@ -226,22 +232,20 @@ struct AgendaInputLine: View {
     @State private var text = ""
 
     var body: some View {
-        HStack(alignment: .firstTextBaseline, spacing: 7) {
-            Text(dateLabel)
-                .frame(width: 52, alignment: .leading)
-                .foregroundStyle(dateLabel.isEmpty ? .clear : .primary)
+        HStack(alignment: .firstTextBaseline, spacing: 5) {
+            AgendaLinePrefix(dateLabel: dateLabel, weekdayLetter: weekdayLetter)
 
-            Text(weekdayLetter)
-                .frame(width: 18, alignment: .leading)
-                .foregroundStyle(.secondary)
-
-            Text("|")
-                .foregroundStyle(.secondary)
-
-            TextField("typ iets", text: $text, axis: .vertical)
-                .font(.system(size: 18, design: .monospaced))
+            TextField(
+                "",
+                text: $text,
+                prompt: Text("typ iets").foregroundStyle(.secondary),
+                axis: .vertical
+            )
+                .font(.system(size: 16, design: .monospaced))
                 .textFieldStyle(.plain)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(.primary)
+                .focused(focusedField, equals: .newEntry(date))
+                .submitLabel(.return)
                 .onSubmit {
                     addEntry()
                 }
@@ -272,5 +276,29 @@ struct AgendaInputLine: View {
 
         modelContext.insert(entry)
         text = ""
+
+        // Keep typing on the newly-created line after Return is pressed.
+        Task { @MainActor in
+            focusedField.wrappedValue = .newEntry(date)
+        }
+    }
+}
+
+private struct AgendaLinePrefix: View {
+    let dateLabel: String
+    let weekdayLetter: String
+
+    var body: some View {
+        HStack(spacing: 5) {
+            Text(dateLabel.isEmpty ? "     " : dateLabel)
+                .foregroundStyle(dateLabel.isEmpty ? .clear : .primary)
+
+            Text(weekdayLetter)
+                .foregroundStyle(.secondary)
+
+            Text("|")
+                .foregroundStyle(.secondary)
+        }
+        .font(.system(size: 16, design: .monospaced))
     }
 }
