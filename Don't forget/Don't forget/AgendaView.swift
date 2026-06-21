@@ -8,7 +8,28 @@ struct AgendaView: View {
     @FocusState private var focusedField: AgendaField?
 
     private var weeks: [WeekSection] {
-        AppCalendar.weekSections(numberOfWeeks: 12)
+        let today = AppCalendar.startOfDay(.now)
+        let oldestOpenDate = entries
+            .filter { !$0.isDone && $0.date < today }
+            .map(\.date)
+            .min()
+        let startDate = oldestOpenDate ?? today
+        let endDate = AppCalendar.calendar.date(byAdding: .year, value: 2, to: today) ?? today
+        let startOfFirstWeek = AppCalendar.calendar.dateInterval(of: .weekOfYear, for: startDate)?.start ?? startDate
+        let startOfLastWeek = AppCalendar.calendar.dateInterval(of: .weekOfYear, for: endDate)?.start ?? endDate
+        let weekCount = (AppCalendar.calendar.dateComponents(
+            [.weekOfYear],
+            from: startOfFirstWeek,
+            to: startOfLastWeek
+        ).weekOfYear ?? 104) + 1
+
+        return AppCalendar.weekSections(
+            startingFrom: startDate,
+            numberOfWeeks: weekCount
+        )
+        .filter { week in
+            week.days.contains(where: isVisible)
+        }
     }
 
     var body: some View {
@@ -39,6 +60,18 @@ struct AgendaView: View {
             }
         }
     }
+
+    private func isVisible(_ day: DayInfo) -> Bool {
+        let today = AppCalendar.startOfDay(.now)
+
+        if day.date >= today {
+            return true
+        }
+
+        return entries.contains {
+            AppCalendar.isSameDay($0.date, day.date) && !$0.isDone
+        }
+    }
 }
 
 enum AgendaField: Hashable {
@@ -51,6 +84,20 @@ struct WeekCard: View {
     let entries: [DayEntry]
     let focusedField: FocusState<AgendaField?>.Binding
 
+    private var visibleDays: [DayInfo] {
+        let today = AppCalendar.startOfDay(.now)
+
+        return week.days.filter { day in
+            if day.date >= today {
+                return true
+            }
+
+            return entries.contains {
+                AppCalendar.isSameDay($0.date, day.date) && !$0.isDone
+            }
+        }
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text("--- Week \(week.weekNumber) \(week.monthTitle)")
@@ -58,7 +105,7 @@ struct WeekCard: View {
                 .foregroundStyle(.secondary)
 
             VStack(alignment: .leading, spacing: 7) {
-                ForEach(week.days) { day in
+                ForEach(visibleDays) { day in
                     DayBlock(
                         day: day,
                         entries: entriesForDay(day.date),
@@ -154,15 +201,6 @@ struct AgendaEntryLine: View {
         HStack(alignment: .firstTextBaseline, spacing: 5) {
             AgendaLinePrefix(dateLabel: dateLabel, weekdayLetter: weekdayLetter)
 
-            Button {
-                entry.toggleDone()
-            } label: {
-                Image(systemName: entry.isDone ? "checkmark.circle.fill" : "circle")
-                    .font(.system(size: 14))
-                    .symbolRenderingMode(.hierarchical)
-            }
-            .buttonStyle(.plain)
-
             if let startMinutes = entry.startMinutes {
                 Text(TimeParser.timeLabel(startMinutes, end: entry.endMinutes))
                     .font(.system(size: 12, design: .monospaced))
@@ -181,6 +219,11 @@ struct AgendaEntryLine: View {
                 .foregroundStyle(entry.isDone ? .secondary : .primary)
                 .focused(focusedField, equals: .entry(entry.id))
                 .onChange(of: entry.rawText) { _, _ in
+                    if entry.rawText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                        modelContext.delete(entry)
+                        return
+                    }
+
                     entry.refreshParsedFields()
                 }
 
@@ -190,21 +233,14 @@ struct AgendaEntryLine: View {
                     .foregroundStyle(.secondary)
             }
 
-            Button {
-                entry.showOnWidget.toggle()
-            } label: {
-                Image(systemName: entry.showOnWidget ? "iphone.gen3" : "iphone.slash")
-                    .font(.system(size: 13))
-                    .foregroundStyle(.secondary)
-            }
-            .buttonStyle(.plain)
+            Spacer(minLength: 2)
 
             Button {
-                modelContext.delete(entry)
+                entry.toggleDone()
             } label: {
-                Image(systemName: "trash")
-                    .font(.system(size: 13))
-                    .foregroundStyle(.secondary)
+                Image(systemName: entry.isDone ? "checkmark.circle.fill" : "circle")
+                    .font(.system(size: 15))
+                    .symbolRenderingMode(.hierarchical)
             }
             .buttonStyle(.plain)
         }
