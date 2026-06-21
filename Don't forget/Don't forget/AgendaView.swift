@@ -201,18 +201,7 @@ struct AgendaEntryLine: View {
         HStack(alignment: .firstTextBaseline, spacing: 5) {
             AgendaLinePrefix(dateLabel: dateLabel, weekdayLetter: weekdayLetter)
 
-            if let startMinutes = entry.startMinutes {
-                Text(TimeParser.timeLabel(startMinutes, end: entry.endMinutes))
-                    .font(.system(size: 12, design: .monospaced))
-                    .padding(.horizontal, 6)
-                    .padding(.vertical, 3)
-                    .background {
-                        Capsule()
-                            .fill(Color(.systemBackground).opacity(0.85))
-                    }
-            }
-
-            TextField("", text: $entry.rawText, axis: .vertical)
+            TextField("", text: $entry.rawText)
                 .font(.system(size: 16, design: .monospaced))
                 .textFieldStyle(.plain)
                 .strikethrough(entry.isDone)
@@ -244,14 +233,6 @@ struct AgendaEntryLine: View {
             }
             .buttonStyle(.plain)
         }
-        .padding(.vertical, entry.hasTime ? 5 : 0)
-        .padding(.horizontal, entry.hasTime ? 7 : 0)
-        .background {
-            if entry.hasTime {
-                RoundedRectangle(cornerRadius: 9)
-                    .fill(Color(.systemBackground).opacity(0.55))
-            }
-        }
     }
 }
 
@@ -274,8 +255,7 @@ struct AgendaInputLine: View {
             TextField(
                 "",
                 text: $text,
-                prompt: Text("typ iets").foregroundStyle(.secondary),
-                axis: .vertical
+                prompt: Text("typ iets").foregroundStyle(.secondary)
             )
                 .font(.system(size: 16, design: .monospaced))
                 .textFieldStyle(.plain)
