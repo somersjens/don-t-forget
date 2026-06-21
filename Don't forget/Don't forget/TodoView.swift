@@ -59,7 +59,7 @@ struct TodoBucketCard: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             Label(title, systemImage: icon)
-                .font(.headline)
+                .font(.subheadline)
                 .foregroundStyle(.secondary)
 
             VStack(alignment: .leading, spacing: 8) {
@@ -91,13 +91,13 @@ struct TodoLine: View {
                 todo.toggleDone()
             } label: {
                 Image(systemName: todo.isDone ? "checkmark.circle.fill" : "circle")
-                    .font(.system(size: 16))
+                    .font(.system(size: 15))
                     .symbolRenderingMode(.hierarchical)
             }
             .buttonStyle(.plain)
 
             TextField("", text: $todo.text, axis: .vertical)
-                .font(.system(size: 18, design: .monospaced))
+                .font(.system(size: 17, design: .monospaced))
                 .textFieldStyle(.plain)
                 .strikethrough(todo.isDone)
                 .foregroundStyle(todo.isDone ? .secondary : .primary)
@@ -122,7 +122,7 @@ struct TodoLine: View {
                 }
             } label: {
                 Image(systemName: "arrow.left.arrow.right")
-                    .font(.system(size: 13))
+                    .font(.system(size: 12))
                     .foregroundStyle(.secondary)
             }
 
@@ -130,7 +130,7 @@ struct TodoLine: View {
                 todo.showOnWidget.toggle()
             } label: {
                 Image(systemName: todo.showOnWidget ? "iphone.gen3" : "iphone.slash")
-                    .font(.system(size: 13))
+                    .font(.system(size: 12))
                     .foregroundStyle(.secondary)
             }
             .buttonStyle(.plain)
@@ -139,7 +139,7 @@ struct TodoLine: View {
                 modelContext.delete(todo)
             } label: {
                 Image(systemName: "trash")
-                    .font(.system(size: 13))
+                    .font(.system(size: 12))
                     .foregroundStyle(.secondary)
             }
             .buttonStyle(.plain)
@@ -158,11 +158,11 @@ struct NewTodoLine: View {
     var body: some View {
         HStack(alignment: .firstTextBaseline, spacing: 8) {
             Image(systemName: "plus.circle")
-                .font(.system(size: 16))
+                .font(.system(size: 15))
                 .foregroundStyle(.secondary)
 
             TextField("typ iets", text: $text, axis: .vertical)
-                .font(.system(size: 18, design: .monospaced))
+                .font(.system(size: 17, design: .monospaced))
                 .textFieldStyle(.plain)
                 .foregroundStyle(.secondary)
                 .onSubmit {
@@ -173,7 +173,7 @@ struct NewTodoLine: View {
                 addTodo()
             } label: {
                 Image(systemName: "return")
-                    .font(.system(size: 13))
+                    .font(.system(size: 12))
             }
             .buttonStyle(.plain)
             .opacity(text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? 0 : 1)

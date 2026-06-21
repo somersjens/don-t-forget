@@ -2,6 +2,9 @@ import SwiftUI
 import SwiftData
 
 struct AgendaView: View {
+    @Environment(\.modelContext) private var modelContext
+    @Environment(\.undoManager) private var undoManager
+
     @Query(sort: \DayEntry.date, order: .forward)
     private var entries: [DayEntry]
 
@@ -49,14 +52,26 @@ struct AgendaView: View {
             }
             .navigationTitle("Kalender")
             .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
+                ToolbarItemGroup(placement: .topBarTrailing) {
+                    Button {
+                        undoManager?.undo()
+                    } label: {
+                        Image(systemName: "arrow.uturn.backward")
+                    }
+                    .disabled(!(undoManager?.canUndo ?? false))
+                    .accessibilityLabel("Laatste wijziging terugdraaien")
+
                     Button {
                         focusedField = nil
                     } label: {
                         Image(systemName: "checkmark")
                     }
+                    .disabled(focusedField == nil)
                     .accessibilityLabel("Toetsenbord sluiten")
                 }
+            }
+            .onAppear {
+                modelContext.undoManager = undoManager
             }
         }
     }
@@ -98,10 +113,20 @@ struct WeekCard: View {
         }
     }
 
+    private var startDateLabel: String {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "nl_NL")
+        formatter.dateFormat = "d MMMM"
+        return formatter.string(from: week.startDate)
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("--- Week \(week.weekNumber) \(week.monthTitle)")
-                .font(.system(size: 18, design: .monospaced))
+            Label(
+                "week #\(week.weekNumber) - start \(startDateLabel)",
+                systemImage: "calendar"
+            )
+                .font(.system(size: 17, design: .monospaced))
                 .foregroundStyle(.secondary)
 
             VStack(alignment: .leading, spacing: 7) {
@@ -201,13 +226,22 @@ struct AgendaEntryLine: View {
         HStack(alignment: .firstTextBaseline, spacing: 5) {
             AgendaLinePrefix(dateLabel: dateLabel, weekdayLetter: weekdayLetter)
 
-            TextField("", text: $entry.rawText)
-                .font(.system(size: 16, design: .monospaced))
+            TextField("", text: $entry.rawText, axis: .vertical)
+                .font(.system(size: 15, design: .monospaced))
                 .textFieldStyle(.plain)
+                .lineLimit(1...)
                 .strikethrough(entry.isDone)
                 .foregroundStyle(entry.isDone ? .secondary : .primary)
                 .focused(focusedField, equals: .entry(entry.id))
                 .onChange(of: entry.rawText) { _, _ in
+                    if entry.rawText.contains("\n") {
+                        entry.rawText = entry.rawText
+                            .replacingOccurrences(of: "\n", with: "")
+                        entry.refreshParsedFields()
+                        focusedField.wrappedValue = .newEntry(entry.date)
+                        return
+                    }
+
                     if entry.rawText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
                         modelContext.delete(entry)
                         return
@@ -218,7 +252,7 @@ struct AgendaEntryLine: View {
 
             if entry.isUncertain {
                 Image(systemName: "questionmark.circle")
-                    .font(.system(size: 13))
+                    .font(.system(size: 12))
                     .foregroundStyle(.secondary)
             }
 
@@ -228,7 +262,7 @@ struct AgendaEntryLine: View {
                 entry.toggleDone()
             } label: {
                 Image(systemName: entry.isDone ? "checkmark.circle.fill" : "circle")
-                    .font(.system(size: 15))
+                    .font(.system(size: 14))
                     .symbolRenderingMode(.hierarchical)
             }
             .buttonStyle(.plain)
@@ -253,15 +287,24 @@ struct AgendaInputLine: View {
             AgendaLinePrefix(dateLabel: dateLabel, weekdayLetter: weekdayLetter)
 
             TextField(
-                "",
+                "typ\u{00A0}iets",
                 text: $text,
-                prompt: Text("typ iets").foregroundStyle(.secondary)
+                axis: .vertical
             )
-                .font(.system(size: 16, design: .monospaced))
+                .font(.system(size: 15, design: .monospaced))
                 .textFieldStyle(.plain)
+                .lineLimit(1...)
                 .foregroundStyle(.primary)
                 .focused(focusedField, equals: .newEntry(date))
                 .submitLabel(.return)
+                .onChange(of: text) { _, newValue in
+                    guard newValue.contains("\n") else {
+                        return
+                    }
+
+                    text = newValue.replacingOccurrences(of: "\n", with: "")
+                    addEntry()
+                }
                 .onSubmit {
                     addEntry()
                 }
@@ -270,7 +313,7 @@ struct AgendaInputLine: View {
                 addEntry()
             } label: {
                 Image(systemName: "plus.circle")
-                    .font(.system(size: 15))
+                    .font(.system(size: 14))
             }
             .buttonStyle(.plain)
             .opacity(text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? 0 : 1)
@@ -315,6 +358,6 @@ private struct AgendaLinePrefix: View {
             Text("|")
                 .foregroundStyle(.secondary)
         }
-        .font(.system(size: 16, design: .monospaced))
+        .font(.system(size: 15, design: .monospaced))
     }
 }

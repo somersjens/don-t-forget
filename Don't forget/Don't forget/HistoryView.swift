@@ -103,10 +103,10 @@ struct HistoryView: View {
 
                                 VStack(alignment: .leading, spacing: 4) {
                                     Text(row.title)
-                                        .font(.body)
+                                        .font(.callout)
 
                                     Text("\(row.source) · \(row.completedAt.formatted(date: .abbreviated, time: .shortened))")
-                                        .font(.caption)
+                                        .font(.caption2)
                                         .foregroundStyle(.secondary)
                                 }
                             }
