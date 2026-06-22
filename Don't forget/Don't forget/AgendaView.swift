@@ -9,6 +9,28 @@ struct AgendaView: View {
     private var entries: [DayEntry]
 
     @FocusState private var focusedField: AgendaField?
+    @State private var isScrolled = false
+    @State private var calendarSyncTask: Task<Void, Never>?
+
+    @AppStorage(SettingsKeys.weekStart) private var weekStartSetting = WeekStartOption.monday.rawValue
+    @AppStorage(SettingsKeys.weekNumberRule) private var weekNumberSetting = WeekNumberRule.iso8601.rawValue
+    @AppStorage(SettingsKeys.language) private var languageSetting = AppLanguage.system.rawValue
+    @AppStorage(SettingsKeys.calendarSyncEnabled) private var calendarSyncEnabled = false
+
+    private var calendarSyncSignature: String {
+        entries
+            .sorted { $0.id.uuidString < $1.id.uuidString }
+            .map {
+                [
+                    $0.id.uuidString,
+                    String($0.date.timeIntervalSinceReferenceDate),
+                    $0.rawText,
+                    String($0.startMinutes ?? -1),
+                    String($0.endMinutes ?? -1)
+                ].joined(separator: "|")
+            }
+            .joined(separator: "\n")
+    }
 
     private var weeks: [WeekSection] {
         let today = AppCalendar.startOfDay(.now)
@@ -38,7 +60,7 @@ struct AgendaView: View {
     var body: some View {
         NavigationStack {
             ScrollView {
-                LazyVStack(spacing: 18) {
+                LazyVStack(spacing: 8) {
                     ForEach(weeks) { week in
                         WeekCard(
                             week: week,
@@ -50,28 +72,69 @@ struct AgendaView: View {
                 .padding(.horizontal, 14)
                 .padding(.vertical, 12)
             }
-            .navigationTitle("Kalender")
-            .toolbar {
-                ToolbarItemGroup(placement: .topBarTrailing) {
-                    Button {
-                        undoManager?.undo()
-                    } label: {
-                        Image(systemName: "arrow.uturn.backward")
-                    }
-                    .disabled(!(undoManager?.canUndo ?? false))
-                    .accessibilityLabel("Laatste wijziging terugdraaien")
+            .scrollEdgeEffectStyle(.soft, for: .top)
+            .onScrollGeometryChange(for: Bool.self) { geometry in
+                geometry.contentOffset.y + geometry.contentInsets.top > 12
+            } action: { _, newValue in
+                isScrolled = newValue
+            }
+            .toolbar(.hidden, for: .navigationBar)
+            .safeAreaInset(edge: .top, spacing: 0) {
+                HStack {
+                    Text("Kalender")
+                        .font(.system(size: 26, weight: .bold))
+                        .opacity(isScrolled ? 0 : 1)
+                        .animation(.easeOut(duration: 0.18), value: isScrolled)
 
-                    Button {
-                        focusedField = nil
-                    } label: {
-                        Image(systemName: "checkmark")
+                    Spacer()
+
+                    HStack(spacing: 10) {
+                        Button {
+                            undoManager?.undo()
+                        } label: {
+                            Image(systemName: "arrow.uturn.backward")
+                                .font(.system(size: 18, weight: .medium))
+                                .frame(width: 44, height: 44)
+                        }
+                        .glassEffect(.regular.interactive(), in: Circle())
+                        .disabled(!(undoManager?.canUndo ?? false))
+                        .accessibilityLabel("Laatste wijziging terugdraaien")
+
+                        Button {
+                            focusedField = nil
+                        } label: {
+                            Image(systemName: "checkmark")
+                                .font(.system(size: 18, weight: .medium))
+                                .frame(width: 44, height: 44)
+                        }
+                        .glassEffect(.regular.interactive(), in: Circle())
+                        .disabled(focusedField == nil)
+                        .accessibilityLabel("Toetsenbord sluiten")
                     }
-                    .disabled(focusedField == nil)
-                    .accessibilityLabel("Toetsenbord sluiten")
                 }
+                .padding(.horizontal, 14)
+                .padding(.vertical, 6)
             }
             .onAppear {
                 modelContext.undoManager = undoManager
+            }
+            .task {
+                scheduleCalendarSync()
+            }
+            .onChange(of: calendarSyncSignature) { _, _ in
+                scheduleCalendarSync()
+            }
+            .onChange(of: calendarSyncEnabled) { _, enabled in
+                if enabled {
+                    scheduleCalendarSync()
+                } else {
+                    calendarSyncTask?.cancel()
+                }
+            }
+            .onChange(of: focusedField) { _, newValue in
+                if newValue == nil {
+                    scheduleCalendarSync()
+                }
             }
         }
     }
@@ -85,6 +148,21 @@ struct AgendaView: View {
 
         return entries.contains {
             AppCalendar.isSameDay($0.date, day.date) && !$0.isDone
+        }
+    }
+
+    private func scheduleCalendarSync() {
+        calendarSyncTask?.cancel()
+        guard calendarSyncEnabled, focusedField == nil else { return }
+
+        calendarSyncTask = Task(priority: .background) { @MainActor in
+            try? await Task.sleep(for: .seconds(2))
+            guard !Task.isCancelled, focusedField == nil else { return }
+            try? modelContext.save()
+            try? CalendarSyncService.syncAll(in: modelContext)
+            // Persist the EventKit identifiers assigned during this sync. Without
+            // this second save, a fast app close can create duplicate events later.
+            try? modelContext.save()
         }
     }
 }
@@ -115,19 +193,21 @@ struct WeekCard: View {
 
     private var startDateLabel: String {
         let formatter = DateFormatter()
-        formatter.locale = Locale(identifier: "nl_NL")
+        let language = AppLanguage(
+            rawValue: UserDefaults.standard.string(forKey: SettingsKeys.language) ?? ""
+        ) ?? .system
+        formatter.locale = language.locale
         formatter.dateFormat = "d MMMM"
         return formatter.string(from: week.startDate)
     }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Label(
-                "week #\(week.weekNumber) - start \(startDateLabel)",
-                systemImage: "calendar"
-            )
-                .font(.system(size: 17, design: .monospaced))
-                .foregroundStyle(.secondary)
+            Text("week #\(week.weekNumber) - start \(startDateLabel)")
+                .font(.system(size: 13, design: .monospaced))
+                .foregroundStyle(.primary)
+                .frame(maxWidth: .infinity, alignment: .center)
+                .padding(.horizontal, 14)
 
             VStack(alignment: .leading, spacing: 7) {
                 ForEach(visibleDays) { day in
@@ -138,12 +218,12 @@ struct WeekCard: View {
                     )
                 }
             }
-        }
-        .padding(.horizontal, 14)
-        .padding(.vertical, 13)
-        .background {
-            RoundedRectangle(cornerRadius: 17)
-                .fill(Color(.secondarySystemBackground))
+            .padding(.horizontal, 14)
+            .padding(.vertical, 13)
+            .background {
+                RoundedRectangle(cornerRadius: 17)
+                    .fill(Color(.secondarySystemBackground))
+            }
         }
     }
 
@@ -222,12 +302,17 @@ struct AgendaEntryLine: View {
     @Environment(\.modelContext)
     private var modelContext
 
+    @AppStorage(SettingsKeys.calendarSyncEnabled)
+    private var calendarSyncEnabled = false
+
+    @State private var isDeleting = false
+
     var body: some View {
         HStack(alignment: .firstTextBaseline, spacing: 5) {
             AgendaLinePrefix(dateLabel: dateLabel, weekdayLetter: weekdayLetter)
 
             TextField("", text: $entry.rawText, axis: .vertical)
-                .font(.system(size: 15, design: .monospaced))
+                .font(.system(size: 13, design: .monospaced))
                 .textFieldStyle(.plain)
                 .lineLimit(1...)
                 .strikethrough(entry.isDone)
@@ -238,24 +323,53 @@ struct AgendaEntryLine: View {
                         entry.rawText = entry.rawText
                             .replacingOccurrences(of: "\n", with: "")
                         entry.refreshParsedFields()
-                        focusedField.wrappedValue = .newEntry(entry.date)
+                        focusedField.wrappedValue = nil
                         return
                     }
 
                     if entry.rawText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                        modelContext.delete(entry)
+                        guard !isDeleting else { return }
+                        isDeleting = true
+                        focusedField.wrappedValue = nil
+                        AppKeyboard.dismiss()
+
+                        let eventIdentifier = entry.calendarEventIdentifier
+                        let allEntries = (try? modelContext.fetch(FetchDescriptor<DayEntry>())) ?? []
+                        let eventIsShared = eventIdentifier.map { identifier in
+                            allEntries.contains {
+                                $0.id != entry.id && $0.calendarEventIdentifier == identifier
+                            }
+                        } ?? false
+
+                        Task { @MainActor in
+                            await Task.yield()
+                            modelContext.delete(entry)
+                            try? modelContext.save()
+
+                            if calendarSyncEnabled,
+                               !eventIsShared,
+                               let eventIdentifier {
+                                Task(priority: .background) { @MainActor in
+                                    try? await Task.sleep(for: .seconds(2))
+                                    guard !Task.isCancelled else { return }
+                                    try? CalendarSyncService.deleteEvent(
+                                        withIdentifier: eventIdentifier
+                                    )
+                                }
+                            }
+                        }
                         return
                     }
                 }
                 .onChange(of: focusedField.wrappedValue) { oldValue, newValue in
-                    if oldValue == .entry(entry.id), newValue != oldValue {
+                    if !isDeleting, oldValue == .entry(entry.id), newValue != oldValue {
                         entry.refreshParsedFields()
                     }
                 }
 
             if entry.isUncertain {
                 Image(systemName: "questionmark.circle")
-                    .font(.system(size: 12))
+                    .font(.system(size: 11))
                     .foregroundStyle(.secondary)
             }
 
@@ -265,7 +379,7 @@ struct AgendaEntryLine: View {
                 entry.toggleDone()
             } label: {
                 Image(systemName: entry.isDone ? "checkmark.circle.fill" : "circle")
-                    .font(.system(size: 14))
+                    .font(.system(size: 12))
                     .symbolRenderingMode(.hierarchical)
             }
             .buttonStyle(.plain)
@@ -285,14 +399,17 @@ struct AgendaInputLine: View {
 
     @State private var text = ""
 
+    @AppStorage(SettingsKeys.agendaPlaceholder)
+    private var agendaPlaceholder = "x"
+
     var body: some View {
         HStack(alignment: .top, spacing: 5) {
             AgendaLinePrefix(dateLabel: dateLabel, weekdayLetter: weekdayLetter)
 
             ZStack(alignment: .leading) {
                 if text.isEmpty {
-                    Text("typ iets")
-                        .font(.system(size: 15, design: .monospaced))
+                    Text(agendaPlaceholder)
+                        .font(.system(size: 13, design: .monospaced))
                         .foregroundStyle(.secondary)
                         .lineLimit(1)
                         .fixedSize(horizontal: true, vertical: false)
@@ -300,7 +417,7 @@ struct AgendaInputLine: View {
                 }
 
                 TextField("", text: $text, axis: .vertical)
-                    .font(.system(size: 15, design: .monospaced))
+                    .font(.system(size: 13, design: .monospaced))
                     .textFieldStyle(.plain)
                     .lineLimit(1...)
                     .foregroundStyle(.primary)
@@ -312,10 +429,10 @@ struct AgendaInputLine: View {
                         }
 
                         text = newValue.replacingOccurrences(of: "\n", with: "")
-                        addEntry()
+                        finishEntry()
                     }
                     .onSubmit {
-                        addEntry()
+                        finishEntry()
                     }
             }
 
@@ -323,14 +440,22 @@ struct AgendaInputLine: View {
                 addEntry()
             } label: {
                 Image(systemName: "plus.circle")
-                    .font(.system(size: 14))
+                    .font(.system(size: 12))
             }
             .buttonStyle(.plain)
             .opacity(text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? 0 : 1)
         }
+        .onChange(of: focusedField.wrappedValue) { oldValue, newValue in
+            if oldValue == .newEntry(date), newValue != oldValue {
+                addEntry(continueEditing: false)
+            }
+        }
+        .onDisappear {
+            addEntry(continueEditing: false)
+        }
     }
 
-    private func addEntry() {
+    private func addEntry(continueEditing: Bool = true) {
         let cleanText = text.trimmingCharacters(in: .whitespacesAndNewlines)
 
         guard !cleanText.isEmpty else {
@@ -351,10 +476,17 @@ struct AgendaInputLine: View {
             text = ""
         }
 
-        // Keep typing on the newly-created line after Return is pressed.
-        Task { @MainActor in
-            focusedField.wrappedValue = .newEntry(date)
+        if continueEditing {
+            // Enter and the plus button continue on a fresh entry for this day.
+            Task { @MainActor in
+                focusedField.wrappedValue = .newEntry(date)
+            }
         }
+    }
+
+    private func finishEntry() {
+        addEntry(continueEditing: false)
+        focusedField.wrappedValue = nil
     }
 }
 
@@ -368,11 +500,11 @@ private struct AgendaLinePrefix: View {
                 .foregroundStyle(dateLabel.isEmpty ? .clear : .primary)
 
             Text(weekdayLetter)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(.primary)
 
             Text("|")
-                .foregroundStyle(.secondary)
+                .foregroundStyle(.primary)
         }
-        .font(.system(size: 15, design: .monospaced))
+        .font(.system(size: 13, design: .monospaced))
     }
 }

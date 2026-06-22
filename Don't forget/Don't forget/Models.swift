@@ -32,6 +32,7 @@ final class DayEntry {
 
     var createdAt: Date
     var completedAt: Date?
+    var calendarEventIdentifier: String?
 
     init(
         date: Date,
@@ -51,6 +52,7 @@ final class DayEntry {
         self.manualOrder = manualOrder
         self.createdAt = .now
         self.completedAt = nil
+        self.calendarEventIdentifier = nil
 
         refreshParsedFields()
     }

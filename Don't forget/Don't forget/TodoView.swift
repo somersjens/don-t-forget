@@ -2,8 +2,17 @@ import SwiftUI
 import SwiftData
 
 struct TodoView: View {
+    @Environment(\.modelContext)
+    private var modelContext
+
+    @Environment(\.undoManager)
+    private var undoManager
+
     @Query(sort: \TodoItem.createdAt, order: .forward)
     private var todos: [TodoItem]
+
+    @State private var isScrolled = false
+    @State private var isKeyboardVisible = false
 
     var body: some View {
         NavigationStack {
@@ -33,7 +42,58 @@ struct TodoView: View {
                 .padding(.horizontal, 14)
                 .padding(.vertical, 12)
             }
-            .navigationTitle("To-do")
+            .scrollEdgeEffectStyle(.soft, for: .top)
+            .onScrollGeometryChange(for: Bool.self) { geometry in
+                geometry.contentOffset.y + geometry.contentInsets.top > 12
+            } action: { _, newValue in
+                isScrolled = newValue
+            }
+            .toolbar(.hidden, for: .navigationBar)
+            .safeAreaInset(edge: .top, spacing: 0) {
+                HStack {
+                    Text("To-do")
+                        .font(.system(size: 26, weight: .bold))
+                        .opacity(isScrolled ? 0 : 1)
+                        .animation(.easeOut(duration: 0.18), value: isScrolled)
+
+                    Spacer()
+
+                    HStack(spacing: 10) {
+                        Button {
+                            undoManager?.undo()
+                        } label: {
+                            Image(systemName: "arrow.uturn.backward")
+                                .font(.system(size: 18, weight: .medium))
+                                .frame(width: 44, height: 44)
+                        }
+                        .glassEffect(.regular.interactive(), in: Circle())
+                        .disabled(!(undoManager?.canUndo ?? false))
+                        .accessibilityLabel("Laatste wijziging terugdraaien")
+
+                        Button {
+                            AppKeyboard.dismiss()
+                        } label: {
+                            Image(systemName: "checkmark")
+                                .font(.system(size: 18, weight: .medium))
+                                .frame(width: 44, height: 44)
+                        }
+                        .glassEffect(.regular.interactive(), in: Circle())
+                        .disabled(!isKeyboardVisible)
+                        .accessibilityLabel("Toetsenbord sluiten")
+                    }
+                }
+                .padding(.horizontal, 14)
+                .padding(.vertical, 6)
+            }
+            .onAppear {
+                modelContext.undoManager = undoManager
+            }
+            .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillShowNotification)) { _ in
+                isKeyboardVisible = true
+            }
+            .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillHideNotification)) { _ in
+                isKeyboardVisible = false
+            }
         }
     }
 
@@ -59,7 +119,7 @@ struct TodoBucketCard: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             Label(title, systemImage: icon)
-                .font(.subheadline)
+                .font(.system(size: 13, weight: .semibold))
                 .foregroundStyle(.secondary)
 
             VStack(alignment: .leading, spacing: 8) {
@@ -91,13 +151,13 @@ struct TodoLine: View {
                 todo.toggleDone()
             } label: {
                 Image(systemName: todo.isDone ? "checkmark.circle.fill" : "circle")
-                    .font(.system(size: 15))
+                    .font(.system(size: 13))
                     .symbolRenderingMode(.hierarchical)
             }
             .buttonStyle(.plain)
 
             TextField("", text: $todo.text, axis: .vertical)
-                .font(.system(size: 17, design: .monospaced))
+                .font(.system(size: 15, design: .monospaced))
                 .textFieldStyle(.plain)
                 .strikethrough(todo.isDone)
                 .foregroundStyle(todo.isDone ? .secondary : .primary)
@@ -122,7 +182,7 @@ struct TodoLine: View {
                 }
             } label: {
                 Image(systemName: "arrow.left.arrow.right")
-                    .font(.system(size: 12))
+                    .font(.system(size: 11))
                     .foregroundStyle(.secondary)
             }
 
@@ -130,7 +190,7 @@ struct TodoLine: View {
                 todo.showOnWidget.toggle()
             } label: {
                 Image(systemName: todo.showOnWidget ? "iphone.gen3" : "iphone.slash")
-                    .font(.system(size: 12))
+                    .font(.system(size: 11))
                     .foregroundStyle(.secondary)
             }
             .buttonStyle(.plain)
@@ -139,7 +199,7 @@ struct TodoLine: View {
                 modelContext.delete(todo)
             } label: {
                 Image(systemName: "trash")
-                    .font(.system(size: 12))
+                    .font(.system(size: 11))
                     .foregroundStyle(.secondary)
             }
             .buttonStyle(.plain)
@@ -158,11 +218,11 @@ struct NewTodoLine: View {
     var body: some View {
         HStack(alignment: .firstTextBaseline, spacing: 8) {
             Image(systemName: "plus.circle")
-                .font(.system(size: 15))
+                .font(.system(size: 13))
                 .foregroundStyle(.secondary)
 
             TextField("typ iets", text: $text, axis: .vertical)
-                .font(.system(size: 17, design: .monospaced))
+                .font(.system(size: 15, design: .monospaced))
                 .textFieldStyle(.plain)
                 .foregroundStyle(.secondary)
                 .onSubmit {
@@ -173,7 +233,7 @@ struct NewTodoLine: View {
                 addTodo()
             } label: {
                 Image(systemName: "return")
-                    .font(.system(size: 12))
+                    .font(.system(size: 11))
             }
             .buttonStyle(.plain)
             .opacity(text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? 0 : 1)

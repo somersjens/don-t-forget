@@ -17,9 +17,22 @@ struct DayInfo: Identifiable {
 
 enum AppCalendar {
     static var calendar: Calendar {
-        var calendar = Calendar(identifier: .iso8601)
+        let defaults = UserDefaults.standard
+        let weekStart = WeekStartOption(
+            rawValue: defaults.string(forKey: SettingsKeys.weekStart) ?? ""
+        ) ?? .monday
+        let weekRule = WeekNumberRule(
+            rawValue: defaults.string(forKey: SettingsKeys.weekNumberRule) ?? ""
+        ) ?? .iso8601
+        let language = AppLanguage(
+            rawValue: defaults.string(forKey: SettingsKeys.language) ?? ""
+        ) ?? .system
+
+        var calendar = Calendar(identifier: .gregorian)
         calendar.timeZone = .current
-        calendar.locale = .current
+        calendar.locale = language.locale
+        calendar.firstWeekday = weekStart.calendarWeekday
+        calendar.minimumDaysInFirstWeek = weekRule == .iso8601 ? 4 : 1
         return calendar
     }
 
@@ -71,18 +84,36 @@ enum AppCalendar {
 
     private static func dateLabel(for date: Date) -> String {
         let formatter = DateFormatter()
+        formatter.locale = calendar.locale
         formatter.dateFormat = "dd-MM"
         return formatter.string(from: date)
     }
 
     private static func monthTitle(for date: Date) -> String {
         let formatter = DateFormatter()
+        formatter.locale = calendar.locale
         formatter.dateFormat = "MMMM"
         return formatter.string(from: date).capitalized
     }
 
     private static func weekdayLetter(for date: Date) -> String {
         let weekday = calendar.component(.weekday, from: date)
+
+        let language = AppLanguage(
+            rawValue: UserDefaults.standard.string(forKey: SettingsKeys.language) ?? ""
+        ) ?? .system
+
+        if language == .english {
+            switch weekday {
+            case 2: return "M"
+            case 3: return "T"
+            case 4: return "W"
+            case 5: return "T"
+            case 6: return "F"
+            case 7: return "S"
+            default: return "S"
+            }
+        }
 
         switch weekday {
         case 2: return "M"

@@ -20,6 +20,8 @@ struct HistoryView: View {
     private var todos: [TodoItem]
 
     @State private var filter: HistoryFilter = .all
+    @State private var isScrolled = false
+    @State private var isShowingSettings = false
 
     private var historyRows: [HistoryRow] {
         let agendaRows = entries
@@ -103,18 +105,49 @@ struct HistoryView: View {
 
                                 VStack(alignment: .leading, spacing: 4) {
                                     Text(row.title)
-                                        .font(.callout)
+                                        .font(.system(size: 14))
 
                                     Text("\(row.source) · \(row.completedAt.formatted(date: .abbreviated, time: .shortened))")
-                                        .font(.caption2)
+                                        .font(.system(size: 10))
                                         .foregroundStyle(.secondary)
                                 }
                             }
                         }
                     }
+                    .scrollEdgeEffectStyle(.soft, for: .top)
+                    .onScrollGeometryChange(for: Bool.self) { geometry in
+                        geometry.contentOffset.y + geometry.contentInsets.top > 12
+                    } action: { _, newValue in
+                        isScrolled = newValue
+                    }
                 }
             }
-            .navigationTitle("History")
+            .toolbar(.hidden, for: .navigationBar)
+            .safeAreaInset(edge: .top, spacing: 0) {
+                HStack {
+                    Text("History")
+                        .font(.system(size: 26, weight: .bold))
+                        .opacity(isScrolled ? 0 : 1)
+                        .animation(.easeOut(duration: 0.18), value: isScrolled)
+
+                    Spacer()
+
+                    Button {
+                        isShowingSettings = true
+                    } label: {
+                        Image(systemName: "gearshape")
+                            .font(.system(size: 18, weight: .medium))
+                            .frame(width: 44, height: 44)
+                    }
+                    .glassEffect(.regular.interactive(), in: Circle())
+                    .accessibilityLabel("Instellingen")
+                }
+                .padding(.horizontal, 14)
+                .padding(.vertical, 12)
+            }
+            .sheet(isPresented: $isShowingSettings) {
+                SettingsView()
+            }
         }
     }
 }
