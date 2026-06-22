@@ -316,7 +316,7 @@ struct AgendaEntryLine: View {
                 .textFieldStyle(.plain)
                 .lineLimit(1...)
                 .strikethrough(entry.isDone)
-                .foregroundStyle(entry.isDone ? .secondary : .primary)
+                .foregroundStyle(entry.isDone ? Color.secondary : entryAccentColor)
                 .focused(focusedField, equals: .entry(entry.id))
                 .onChange(of: entry.rawText) { _, _ in
                     if entry.rawText.contains("\n") {
@@ -381,8 +381,24 @@ struct AgendaEntryLine: View {
                 Image(systemName: entry.isDone ? "checkmark.circle.fill" : "circle")
                     .font(.system(size: 12))
                     .symbolRenderingMode(.hierarchical)
+                    .foregroundStyle(entryAccentColor)
             }
             .buttonStyle(.plain)
+        }
+    }
+
+    private var entryAccentColor: Color {
+        switch entry.accentRawValue {
+        case RecurringTheme.birthday.rawValue:
+            return .blue
+        case "birthdayReminder":
+            return .cyan.opacity(0.72)
+        case RecurringTheme.general.rawValue:
+            return Color(red: 0.72, green: 0.53, blue: 0.02)
+        case RecurringTheme.personal.rawValue:
+            return .green
+        default:
+            return .primary
         }
     }
 }
