@@ -246,8 +246,11 @@ struct AgendaEntryLine: View {
                         modelContext.delete(entry)
                         return
                     }
-
-                    entry.refreshParsedFields()
+                }
+                .onChange(of: focusedField.wrappedValue) { oldValue, newValue in
+                    if oldValue == .entry(entry.id), newValue != oldValue {
+                        entry.refreshParsedFields()
+                    }
                 }
 
             if entry.isUncertain {
@@ -283,31 +286,38 @@ struct AgendaInputLine: View {
     @State private var text = ""
 
     var body: some View {
-        HStack(alignment: .firstTextBaseline, spacing: 5) {
+        HStack(alignment: .top, spacing: 5) {
             AgendaLinePrefix(dateLabel: dateLabel, weekdayLetter: weekdayLetter)
 
-            TextField(
-                "typ\u{00A0}iets",
-                text: $text,
-                axis: .vertical
-            )
-                .font(.system(size: 15, design: .monospaced))
-                .textFieldStyle(.plain)
-                .lineLimit(1...)
-                .foregroundStyle(.primary)
-                .focused(focusedField, equals: .newEntry(date))
-                .submitLabel(.return)
-                .onChange(of: text) { _, newValue in
-                    guard newValue.contains("\n") else {
-                        return
-                    }
+            ZStack(alignment: .leading) {
+                if text.isEmpty {
+                    Text("typ iets")
+                        .font(.system(size: 15, design: .monospaced))
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                        .fixedSize(horizontal: true, vertical: false)
+                        .allowsHitTesting(false)
+                }
 
-                    text = newValue.replacingOccurrences(of: "\n", with: "")
-                    addEntry()
-                }
-                .onSubmit {
-                    addEntry()
-                }
+                TextField("", text: $text, axis: .vertical)
+                    .font(.system(size: 15, design: .monospaced))
+                    .textFieldStyle(.plain)
+                    .lineLimit(1...)
+                    .foregroundStyle(.primary)
+                    .focused(focusedField, equals: .newEntry(date))
+                    .submitLabel(.return)
+                    .onChange(of: text) { _, newValue in
+                        guard newValue.contains("\n") else {
+                            return
+                        }
+
+                        text = newValue.replacingOccurrences(of: "\n", with: "")
+                        addEntry()
+                    }
+                    .onSubmit {
+                        addEntry()
+                    }
+            }
 
             Button {
                 addEntry()
@@ -333,8 +343,13 @@ struct AgendaInputLine: View {
             manualOrder: nextOrder
         )
 
-        modelContext.insert(entry)
-        text = ""
+        var transaction = Transaction()
+        transaction.disablesAnimations = true
+
+        withTransaction(transaction) {
+            modelContext.insert(entry)
+            text = ""
+        }
 
         // Keep typing on the newly-created line after Return is pressed.
         Task { @MainActor in
