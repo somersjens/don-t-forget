@@ -70,6 +70,7 @@ final class DayEntry {
     var calendarEventIdentifier: String?
     var recurringItemIdentifier: UUID?
     var recurringOccurrenceKey: String?
+    var recurringDateOverride: Date?
     var accentRawValue: String = "none"
 
     init(
@@ -93,6 +94,7 @@ final class DayEntry {
         self.calendarEventIdentifier = nil
         self.recurringItemIdentifier = nil
         self.recurringOccurrenceKey = nil
+        self.recurringDateOverride = nil
         self.accentRawValue = "none"
 
         refreshParsedFields()
@@ -186,6 +188,7 @@ final class RecurringItem {
     var monthlyWeekday: Int = 2
     var reminderDaysBefore: Int?
     var birthDate: Date?
+    var notes: String = ""
     var recurrenceConfigurationVersion: Int = 0
 
     var createdAt: Date
@@ -204,7 +207,8 @@ final class RecurringItem {
         monthlyOrdinal: Int = 1,
         monthlyWeekday: Int = 2,
         reminderDaysBefore: Int? = nil,
-        birthDate: Date? = nil
+        birthDate: Date? = nil,
+        notes: String = ""
     ) {
         self.id = UUID()
         self.title = title
@@ -220,7 +224,8 @@ final class RecurringItem {
         self.monthlyOrdinal = min(max(1, monthlyOrdinal), 5)
         self.monthlyWeekday = min(max(1, monthlyWeekday), 7)
         self.reminderDaysBefore = reminderDaysBefore
-        self.birthDate = birthDate.map(AppCalendar.startOfDay)
+        self.birthDate = birthDate.map { AppCalendar.startOfDay($0) }
+        self.notes = notes
         self.recurrenceConfigurationVersion = frequencyText
             .trimmingCharacters(in: .whitespacesAndNewlines)
             .isEmpty ? 1 : 0

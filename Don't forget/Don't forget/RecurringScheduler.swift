@@ -70,7 +70,7 @@ enum RecurringScheduler {
                 key: "occurrence:\(dateKey)",
                 date: date,
                 title: occurrenceTitle,
-                accent: item.theme.rawValue
+                accent: item.themeRawValue
             ))
 
             if item.recurrenceKind == .birthday,
@@ -111,25 +111,32 @@ enum RecurringScheduler {
         }
         remove(staleEntries, from: &allEntries, in: modelContext)
 
-        for desiredEntry in desired {
-            let existing = allEntries.first {
-                $0.recurringItemIdentifier == item.id &&
-                $0.recurringOccurrenceKey == desiredEntry.key
-            } ?? allEntries.first {
-                $0.recurringItemIdentifier == nil &&
-                $0.source == .recurring &&
-                AppCalendar.isSameDay($0.date, desiredEntry.date) &&
-                ($0.rawText == item.title || $0.rawText == desiredEntry.title)
+        let linkedByKey = Dictionary(
+            grouping: allEntries.filter { $0.recurringItemIdentifier == item.id },
+            by: { $0.recurringOccurrenceKey ?? "" }
+        )
+        let legacyByDateAndTitle = Dictionary(
+            grouping: allEntries.filter {
+                $0.recurringItemIdentifier == nil && $0.source == .recurring
             }
+        ) { entry in
+            LegacyEntryKey(date: entry.date, title: entry.rawText)
+        }
+
+        for desiredEntry in desired {
+            let legacyEntry = legacyByDateAndTitle[
+                LegacyEntryKey(date: desiredEntry.date, title: item.title)
+            ]?.first ?? legacyByDateAndTitle[
+                LegacyEntryKey(date: desiredEntry.date, title: desiredEntry.title)
+            ]?.first
+            let existing = linkedByKey[desiredEntry.key]?.first ?? legacyEntry
 
             if let existing {
-                existing.date = AppCalendar.startOfDay(desiredEntry.date)
-                existing.rawText = desiredEntry.title
-                existing.showOnWidget = item.showOnWidget
-                existing.recurringItemIdentifier = item.id
-                existing.recurringOccurrenceKey = desiredEntry.key
-                existing.accentRawValue = desiredEntry.accent
-                existing.refreshParsedFields()
+                update(
+                    existing,
+                    with: desiredEntry,
+                    item: item
+                )
             } else {
                 let entry = DayEntry(
                     date: desiredEntry.date,
@@ -144,6 +151,48 @@ enum RecurringScheduler {
                 modelContext.insert(entry)
                 allEntries.append(entry)
             }
+        }
+    }
+
+    private struct LegacyEntryKey: Hashable {
+        let date: Date
+        let title: String
+
+        init(date: Date, title: String) {
+            self.date = AppCalendar.startOfDay(date)
+            self.title = title
+        }
+    }
+
+    private static func update(
+        _ entry: DayEntry,
+        with desiredEntry: DesiredEntry,
+        item: RecurringItem
+    ) {
+        let desiredDate = entry.recurringDateOverride
+            ?? AppCalendar.startOfDay(desiredEntry.date)
+        let needsParsing = entry.rawText != desiredEntry.title
+
+        if entry.date != desiredDate {
+            entry.date = desiredDate
+        }
+        if needsParsing {
+            entry.rawText = desiredEntry.title
+        }
+        if entry.showOnWidget != item.showOnWidget {
+            entry.showOnWidget = item.showOnWidget
+        }
+        if entry.recurringItemIdentifier != item.id {
+            entry.recurringItemIdentifier = item.id
+        }
+        if entry.recurringOccurrenceKey != desiredEntry.key {
+            entry.recurringOccurrenceKey = desiredEntry.key
+        }
+        if entry.accentRawValue != desiredEntry.accent {
+            entry.accentRawValue = desiredEntry.accent
+        }
+        if needsParsing {
+            entry.refreshParsedFields()
         }
     }
 
@@ -164,7 +213,7 @@ enum RecurringScheduler {
         })
 
         for identifier in eventIDs.subtracting(remainingEventIDs) {
-            try? CalendarSyncService.deleteEvent(withIdentifier: identifier)
+            CalendarSyncService.enqueueEventDeletion(withIdentifier: identifier)
         }
         for entry in entries {
             modelContext.delete(entry)

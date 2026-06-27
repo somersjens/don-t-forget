@@ -3,6 +3,7 @@ import Foundation
 struct WeekSection: Identifiable {
     let id: Date
     let startDate: Date
+    let startDateLabel: String
     let weekNumber: Int
     let monthTitle: String
     let days: [DayInfo]
@@ -44,35 +45,59 @@ enum AppCalendar {
         startingFrom date: Date = .now,
         numberOfWeeks: Int = 12
     ) -> [WeekSection] {
-        guard let firstWeekStart = calendar.dateInterval(of: .weekOfYear, for: date)?.start else {
+        let configuredCalendar = calendar
+        let dateFormatter = DateFormatter()
+        dateFormatter.locale = configuredCalendar.locale
+        dateFormatter.dateFormat = "dd-MM"
+        let monthFormatter = DateFormatter()
+        monthFormatter.locale = configuredCalendar.locale
+        monthFormatter.dateFormat = "MMMM"
+        let weekStartFormatter = DateFormatter()
+        weekStartFormatter.locale = configuredCalendar.locale
+        weekStartFormatter.dateFormat = "d MMMM"
+
+        guard let firstWeekStart = configuredCalendar.dateInterval(of: .weekOfYear, for: date)?.start else {
             return []
         }
 
         return (0..<numberOfWeeks).compactMap { weekOffset in
-            guard let weekStart = calendar.date(byAdding: .weekOfYear, value: weekOffset, to: firstWeekStart) else {
+            guard let weekStart = configuredCalendar.date(
+                byAdding: .weekOfYear,
+                value: weekOffset,
+                to: firstWeekStart
+            ) else {
                 return nil
             }
 
-            let weekNumber = calendar.component(.weekOfYear, from: weekStart)
+            let weekNumber = configuredCalendar.component(.weekOfYear, from: weekStart)
 
             let days: [DayInfo] = (0..<7).compactMap { dayOffset in
-                guard let dayDate = calendar.date(byAdding: .day, value: dayOffset, to: weekStart) else {
+                guard let dayDate = configuredCalendar.date(
+                    byAdding: .day,
+                    value: dayOffset,
+                    to: weekStart
+                ) else {
                     return nil
                 }
+                let normalizedDate = configuredCalendar.startOfDay(for: dayDate)
 
                 return DayInfo(
-                    id: startOfDay(dayDate),
-                    date: startOfDay(dayDate),
-                    dateLabel: dateLabel(for: dayDate),
-                    weekdayLetter: weekdayLetter(for: dayDate)
+                    id: normalizedDate,
+                    date: normalizedDate,
+                    dateLabel: dateFormatter.string(from: dayDate),
+                    weekdayLetter: weekdayLetter(
+                        for: dayDate,
+                        calendar: configuredCalendar
+                    )
                 )
             }
 
             return WeekSection(
                 id: weekStart,
                 startDate: weekStart,
+                startDateLabel: weekStartFormatter.string(from: weekStart),
                 weekNumber: weekNumber,
-                monthTitle: monthTitle(for: weekStart),
+                monthTitle: monthFormatter.string(from: weekStart).capitalized,
                 days: days
             )
         }
@@ -82,21 +107,7 @@ enum AppCalendar {
         calendar.isDate(first, inSameDayAs: second)
     }
 
-    private static func dateLabel(for date: Date) -> String {
-        let formatter = DateFormatter()
-        formatter.locale = calendar.locale
-        formatter.dateFormat = "dd-MM"
-        return formatter.string(from: date)
-    }
-
-    private static func monthTitle(for date: Date) -> String {
-        let formatter = DateFormatter()
-        formatter.locale = calendar.locale
-        formatter.dateFormat = "MMMM"
-        return formatter.string(from: date).capitalized
-    }
-
-    private static func weekdayLetter(for date: Date) -> String {
+    private static func weekdayLetter(for date: Date, calendar: Calendar) -> String {
         let weekday = calendar.component(.weekday, from: date)
 
         let language = AppLanguage(
