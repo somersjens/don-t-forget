@@ -13,6 +13,7 @@ struct AgendaView: View {
     @State private var activeMoveEntryID: UUID?
     @State private var moveDraftDate = AppCalendar.startOfDay(.now)
     @State private var scrollTargetDate: Date?
+    @State private var loadedFutureWeeks = 26
 
     @AppStorage(SettingsKeys.weekStart) private var weekStartSetting = WeekStartOption.monday.rawValue
     @AppStorage(SettingsKeys.weekNumberRule) private var weekNumberSetting = WeekNumberRule.iso8601.rawValue
@@ -42,7 +43,11 @@ struct AgendaView: View {
             .map(\.date)
             .min()
         let startDate = oldestOpenDate ?? today
-        let defaultEndDate = AppCalendar.calendar.date(byAdding: .year, value: 2, to: today) ?? today
+        let defaultEndDate = AppCalendar.calendar.date(
+            byAdding: .weekOfYear,
+            value: loadedFutureWeeks,
+            to: today
+        ) ?? today
         let endDate = max(defaultEndDate, AppCalendar.startOfDay(moveDraftDate))
         let startOfFirstWeek = AppCalendar.calendar.dateInterval(of: .weekOfYear, for: startDate)?.start ?? startDate
         let startOfLastWeek = AppCalendar.calendar.dateInterval(of: .weekOfYear, for: endDate)?.start ?? endDate
@@ -67,12 +72,14 @@ struct AgendaView: View {
 
     var body: some View {
         let groupedEntries = entriesByDay
+        let visibleWeeks = weeks
+        let loadedWeekLimit = loadedFutureWeeks
 
         NavigationStack {
             ScrollViewReader { proxy in
                 ScrollView {
                     LazyVStack(spacing: 8) {
-                        ForEach(weeks) { week in
+                        ForEach(Array(visibleWeeks.enumerated()), id: \.element.id) { index, week in
                             WeekCard(
                                 week: week,
                                 entriesByDay: groupedEntries,
@@ -89,6 +96,11 @@ struct AgendaView: View {
                                 }
                             )
                             .id(AgendaScrollTarget.week(week.startDate))
+                            .onAppear {
+                                if index >= visibleWeeks.count - 5 {
+                                    loadMoreFutureWeeks(ifCurrentLimitIs: loadedWeekLimit)
+                                }
+                            }
                         }
                     }
                     .padding(.horizontal, 14)
@@ -196,6 +208,11 @@ struct AgendaView: View {
         entry.refreshParsedFields()
         renumber(entries: targetEntries, inserting: entry, at: targetIndex)
         try? modelContext.save()
+    }
+
+    private func loadMoreFutureWeeks(ifCurrentLimitIs expectedLimit: Int) {
+        guard loadedFutureWeeks == expectedLimit, loadedFutureWeeks < 105 else { return }
+        loadedFutureWeeks = min(loadedFutureWeeks + 13, 105)
     }
 
     private func moveEntryToStartOfUntimedEntries(_ entryID: UUID, on targetDate: Date) {
@@ -562,21 +579,7 @@ struct AgendaEntryLine: View {
                     }
                     .accessibilityLabel("Verplaatsopties")
 
-                TextField("", text: $entry.rawText, axis: .vertical)
-                    .font(.system(size: 16, weight: .regular))
-                    .textFieldStyle(.plain)
-                    .lineLimit(1...)
-                    .strikethrough(entry.isDone)
-                    .foregroundStyle(entry.isDone ? Color.secondary : entryAccentColor)
-                    .focused(focusedField, equals: .entry(entry.id))
-                    .onChange(of: entry.rawText) { _, _ in
-                        handleTextChange()
-                    }
-                    .onChange(of: focusedField.wrappedValue) { oldValue, newValue in
-                        if !isDeleting, oldValue == .entry(entry.id), newValue != oldValue {
-                            entry.refreshParsedFields()
-                        }
-                    }
+                entryContent
 
                 if entry.isUncertain {
                     Image(systemName: "questionmark.circle")
@@ -612,6 +615,36 @@ struct AgendaEntryLine: View {
                 )
             }
         }
+        .onChange(of: focusedField.wrappedValue) { oldValue, newValue in
+            if !isDeleting, oldValue == .entry(entry.id), newValue != oldValue {
+                entry.refreshParsedFields()
+            }
+        }
+    }
+
+    @ViewBuilder private var entryContent: some View {
+        Group {
+            if focusedField.wrappedValue == .entry(entry.id) {
+                TextField("", text: $entry.rawText, axis: .vertical)
+                    .textFieldStyle(.plain)
+                    .focused(focusedField, equals: .entry(entry.id))
+                    .onChange(of: entry.rawText) { _, _ in
+                        handleTextChange()
+                    }
+            } else {
+                Text(entry.rawText)
+                    .contentShape(Rectangle())
+                    .onTapGesture {
+                        focusedField.wrappedValue = .entry(entry.id)
+                    }
+                    .accessibilityAddTraits(.isButton)
+            }
+        }
+        .font(.system(size: 16, weight: .regular))
+        .lineLimit(1...)
+        .strikethrough(entry.isDone)
+        .foregroundStyle(entry.isDone ? Color.secondary : entryAccentColor)
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     private func handleTextChange() {
@@ -692,35 +725,44 @@ struct AgendaInputLine: View {
         HStack(alignment: .top, spacing: AgendaLayout.rowSpacing) {
             AgendaLinePrefix(dateLabel: dateLabel, weekdayLetter: weekdayLetter)
 
-            ZStack(alignment: .leading) {
-                if text.isEmpty && !placeholderText.isEmpty {
-                    Text(placeholderText)
-                        .font(.system(size: 16, weight: .regular))
-                        .foregroundStyle(.secondary)
-                        .lineLimit(1)
-                        .fixedSize(horizontal: true, vertical: false)
-                        .allowsHitTesting(false)
-                }
-
-                TextField("", text: $text, axis: .vertical)
-                    .font(.system(size: 16, weight: .regular))
-                    .textFieldStyle(.plain)
-                    .lineLimit(1...)
-                    .foregroundStyle(.primary)
-                    .focused(focusedField, equals: .newEntry(date))
-                    .submitLabel(.return)
-                    .onChange(of: text) { _, newValue in
-                        guard newValue.contains("\n") else {
-                            return
+            Group {
+                if focusedField.wrappedValue == .newEntry(date) || !text.isEmpty {
+                    ZStack(alignment: .leading) {
+                        if text.isEmpty && !placeholderText.isEmpty {
+                            Text(placeholderText)
+                                .foregroundStyle(.secondary)
+                                .allowsHitTesting(false)
                         }
 
-                        text = newValue.replacingOccurrences(of: "\n", with: "")
-                        finishEntry()
+                        TextField("", text: $text, axis: .vertical)
+                            .textFieldStyle(.plain)
+                            .focused(focusedField, equals: .newEntry(date))
+                            .submitLabel(.return)
+                            .onChange(of: text) { _, newValue in
+                                guard newValue.contains("\n") else { return }
+                                text = newValue.replacingOccurrences(of: "\n", with: "")
+                                finishEntry()
+                            }
+                            .onSubmit {
+                                finishEntry()
+                            }
                     }
-                    .onSubmit {
-                        finishEntry()
-                    }
+                } else {
+                    Text(placeholderText)
+                        .foregroundStyle(.secondary)
+                        .frame(maxWidth: .infinity, minHeight: 22, alignment: .leading)
+                        .contentShape(Rectangle())
+                        .onTapGesture {
+                            focusedField.wrappedValue = .newEntry(date)
+                        }
+                        .accessibilityLabel(placeholderText.isEmpty ? "Nieuw agenda-item" : placeholderText)
+                        .accessibilityAddTraits(.isButton)
+                }
             }
+            .font(.system(size: 16, weight: .regular))
+            .lineLimit(1...)
+            .foregroundStyle(.primary)
+            .frame(maxWidth: .infinity, alignment: .leading)
 
             Button {
                 addEntry()
