@@ -22,7 +22,7 @@ enum RecurringTheme: String, Codable, CaseIterable, Identifiable {
 
     var title: String {
         switch self {
-        case .birthday: "Verjaardag"
+        case .birthday: "Verjaardagen"
         case .general: "Algemeen"
         case .personal: "Persoonlijk"
         }
@@ -31,6 +31,7 @@ enum RecurringTheme: String, Codable, CaseIterable, Identifiable {
 
 enum RecurrenceKind: String, Codable, CaseIterable, Identifiable {
     case interval
+    case quarterly
     case monthlyDay
     case monthlyOrdinalWeekday
     case approximateInterval
@@ -188,6 +189,7 @@ final class RecurringItem {
     var monthlyWeekday: Int = 2
     var reminderDaysBefore: Int?
     var birthDate: Date?
+    var birthdayYearUncertain: Bool = false
     var notes: String = ""
     var recurrenceConfigurationVersion: Int = 0
 

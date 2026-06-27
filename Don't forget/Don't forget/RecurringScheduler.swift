@@ -55,7 +55,7 @@ enum RecurringScheduler {
 
         for date in dates {
             let dateKey = occurrenceDateKey(date)
-            let age = item.recurrenceKind == .birthday
+            let age = item.recurrenceKind == .birthday && !item.birthdayYearUncertain
                 ? RecurrenceEngine.ageTurning(for: item, on: date)
                 : nil
             let occurrenceTitle: String
