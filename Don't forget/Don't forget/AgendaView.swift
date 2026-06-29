@@ -41,6 +41,11 @@ struct AgendaView: View {
         Dictionary(grouping: entries) { AppCalendar.startOfDay($0.date) }
     }
 
+    private var activeMoveEntryHasTime: Bool {
+        guard let activeMoveEntryID else { return false }
+        return entries.first(where: { $0.id == activeMoveEntryID })?.hasTime == true
+    }
+
     private var weeks: [WeekSection] {
         let today = AppCalendar.startOfDay(.now)
         let oldestOpenDate = entries
@@ -94,6 +99,7 @@ struct AgendaView: View {
                                 moveEntryToTodo: moveEntryToTodo,
                                 todoGroups: todoGroups,
                                 activeMoveEntryID: $activeMoveEntryID,
+                                activeMoveEntryHasTime: activeMoveEntryHasTime,
                                 moveDraftDate: $moveDraftDate,
                                 toggleMoveControls: toggleMoveControls,
                                 scrollToDate: { date in
@@ -248,7 +254,6 @@ struct AgendaView: View {
         if activeMoveEntryID == entry.id {
             activeMoveEntryID = nil
         } else {
-            guard !entry.hasTime else { return }
             activeMoveEntryID = entry.id
             moveDraftDate = AppCalendar.startOfDay(entry.date)
         }
@@ -256,12 +261,27 @@ struct AgendaView: View {
 
     private func moveEntryOneStep(_ entryID: UUID, direction: Int) {
         guard let entry = entries.first(where: { $0.id == entryID }),
-              !entry.hasTime,
               direction != 0 else {
             return
         }
 
         let day = AppCalendar.startOfDay(entry.date)
+
+        // A parsed time determines an item's position within its day. The arrows
+        // therefore move timed items by a day instead of pretending that their
+        // manual order can override that time.
+        if entry.hasTime {
+            guard let targetDay = AppCalendar.calendar.date(
+                byAdding: .day,
+                value: direction < 0 ? -1 : 1,
+                to: day
+            ) else {
+                return
+            }
+            moveEntry(entryID, to: targetDay)
+            return
+        }
+
         let movableEntries = entries
             .filter { AppCalendar.isSameDay($0.date, day) && !$0.hasTime && $0.id != entryID }
             .sorted(by: sortEntries)
@@ -359,9 +379,9 @@ private enum AgendaScrollTarget: Hashable {
 }
 
 private enum AgendaLayout {
-    static let dateWidth: CGFloat = 50
-    static let weekdayWidth: CGFloat = 20
-    static let dateWeekdaySpacing: CGFloat = 4
+    static let dateWidth: CGFloat = 47
+    static let weekdayWidth: CGFloat = 19
+    static let dateWeekdaySpacing: CGFloat = 2
     static let lineSpacing: CGFloat = 6
     static let lineWidth: CGFloat = 1
     static let rowSpacing: CGFloat = 8
@@ -388,6 +408,7 @@ struct WeekCard: View {
     let moveEntryToTodo: (UUID, String) -> Void
     let todoGroups: [TodoGroup]
     @Binding var activeMoveEntryID: UUID?
+    let activeMoveEntryHasTime: Bool
     @Binding var moveDraftDate: Date
     let toggleMoveControls: (DayEntry) -> Void
     let scrollToDate: (Date) -> Void
@@ -427,6 +448,7 @@ struct WeekCard: View {
                         moveEntryToTodo: moveEntryToTodo,
                         todoGroups: todoGroups,
                         activeMoveEntryID: $activeMoveEntryID,
+                        activeMoveEntryHasTime: activeMoveEntryHasTime,
                         moveDraftDate: $moveDraftDate,
                         toggleMoveControls: toggleMoveControls,
                         scrollToDate: scrollToDate
@@ -452,6 +474,7 @@ struct DayBlock: View {
     let moveEntryToTodo: (UUID, String) -> Void
     let todoGroups: [TodoGroup]
     @Binding var activeMoveEntryID: UUID?
+    let activeMoveEntryHasTime: Bool
     @Binding var moveDraftDate: Date
     let toggleMoveControls: (DayEntry) -> Void
     let scrollToDate: (Date) -> Void
@@ -480,12 +503,6 @@ struct DayBlock: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 2) {
             ZStack(alignment: .leading) {
-                Rectangle()
-                    .fill(Color.primary.opacity(0.32))
-                    .frame(width: AgendaLayout.lineWidth)
-                    .padding(.leading, AgendaLayout.lineX)
-                    .padding(.vertical, 3)
-
                 VStack(alignment: .leading, spacing: 2) {
                     if sortedEntries.isEmpty {
                         AgendaInputLine(
@@ -493,7 +510,10 @@ struct DayBlock: View {
                             weekdayLetter: day.weekdayLetter,
                             date: day.date,
                             nextOrder: 0,
-                            focusedField: focusedField
+                            focusedField: focusedField,
+                            isMoveModeActive: activeMoveEntryID != nil,
+                            isMoveTargetHighlighted: activeMoveEntryHasTime,
+                            moveActiveEntryHere: moveActiveEntryHere
                         )
                     } else {
                         ForEach(Array(sortedEntries.enumerated()), id: \.element.id) { index, entry in
@@ -503,10 +523,16 @@ struct DayBlock: View {
                                 entry: entry,
                                 focusedField: focusedField,
                                 isMoveActive: activeMoveEntryID == entry.id,
-                                isMoveModeActive: activeMoveEntryID != nil,
+                                isMoveTargetHighlighted: activeMoveEntryID != nil
+                                    && activeMoveEntryID != entry.id
+                                    && (activeMoveEntryHasTime || entry.hasTime),
                                 moveDraftDate: $moveDraftDate,
-                                toggleMoveControls: {
-                                    toggleMoveControls(entry)
+                                handlePrefixTap: {
+                                    if activeMoveEntryID == nil || activeMoveEntryID == entry.id {
+                                        toggleMoveControls(entry)
+                                    } else {
+                                        moveActiveEntryHere()
+                                    }
                                 },
                                 moveUp: {
                                     moveEntryOneStep(entry.id, -1)
@@ -534,15 +560,44 @@ struct DayBlock: View {
                             weekdayLetter: day.weekdayLetter,
                             date: day.date,
                             nextOrder: Double(sortedEntries.count + 1),
-                            focusedField: focusedField
+                            focusedField: focusedField,
+                            isMoveModeActive: activeMoveEntryID != nil,
+                            isMoveTargetHighlighted: activeMoveEntryHasTime,
+                            moveActiveEntryHere: moveActiveEntryHere
                         )
                     }
                 }
+
+                Rectangle()
+                    .fill(Color.clear)
+                    .frame(width: 17)
+                    .overlay {
+                        Rectangle()
+                            .fill(Color.primary.opacity(0.32))
+                            .frame(width: AgendaLayout.lineWidth)
+                    }
+                    .contentShape(Rectangle())
+                    .padding(.leading, AgendaLayout.lineX - 8)
+                    .padding(.vertical, 3)
+                    .onTapGesture(perform: handleDayLineTap)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .id(AgendaScrollTarget.day(day.date))
+    }
+
+    private func moveActiveEntryHere() {
+        guard let activeMoveEntryID else { return }
+        moveEntry(activeMoveEntryID, day.date, nil)
+    }
+
+    private func handleDayLineTap() {
+        if activeMoveEntryID != nil {
+            moveActiveEntryHere()
+        } else {
+            focusedField.wrappedValue = .newEntry(day.date)
+        }
     }
 
 }
@@ -554,9 +609,9 @@ struct AgendaEntryLine: View {
     @Bindable var entry: DayEntry
     let focusedField: FocusState<AgendaField?>.Binding
     let isMoveActive: Bool
-    let isMoveModeActive: Bool
+    let isMoveTargetHighlighted: Bool
     @Binding var moveDraftDate: Date
-    let toggleMoveControls: () -> Void
+    let handlePrefixTap: () -> Void
     let moveUp: () -> Void
     let moveDown: () -> Void
     let moveToDate: () -> Void
@@ -577,11 +632,11 @@ struct AgendaEntryLine: View {
                     dateLabel: dateLabel,
                     weekdayLetter: weekdayLetter,
                     isMoveActive: isMoveActive,
-                    isTimeLocked: isMoveModeActive && entry.hasTime
+                    isMoveTargetHighlighted: isMoveTargetHighlighted
                 )
                     .contentShape(Rectangle())
                     .onTapGesture {
-                        toggleMoveControls()
+                        handlePrefixTap()
                     }
                     .accessibilityLabel("Verplaatsopties")
 
@@ -629,23 +684,12 @@ struct AgendaEntryLine: View {
     }
 
     @ViewBuilder private var entryContent: some View {
-        Group {
-            if focusedField.wrappedValue == .entry(entry.id) {
-                TextField("", text: $entry.rawText, axis: .vertical)
-                    .textFieldStyle(.plain)
-                    .focused(focusedField, equals: .entry(entry.id))
-                    .onChange(of: entry.rawText) { _, _ in
-                        handleTextChange()
-                    }
-            } else {
-                Text(entry.rawText)
-                    .contentShape(Rectangle())
-                    .onTapGesture {
-                        focusedField.wrappedValue = .entry(entry.id)
-                    }
-                    .accessibilityAddTraits(.isButton)
+        TextField("", text: $entry.rawText, axis: .vertical)
+            .textFieldStyle(.plain)
+            .focused(focusedField, equals: .entry(entry.id))
+            .onChange(of: entry.rawText) { _, _ in
+                handleTextChange()
             }
-        }
         .font(.system(size: 16, weight: .regular))
         .lineLimit(1...)
         .strikethrough(entry.isDone)
@@ -737,6 +781,9 @@ struct AgendaInputLine: View {
     let date: Date
     let nextOrder: Double
     let focusedField: FocusState<AgendaField?>.Binding
+    let isMoveModeActive: Bool
+    let isMoveTargetHighlighted: Bool
+    let moveActiveEntryHere: () -> Void
 
     @Environment(\.modelContext)
     private var modelContext
@@ -748,41 +795,39 @@ struct AgendaInputLine: View {
 
     var body: some View {
         HStack(alignment: .top, spacing: AgendaLayout.rowSpacing) {
-            AgendaLinePrefix(dateLabel: dateLabel, weekdayLetter: weekdayLetter)
-
-            Group {
-                if focusedField.wrappedValue == .newEntry(date) || !text.isEmpty {
-                    ZStack(alignment: .leading) {
-                        if text.isEmpty && !placeholderText.isEmpty {
-                            Text(placeholderText)
-                                .foregroundStyle(.secondary)
-                                .allowsHitTesting(false)
-                        }
-
-                        TextField("", text: $text, axis: .vertical)
-                            .textFieldStyle(.plain)
-                            .focused(focusedField, equals: .newEntry(date))
-                            .submitLabel(.return)
-                            .onChange(of: text) { _, newValue in
-                                guard newValue.contains("\n") else { return }
-                                text = newValue.replacingOccurrences(of: "\n", with: "")
-                                finishEntry()
-                            }
-                            .onSubmit {
-                                finishEntry()
-                            }
+            AgendaLinePrefix(
+                dateLabel: dateLabel,
+                weekdayLetter: weekdayLetter,
+                isMoveTargetHighlighted: isMoveTargetHighlighted
+            )
+                .contentShape(Rectangle())
+                .onTapGesture {
+                    if isMoveModeActive {
+                        moveActiveEntryHere()
+                    } else {
+                        focusedField.wrappedValue = .newEntry(date)
                     }
-                } else {
+                }
+
+            ZStack(alignment: .leading) {
+                if text.isEmpty && !placeholderText.isEmpty {
                     Text(placeholderText)
                         .foregroundStyle(.secondary)
-                        .frame(maxWidth: .infinity, minHeight: 22, alignment: .leading)
-                        .contentShape(Rectangle())
-                        .onTapGesture {
-                            focusedField.wrappedValue = .newEntry(date)
-                        }
-                        .accessibilityLabel(placeholderText.isEmpty ? "Nieuw agenda-item" : placeholderText)
-                        .accessibilityAddTraits(.isButton)
+                        .allowsHitTesting(false)
                 }
+
+                TextField("", text: $text, axis: .vertical)
+                    .textFieldStyle(.plain)
+                    .focused(focusedField, equals: .newEntry(date))
+                    .submitLabel(.return)
+                    .onChange(of: text) { _, newValue in
+                        guard newValue.contains("\n") else { return }
+                        text = newValue.replacingOccurrences(of: "\n", with: "")
+                        finishEntry()
+                    }
+                    .onSubmit {
+                        finishEntry()
+                    }
             }
             .font(.system(size: 16, weight: .regular))
             .lineLimit(1...)
@@ -930,9 +975,8 @@ private struct AgendaMoveControls: View {
     }
 
     private func performStep(_ action: () -> Void) {
-        let transaction = Transaction(
-            animation: .smooth(duration: 0.16, extraBounce: 0)
-        )
+        var transaction = Transaction()
+        transaction.disablesAnimations = true
         withTransaction(transaction) {
             action()
         }
@@ -943,16 +987,17 @@ private struct AgendaLinePrefix: View {
     let dateLabel: String
     let weekdayLetter: String
     var isMoveActive = false
-    var isTimeLocked = false
+    var isMoveTargetHighlighted = false
 
     var body: some View {
         HStack(spacing: AgendaLayout.dateWeekdaySpacing) {
             Text(dateLabel.isEmpty ? "     " : dateLabel)
-                .foregroundStyle(dateLabel.isEmpty ? .clear : .primary)
+                .foregroundStyle(dateLabel.isEmpty ? Color.clear : Color.secondary)
+                .monospacedDigit()
                 .frame(width: AgendaLayout.dateWidth, alignment: .leading)
 
             Text(weekdayLetter)
-                .foregroundStyle(.primary)
+                .foregroundStyle(.secondary)
                 .lineLimit(1)
                 .minimumScaleFactor(0.8)
                 .frame(width: AgendaLayout.weekdayWidth, height: 22, alignment: .center)
@@ -960,15 +1005,13 @@ private struct AgendaLinePrefix: View {
                     if isMoveActive {
                         RoundedRectangle(cornerRadius: 5)
                             .fill(Color.green.opacity(0.18))
-                    } else if isTimeLocked {
+                    } else if isMoveTargetHighlighted {
                         RoundedRectangle(cornerRadius: 5)
                             .fill(Color.yellow.opacity(0.28))
                     }
                 }
         }
-        .font(.system(size: 16, weight: .medium))
+        .font(.system(size: 15, weight: .medium))
         .frame(width: AgendaLayout.prefixWidth, alignment: .leading)
-        .animation(.easeInOut(duration: 0.12), value: isMoveActive)
-        .animation(.easeInOut(duration: 0.12), value: isTimeLocked)
     }
 }
