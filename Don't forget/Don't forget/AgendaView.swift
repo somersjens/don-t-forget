@@ -251,11 +251,16 @@ struct AgendaView: View {
 
     private func toggleMoveControls(for entry: DayEntry) {
         focusedField = nil
-        if activeMoveEntryID == entry.id {
-            activeMoveEntryID = nil
-        } else {
-            activeMoveEntryID = entry.id
-            moveDraftDate = AppCalendar.startOfDay(entry.date)
+
+        var transaction = Transaction()
+        transaction.disablesAnimations = true
+        withTransaction(transaction) {
+            if activeMoveEntryID == entry.id {
+                activeMoveEntryID = nil
+            } else {
+                activeMoveEntryID = entry.id
+                moveDraftDate = AppCalendar.startOfDay(entry.date)
+            }
         }
     }
 
@@ -429,9 +434,13 @@ struct WeekCard: View {
         week.startDateLabel
     }
 
+    private var startYear: Int {
+        AppCalendar.calendar.component(.year, from: week.startDate)
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("week #\(week.weekNumber) - start \(startDateLabel)")
+            Text(verbatim: "week #\(week.weekNumber) · start \(startDateLabel) · \(startYear)")
                 .font(.system(size: 14, weight: .medium))
                 .foregroundStyle(.secondary)
                 .frame(maxWidth: .infinity, alignment: .center)
@@ -513,7 +522,8 @@ struct DayBlock: View {
                             focusedField: focusedField,
                             isMoveModeActive: activeMoveEntryID != nil,
                             isMoveTargetHighlighted: activeMoveEntryHasTime,
-                            moveActiveEntryHere: moveActiveEntryHere
+                            moveActiveEntryHere: moveActiveEntryHere,
+                            finishMove: finishMove
                         )
                     } else {
                         ForEach(Array(sortedEntries.enumerated()), id: \.element.id) { index, entry in
@@ -523,6 +533,7 @@ struct DayBlock: View {
                                 entry: entry,
                                 focusedField: focusedField,
                                 isMoveActive: activeMoveEntryID == entry.id,
+                                isMoveModeActive: activeMoveEntryID != nil,
                                 isMoveTargetHighlighted: activeMoveEntryID != nil
                                     && activeMoveEntryID != entry.id
                                     && (activeMoveEntryHasTime || entry.hasTime),
@@ -531,7 +542,7 @@ struct DayBlock: View {
                                     if activeMoveEntryID == nil || activeMoveEntryID == entry.id {
                                         toggleMoveControls(entry)
                                     } else {
-                                        moveActiveEntryHere()
+                                        moveActiveEntry(before: entry)
                                     }
                                 },
                                 moveUp: {
@@ -563,7 +574,8 @@ struct DayBlock: View {
                             focusedField: focusedField,
                             isMoveModeActive: activeMoveEntryID != nil,
                             isMoveTargetHighlighted: activeMoveEntryHasTime,
-                            moveActiveEntryHere: moveActiveEntryHere
+                            moveActiveEntryHere: moveActiveEntryHere,
+                            finishMove: finishMove
                         )
                     }
                 }
@@ -592,12 +604,27 @@ struct DayBlock: View {
         moveEntry(activeMoveEntryID, day.date, nil)
     }
 
+    private func moveActiveEntry(before targetEntry: DayEntry) {
+        guard let activeMoveEntryID, activeMoveEntryID != targetEntry.id else { return }
+
+        let targetEntries = sortedEntries.filter { $0.id != activeMoveEntryID }
+        guard let targetIndex = targetEntries.firstIndex(where: { $0.id == targetEntry.id }) else {
+            return
+        }
+
+        moveEntry(activeMoveEntryID, day.date, targetIndex)
+    }
+
     private func handleDayLineTap() {
         if activeMoveEntryID != nil {
             moveActiveEntryHere()
         } else {
             focusedField.wrappedValue = .newEntry(day.date)
         }
+    }
+
+    private func finishMove() {
+        activeMoveEntryID = nil
     }
 
 }
@@ -609,6 +636,7 @@ struct AgendaEntryLine: View {
     @Bindable var entry: DayEntry
     let focusedField: FocusState<AgendaField?>.Binding
     let isMoveActive: Bool
+    let isMoveModeActive: Bool
     let isMoveTargetHighlighted: Bool
     @Binding var moveDraftDate: Date
     let handlePrefixTap: () -> Void
@@ -623,6 +651,7 @@ struct AgendaEntryLine: View {
     private var modelContext
 
     @State private var isDeleting = false
+    @State private var textSelection: TextSelection?
     @AppStorage(SettingsKeys.recurringCategories) private var recurringCategoriesData = ""
 
     var body: some View {
@@ -680,16 +709,33 @@ struct AgendaEntryLine: View {
             if !isDeleting, oldValue == .entry(entry.id), newValue != oldValue {
                 entry.refreshParsedFields()
             }
+
+            if newValue == .entry(entry.id), oldValue != newValue {
+                Task { @MainActor in
+                    await Task.yield()
+                    textSelection = TextSelection(insertionPoint: entry.rawText.endIndex)
+                }
+            }
         }
     }
 
     @ViewBuilder private var entryContent: some View {
-        TextField("", text: $entry.rawText, axis: .vertical)
-            .textFieldStyle(.plain)
-            .focused(focusedField, equals: .entry(entry.id))
-            .onChange(of: entry.rawText) { _, _ in
-                handleTextChange()
+        ZStack(alignment: .leading) {
+            TextField("", text: $entry.rawText, selection: $textSelection, axis: .vertical)
+                .textFieldStyle(.plain)
+                .focused(focusedField, equals: .entry(entry.id))
+                .onChange(of: entry.rawText) { _, _ in
+                    handleTextChange()
+                }
+                .allowsHitTesting(!isMoveModeActive)
+
+            if isMoveModeActive {
+                Color.clear
+                    .contentShape(Rectangle())
+                    .onTapGesture(perform: finishMove)
+                    .accessibilityLabel("Verplaatsmodus afsluiten")
             }
+        }
         .font(.system(size: 16, weight: .regular))
         .lineLimit(1...)
         .strikethrough(entry.isDone)
@@ -784,6 +830,7 @@ struct AgendaInputLine: View {
     let isMoveModeActive: Bool
     let isMoveTargetHighlighted: Bool
     let moveActiveEntryHere: () -> Void
+    let finishMove: () -> Void
 
     @Environment(\.modelContext)
     private var modelContext
@@ -828,6 +875,14 @@ struct AgendaInputLine: View {
                     .onSubmit {
                         finishEntry()
                     }
+                    .allowsHitTesting(!isMoveModeActive)
+
+                if isMoveModeActive {
+                    Color.clear
+                        .contentShape(Rectangle())
+                        .onTapGesture(perform: finishMove)
+                        .accessibilityLabel("Verplaatsmodus afsluiten")
+                }
             }
             .font(.system(size: 16, weight: .regular))
             .lineLimit(1...)
@@ -905,9 +960,9 @@ private struct AgendaMoveControls: View {
     var body: some View {
         HStack(spacing: AgendaLayout.rowSpacing) {
             Color.clear
-                .frame(width: AgendaLayout.prefixWidth, height: 24)
+                .frame(width: AgendaLayout.prefixWidth, height: 32)
 
-            HStack(spacing: 8) {
+            HStack(spacing: 0) {
                 Menu {
                     ForEach(todoGroups) { group in
                         Button {
@@ -917,48 +972,64 @@ private struct AgendaMoveControls: View {
                         }
                     }
                 } label: {
-                    Image(systemName: "arrow.left.arrow.right")
-                        .font(.system(size: 13, weight: .semibold))
-                        .frame(width: 22, height: 24)
-                        .foregroundStyle(.secondary)
+                    Color.clear
+                        .frame(width: 22, height: 32)
+                        .overlay {
+                            Image(systemName: "arrow.left.arrow.right")
+                                .font(.system(size: 13, weight: .semibold))
+                                .foregroundStyle(.secondary)
+                        }
                 }
+                .contentShape(Rectangle().inset(by: -4))
                 .accessibilityLabel("Verplaatsopties")
+
+                Spacer(minLength: 8)
 
                 DatePicker("", selection: dateSelection, displayedComponents: .date)
                     .labelsHidden()
                     .datePickerStyle(.compact)
-                    .frame(width: 84, alignment: .leading)
-                    .scaleEffect(0.82, anchor: .leading)
+                    .fixedSize()
+                    .scaleEffect(0.78)
+                    .frame(width: 76, height: 32)
+                    .contentShape(Rectangle().inset(by: -4))
+
+                Spacer(minLength: 8)
 
                 Button {
                     performStep(moveUp)
                 } label: {
                     Image(systemName: "chevron.up")
-                        .frame(width: 24, height: 24)
+                        .frame(width: 24, height: 32)
+                        .contentShape(Rectangle().inset(by: -4))
                 }
                 .buttonStyle(.plain)
                 .accessibilityLabel("Een positie omhoog")
+
+                Spacer(minLength: 8)
 
                 Button {
                     performStep(moveDown)
                 } label: {
                     Image(systemName: "chevron.down")
-                        .frame(width: 24, height: 24)
+                        .frame(width: 24, height: 32)
+                        .contentShape(Rectangle().inset(by: -4))
                 }
                 .buttonStyle(.plain)
                 .accessibilityLabel("Een positie omlaag")
 
-                Spacer(minLength: 2)
+                Spacer(minLength: 8)
 
                 Button(action: finishMove) {
                     Image(systemName: "checkmark")
                         .font(.system(size: 13, weight: .bold))
                         .foregroundStyle(Color.green)
-                        .frame(width: 20, height: 24)
+                        .frame(width: 20, height: 32)
+                        .contentShape(Rectangle().inset(by: -4))
                 }
                 .buttonStyle(.plain)
                 .accessibilityLabel("Klaar met verplaatsen")
             }
+            .frame(maxWidth: .infinity)
         }
         .font(.system(size: 13, weight: .medium))
         .foregroundStyle(.secondary)
