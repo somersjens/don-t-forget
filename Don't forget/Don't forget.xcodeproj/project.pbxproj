@@ -6,7 +6,18 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		A1000000000000000000000C /* Don't forgetWidget.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = A10000000000000000000001 /* Don't forgetWidget.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+/* End PBXBuildFile section */
+
 /* Begin PBXContainerItemProxy section */
+		A1000000000000000000000D /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = F9D98A8E2FE86CF600B20CE0 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = A10000000000000000000004;
+			remoteInfo = "Don't forgetWidget";
+		};
 		F9D98AA82FE86CF700B20CE0 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = F9D98A8E2FE86CF600B20CE0 /* Project object */;
@@ -23,13 +34,35 @@
 		};
 /* End PBXContainerItemProxy section */
 
+/* Begin PBXCopyFilesBuildPhase section */
+		A1000000000000000000000B /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				A1000000000000000000000C /* Don't forgetWidget.appex in Embed Foundation Extensions */,
+			);
+			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
 /* Begin PBXFileReference section */
+		A10000000000000000000001 /* Don't forgetWidget.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = "Don't forgetWidget.appex"; sourceTree = BUILT_PRODUCTS_DIR; };
 		F9D98A962FE86CF600B20CE0 /* Don't forget.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Don't forget.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		F9D98AA72FE86CF700B20CE0 /* Don't forgetTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "Don't forgetTests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
 		F9D98AB12FE86CF700B20CE0 /* Don't forgetUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "Don't forgetUITests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		A10000000000000000000003 /* Exceptions for "Don't forgetWidget" folder in "Don't forgetWidget" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = A10000000000000000000004 /* Don't forgetWidget */;
+		};
 		F9D98AB92FE86CF700B20CE0 /* Exceptions for "Don't forget" folder in "Don't forget" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
@@ -40,6 +73,14 @@
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
+		A10000000000000000000002 /* Don't forgetWidget */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				A10000000000000000000003 /* Exceptions for "Don't forgetWidget" folder in "Don't forgetWidget" target */,
+			);
+			path = "Don't forgetWidget";
+			sourceTree = "<group>";
+		};
 		F9D98A982FE86CF600B20CE0 /* Don't forget */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
@@ -61,6 +102,13 @@
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
+		A10000000000000000000006 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		F9D98A932FE86CF600B20CE0 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
@@ -89,6 +137,7 @@
 			isa = PBXGroup;
 			children = (
 				F9D98A982FE86CF600B20CE0 /* Don't forget */,
+				A10000000000000000000002 /* Don't forgetWidget */,
 				F9D98AAA2FE86CF700B20CE0 /* Don't forgetTests */,
 				F9D98AB42FE86CF700B20CE0 /* Don't forgetUITests */,
 				F9D98A972FE86CF600B20CE0 /* Products */,
@@ -99,6 +148,7 @@
 			isa = PBXGroup;
 			children = (
 				F9D98A962FE86CF600B20CE0 /* Don't forget.app */,
+				A10000000000000000000001 /* Don't forgetWidget.appex */,
 				F9D98AA72FE86CF700B20CE0 /* Don't forgetTests.xctest */,
 				F9D98AB12FE86CF700B20CE0 /* Don't forgetUITests.xctest */,
 			);
@@ -108,6 +158,28 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
+		A10000000000000000000004 /* Don't forgetWidget */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = A10000000000000000000008 /* Build configuration list for PBXNativeTarget "Don't forgetWidget" */;
+			buildPhases = (
+				A10000000000000000000005 /* Sources */,
+				A10000000000000000000006 /* Frameworks */,
+				A10000000000000000000007 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				A10000000000000000000002 /* Don't forgetWidget */,
+			);
+			name = "Don't forgetWidget";
+			packageProductDependencies = (
+			);
+			productName = "Don't forgetWidget";
+			productReference = A10000000000000000000001 /* Don't forgetWidget.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
 		F9D98A952FE86CF600B20CE0 /* Don't forget */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = F9D98ABA2FE86CF700B20CE0 /* Build configuration list for PBXNativeTarget "Don't forget" */;
@@ -115,10 +187,12 @@
 				F9D98A922FE86CF600B20CE0 /* Sources */,
 				F9D98A932FE86CF600B20CE0 /* Frameworks */,
 				F9D98A942FE86CF600B20CE0 /* Resources */,
+				A1000000000000000000000B /* Embed Foundation Extensions */,
 			);
 			buildRules = (
 			);
 			dependencies = (
+				A1000000000000000000000E /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
 				F9D98A982FE86CF600B20CE0 /* Don't forget */,
@@ -186,6 +260,9 @@
 				LastSwiftUpdateCheck = 2610;
 				LastUpgradeCheck = 2610;
 				TargetAttributes = {
+					A10000000000000000000004 = {
+						CreatedOnToolsVersion = 26.1.1;
+					};
 					F9D98A952FE86CF600B20CE0 = {
 						CreatedOnToolsVersion = 26.1.1;
 					};
@@ -214,6 +291,7 @@
 			projectRoot = "";
 			targets = (
 				F9D98A952FE86CF600B20CE0 /* Don't forget */,
+				A10000000000000000000004 /* Don't forgetWidget */,
 				F9D98AA62FE86CF700B20CE0 /* Don't forgetTests */,
 				F9D98AB02FE86CF700B20CE0 /* Don't forgetUITests */,
 			);
@@ -221,6 +299,13 @@
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
+		A10000000000000000000007 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		F9D98A942FE86CF600B20CE0 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -245,6 +330,13 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
+		A10000000000000000000005 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		F9D98A922FE86CF600B20CE0 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -269,6 +361,11 @@
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
+		A1000000000000000000000E /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = A10000000000000000000004 /* Don't forgetWidget */;
+			targetProxy = A1000000000000000000000D /* PBXContainerItemProxy */;
+		};
 		F9D98AA92FE86CF700B20CE0 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
 			target = F9D98A952FE86CF600B20CE0 /* Don't forget */;
@@ -282,6 +379,66 @@
 /* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
+		A10000000000000000000009 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				APPLICATION_EXTENSION_API_ONLY = YES;
+				CODE_SIGN_ENTITLEMENTS = "Don't forgetWidget/Don't_forgetWidget.entitlements";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 4283ACUG4Y;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = "Don't forgetWidget/Info.plist";
+				IPHONEOS_DEPLOYMENT_TARGET = 26.1;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "Hakketjak.Don-t-forget.Widget";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				REGISTER_APP_GROUPS = YES;
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		A1000000000000000000000A /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				APPLICATION_EXTENSION_API_ONLY = YES;
+				CODE_SIGN_ENTITLEMENTS = "Don't forgetWidget/Don't_forgetWidget.entitlements";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 4283ACUG4Y;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = "Don't forgetWidget/Info.plist";
+				IPHONEOS_DEPLOYMENT_TARGET = 26.1;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "Hakketjak.Don-t-forget.Widget";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				REGISTER_APP_GROUPS = YES;
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
 		F9D98ABB2FE86CF700B20CE0 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -595,6 +752,15 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
+		A10000000000000000000008 /* Build configuration list for PBXNativeTarget "Don't forgetWidget" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				A10000000000000000000009 /* Debug */,
+				A1000000000000000000000A /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
 		F9D98A912FE86CF600B20CE0 /* Build configuration list for PBXProject "Don't forget" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (

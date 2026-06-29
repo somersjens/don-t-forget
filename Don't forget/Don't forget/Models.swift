@@ -36,6 +36,8 @@ enum RecurrenceKind: String, Codable, CaseIterable, Identifiable {
     case monthlyOrdinalWeekday
     case approximateInterval
     case birthday
+    case annualFixed
+    case annualOrdinalWeekday
 
     var id: String { rawValue }
 }
@@ -187,6 +189,7 @@ final class RecurringItem {
     var monthlyDay: Int = 1
     var monthlyOrdinal: Int = 1
     var monthlyWeekday: Int = 2
+    var annualMonth: Int = 1
     var reminderDaysBefore: Int?
     var birthDate: Date?
     var birthdayYearUncertain: Bool = false
@@ -208,6 +211,7 @@ final class RecurringItem {
         monthlyDay: Int = 1,
         monthlyOrdinal: Int = 1,
         monthlyWeekday: Int = 2,
+        annualMonth: Int = 1,
         reminderDaysBefore: Int? = nil,
         birthDate: Date? = nil,
         notes: String = ""
@@ -225,6 +229,7 @@ final class RecurringItem {
         self.monthlyDay = min(max(1, monthlyDay), 31)
         self.monthlyOrdinal = min(max(1, monthlyOrdinal), 5)
         self.monthlyWeekday = min(max(1, monthlyWeekday), 7)
+        self.annualMonth = min(max(1, annualMonth), 12)
         self.reminderDaysBefore = reminderDaysBefore
         self.birthDate = birthDate.map { AppCalendar.startOfDay($0) }
         self.notes = notes

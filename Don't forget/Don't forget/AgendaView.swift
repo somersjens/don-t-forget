@@ -1,6 +1,11 @@
 import SwiftUI
 import SwiftData
 
+private struct AgendaRecurringCategoryAppearance: Decodable {
+    let id: String
+    let colorRawValue: String
+}
+
 struct AgendaView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(\.undoManager) private var undoManager
@@ -563,6 +568,7 @@ struct AgendaEntryLine: View {
     private var modelContext
 
     @State private var isDeleting = false
+    @AppStorage(SettingsKeys.recurringCategories) private var recurringCategoriesData = ""
 
     var body: some View {
         VStack(alignment: .leading, spacing: isMoveActive ? 5 : 0) {
@@ -691,17 +697,36 @@ struct AgendaEntryLine: View {
     }
 
     private var entryAccentColor: Color {
-        switch entry.accentRawValue {
-        case RecurringTheme.birthday.rawValue:
-            return .blue
-        case "birthdayReminder":
-            return .cyan.opacity(0.72)
-        case RecurringTheme.general.rawValue:
-            return Color(red: 0.72, green: 0.53, blue: 0.02)
-        case RecurringTheme.personal.rawValue:
-            return .green
-        default:
-            return .primary
+        let categoryID = entry.accentRawValue == "birthdayReminder"
+            ? RecurringTheme.birthday.rawValue
+            : entry.accentRawValue
+
+        if let data = recurringCategoriesData.data(using: .utf8),
+           let categories = try? JSONDecoder().decode([AgendaRecurringCategoryAppearance].self, from: data),
+           let colorRawValue = categories.first(where: { $0.id == categoryID })?.colorRawValue {
+            return recurringColor(colorRawValue)
+        }
+
+        switch categoryID {
+        case RecurringTheme.birthday.rawValue: return .blue
+        case RecurringTheme.general.rawValue: return .yellow
+        case RecurringTheme.personal.rawValue: return .green
+        case "holidays": return .orange
+        default: return .primary
+        }
+    }
+
+    private func recurringColor(_ rawValue: String) -> Color {
+        switch RecurringThemeColorOption(rawValue: rawValue) {
+        case .blue: .blue
+        case .yellow: .yellow
+        case .green: .green
+        case .orange: .orange
+        case .pink: .pink
+        case .purple: .purple
+        case .teal: .teal
+        case .gray: .gray
+        case nil: .primary
         }
     }
 }

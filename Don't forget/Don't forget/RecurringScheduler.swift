@@ -86,7 +86,7 @@ enum RecurringScheduler {
                     key: "reminder:\(dateKey):\(days)",
                     date: reminderDate,
                     title: reminderTitle,
-                    accent: "birthdayReminder"
+                    accent: item.themeRawValue
                 ))
             }
         }
@@ -144,7 +144,7 @@ enum RecurringScheduler {
                     source: .recurring,
                     manualOrder: 0
                 )
-                entry.showOnWidget = item.showOnWidget
+                entry.showOnWidget = true
                 entry.recurringItemIdentifier = item.id
                 entry.recurringOccurrenceKey = desiredEntry.key
                 entry.accentRawValue = desiredEntry.accent
@@ -179,8 +179,8 @@ enum RecurringScheduler {
         if needsParsing {
             entry.rawText = desiredEntry.title
         }
-        if entry.showOnWidget != item.showOnWidget {
-            entry.showOnWidget = item.showOnWidget
+        if !entry.showOnWidget {
+            entry.showOnWidget = true
         }
         if entry.recurringItemIdentifier != item.id {
             entry.recurringItemIdentifier = item.id

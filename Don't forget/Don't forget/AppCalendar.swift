@@ -17,6 +17,17 @@ struct DayInfo: Identifiable {
 }
 
 enum AppCalendar {
+    static var language: AppLanguage {
+        AppLanguage.effective(
+            from: UserDefaults.standard.string(forKey: SettingsKeys.language),
+            holidayCountryCode: UserDefaults.standard.string(forKey: SettingsKeys.recurringHolidayCountry)
+        )
+    }
+
+    static var locale: Locale {
+        return language.locale
+    }
+
     static var calendar: Calendar {
         let defaults = UserDefaults.standard
         let weekStart = WeekStartOption(
@@ -25,13 +36,9 @@ enum AppCalendar {
         let weekRule = WeekNumberRule(
             rawValue: defaults.string(forKey: SettingsKeys.weekNumberRule) ?? ""
         ) ?? .iso8601
-        let language = AppLanguage(
-            rawValue: defaults.string(forKey: SettingsKeys.language) ?? ""
-        ) ?? .system
-
         var calendar = Calendar(identifier: .gregorian)
         calendar.timeZone = .current
-        calendar.locale = language.locale
+        calendar.locale = locale
         calendar.firstWeekday = weekStart.calendarWeekday
         calendar.minimumDaysInFirstWeek = weekRule == .iso8601 ? 4 : 1
         return calendar
@@ -41,20 +48,49 @@ enum AppCalendar {
         calendar.startOfDay(for: date)
     }
 
+    static var monthSymbols: [String] {
+        if language == .dutch {
+            return [
+                "januari", "februari", "maart", "april", "mei", "juni",
+                "juli", "augustus", "september", "oktober", "november", "december"
+            ]
+        }
+        let formatter = DateFormatter()
+        formatter.locale = locale
+        return formatter.monthSymbols
+    }
+
+    static func monthName(_ month: Int) -> String {
+        let symbols = monthSymbols
+        return symbols.indices.contains(month - 1) ? symbols[month - 1] : ""
+    }
+
+    static func localizedDate(_ date: Date, template: String) -> String {
+        let formatter = DateFormatter()
+        formatter.locale = locale
+        formatter.calendar = calendar
+        formatter.setLocalizedDateFormatFromTemplate(template)
+        return formatter.string(from: date)
+    }
+
+    static func localizedLongDate(_ date: Date, includeYear: Bool) -> String {
+        if language == .dutch {
+            let components = calendar.dateComponents([.day, .month, .year], from: date)
+            let base = "\(components.day ?? 0) \(monthName(components.month ?? 1))"
+            return includeYear ? "\(base) \(components.year ?? 0)" : base
+        }
+
+        return localizedDate(date, template: includeYear ? "dMMMMyyyy" : "dMMMM")
+    }
+
     static func weekSections(
         startingFrom date: Date = .now,
         numberOfWeeks: Int = 12
     ) -> [WeekSection] {
         let configuredCalendar = calendar
         let dateFormatter = DateFormatter()
-        dateFormatter.locale = configuredCalendar.locale
+        dateFormatter.locale = locale
         dateFormatter.dateFormat = "dd-MM"
-        let monthFormatter = DateFormatter()
-        monthFormatter.locale = configuredCalendar.locale
-        monthFormatter.dateFormat = "MMMM"
-        let weekStartFormatter = DateFormatter()
-        weekStartFormatter.locale = configuredCalendar.locale
-        weekStartFormatter.dateFormat = "d MMMM"
 
         guard let firstWeekStart = configuredCalendar.dateInterval(of: .weekOfYear, for: date)?.start else {
             return []
@@ -95,9 +131,9 @@ enum AppCalendar {
             return WeekSection(
                 id: weekStart,
                 startDate: weekStart,
-                startDateLabel: weekStartFormatter.string(from: weekStart),
+                startDateLabel: localizedLongDate(weekStart, includeYear: false),
                 weekNumber: weekNumber,
-                monthTitle: monthFormatter.string(from: weekStart).capitalized,
+                monthTitle: monthName(configuredCalendar.component(.month, from: weekStart)),
                 days: days
             )
         }
@@ -110,9 +146,10 @@ enum AppCalendar {
     private static func weekdayLetter(for date: Date, calendar: Calendar) -> String {
         let weekday = calendar.component(.weekday, from: date)
 
-        let language = AppLanguage(
-            rawValue: UserDefaults.standard.string(forKey: SettingsKeys.language) ?? ""
-        ) ?? .system
+        let language = AppLanguage.effective(
+            from: UserDefaults.standard.string(forKey: SettingsKeys.language),
+            holidayCountryCode: UserDefaults.standard.string(forKey: SettingsKeys.recurringHolidayCountry)
+        )
 
         if language == .english {
             switch weekday {
