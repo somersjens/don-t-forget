@@ -833,17 +833,7 @@ struct AgendaEntryLine: View {
     }
 
     private func recurringColor(_ rawValue: String) -> Color {
-        switch RecurringThemeColorOption(rawValue: rawValue) {
-        case .blue: .blue
-        case .yellow: .yellow
-        case .green: .green
-        case .orange: .orange
-        case .pink: .pink
-        case .purple: .purple
-        case .teal: .teal
-        case .gray: .gray
-        case nil: .primary
-        }
+        RecurringThemeColorOption(rawValue: rawValue)?.color ?? .primary
     }
 }
 

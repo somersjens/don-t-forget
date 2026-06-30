@@ -13,6 +13,9 @@ enum HistoryFilter: String, CaseIterable, Identifiable {
 }
 
 struct HistoryView: View {
+    @Environment(\.modelContext)
+    private var modelContext
+
     @Query(sort: \DayEntry.date, order: .reverse)
     private var entries: [DayEntry]
 
@@ -29,10 +32,12 @@ struct HistoryView: View {
             .filter { $0.source == .manual }
             .map {
                 HistoryRow(
+                    id: $0.id,
                     title: $0.rawText,
                     source: "Agenda",
                     icon: "calendar",
-                    completedAt: $0.completedAt ?? .distantPast
+                    completedAt: $0.completedAt ?? .distantPast,
+                    todo: nil
                 )
             }
 
@@ -41,10 +46,12 @@ struct HistoryView: View {
             .filter { $0.source == .recurring }
             .map {
                 HistoryRow(
+                    id: $0.id,
                     title: $0.rawText,
                     source: "Recurring",
                     icon: "repeat",
-                    completedAt: $0.completedAt ?? .distantPast
+                    completedAt: $0.completedAt ?? .distantPast,
+                    todo: nil
                 )
             }
 
@@ -52,10 +59,12 @@ struct HistoryView: View {
             .filter { $0.isDone }
             .map {
                 HistoryRow(
+                    id: $0.id,
                     title: $0.text,
                     source: "To-do",
                     icon: "checklist",
-                    completedAt: $0.completedAt ?? .distantPast
+                    completedAt: $0.completedAt ?? .distantPast,
+                    todo: $0
                 )
             }
 
@@ -99,19 +108,37 @@ struct HistoryView: View {
                 } else {
                     List {
                         ForEach(historyRows) { row in
-                            HStack(alignment: .top, spacing: 10) {
-                                Image(systemName: row.icon)
-                                    .foregroundStyle(.secondary)
-
-                                VStack(alignment: .leading, spacing: 4) {
-                                    Text(row.title)
-                                        .font(.system(size: 14))
-
-                                    Text("\(row.source) · \(row.completedAt.formatted(date: .abbreviated, time: .shortened))")
-                                        .font(.system(size: 10))
+                            Button {
+                                restoreTodo(row)
+                            } label: {
+                                HStack(alignment: .top, spacing: 10) {
+                                    Image(systemName: row.icon)
                                         .foregroundStyle(.secondary)
+
+                                    VStack(alignment: .leading, spacing: 4) {
+                                        Text(row.title)
+                                            .font(.system(size: 14))
+                                            .foregroundStyle(.primary)
+
+                                        Text("\(row.source) · \(row.completedAt.formatted(date: .abbreviated, time: .shortened))")
+                                            .font(.system(size: 10))
+                                            .foregroundStyle(.secondary)
+                                    }
+
+                                    Spacer()
+
+                                    if row.todo != nil {
+                                        Image(systemName: "arrow.uturn.backward.circle")
+                                            .font(.system(size: 17))
+                                            .foregroundStyle(.secondary)
+                                            .accessibilityHidden(true)
+                                    }
                                 }
+                                .contentShape(Rectangle())
                             }
+                            .buttonStyle(.plain)
+                            .disabled(row.todo == nil)
+                            .accessibilityHint(row.todo == nil ? "" : "Zet terug in To-do")
                         }
                     }
                     .scrollEdgeEffectStyle(.soft, for: .top)
@@ -150,12 +177,22 @@ struct HistoryView: View {
             }
         }
     }
+
+    private func restoreTodo(_ row: HistoryRow) {
+        guard let todo = row.todo else { return }
+        withAnimation {
+            todo.isDone = false
+            todo.completedAt = nil
+        }
+        try? modelContext.save()
+    }
 }
 
 struct HistoryRow: Identifiable {
-    let id = UUID()
+    let id: UUID
     let title: String
     let source: String
     let icon: String
     let completedAt: Date
+    let todo: TodoItem?
 }
