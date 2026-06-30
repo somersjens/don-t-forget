@@ -1,5 +1,11 @@
 import SwiftUI
 import SwiftData
+import Charts
+
+private struct HistoryRecurringCategoryAppearance: Decodable {
+    let id: String
+    let colorRawValue: String
+}
 
 enum HistoryFilter: String, CaseIterable, Identifiable {
     case all = "Alles"
@@ -38,6 +44,10 @@ struct HistoryView: View {
     @Query(sort: \TodoItem.createdAt, order: .reverse)
     private var todos: [TodoItem]
 
+    @AppStorage(SettingsKeys.recurringCategories) private var recurringCategoriesData = ""
+    @AppStorage(SettingsKeys.recurringBirthdayCategoryDeleted) private var birthdayCategoryDeleted = false
+    @AppStorage(SettingsKeys.todoGroups) private var todoGroupsData = ""
+
     @State private var filter: HistoryFilter = .all
     @State private var isScrolled = false
     @State private var isShowingSettings = false
@@ -45,19 +55,72 @@ struct HistoryView: View {
     @State private var dismissRestoreTask: Task<Void, Never>?
 
     private var allRows: [HistoryRow] {
+        let recurringColors = recurringCategoryColors
+        let todoColors = todoCategoryColors
         let agendaRows = entries
             .filter { $0.isDone && $0.source == .manual }
-            .map { HistoryRow(entry: $0, source: .agenda) }
+            .map { HistoryRow(entry: $0, source: .agenda, color: .gray) }
         let recurringRows = entries
             .filter { $0.isDone && $0.source == .recurring }
-            .map { HistoryRow(entry: $0, source: .recurring) }
+            .map { entry in
+                let categoryID = entry.accentRawValue == "birthdayReminder"
+                    ? RecurringTheme.birthday.rawValue
+                    : entry.accentRawValue
+                return HistoryRow(
+                    entry: entry,
+                    source: .recurring,
+                    color: recurringColors[categoryID] ?? .gray
+                )
+            }
         let todoRows = todos
             .filter(\.isDone)
-            .map { HistoryRow(todo: $0) }
+            .map { todo in
+                HistoryRow(
+                    todo: todo,
+                    color: todoColors[todo.bucketRawValue] ?? .gray
+                )
+            }
 
         return (agendaRows + recurringRows + todoRows).sorted {
             $0.completedAt > $1.completedAt
         }
+    }
+
+    private var recurringCategoryColors: [String: Color] {
+        let appearances: [HistoryRecurringCategoryAppearance]
+        if let data = recurringCategoriesData.data(using: .utf8),
+           let decoded = try? JSONDecoder().decode([HistoryRecurringCategoryAppearance].self, from: data) {
+            appearances = decoded
+        } else {
+            appearances = [
+                HistoryRecurringCategoryAppearance(
+                    id: RecurringTheme.birthday.rawValue,
+                    colorRawValue: RecurringThemeColorOption.blue.rawValue
+                ),
+                HistoryRecurringCategoryAppearance(
+                    id: "holidays",
+                    colorRawValue: RecurringThemeColorOption.orange.rawValue
+                ),
+                HistoryRecurringCategoryAppearance(
+                    id: RecurringTheme.general.rawValue,
+                    colorRawValue: RecurringThemeColorOption.yellow.rawValue
+                )
+            ]
+        }
+
+        return Dictionary(uniqueKeysWithValues: appearances.compactMap { appearance in
+            guard (!birthdayCategoryDeleted || appearance.id != RecurringTheme.birthday.rawValue),
+                  let color = RecurringThemeColorOption(rawValue: appearance.colorRawValue)?.color else {
+                return nil
+            }
+            return (appearance.id, color)
+        })
+    }
+
+    private var todoCategoryColors: [String: Color] {
+        Dictionary(uniqueKeysWithValues: TodoGroupStore.decode(todoGroupsData).map {
+            ($0.id, $0.color)
+        })
     }
 
     private var visibleRows: [HistoryRow] {
@@ -74,11 +137,15 @@ struct HistoryView: View {
             .sorted { $0.date > $1.date }
     }
 
-    private var completedThisWeek: Int {
-        guard let week = AppCalendar.calendar.dateInterval(of: .weekOfYear, for: .now) else {
-            return 0
-        }
-        return allRows.count { week.contains($0.completedAt) }
+    private var completedLastSevenDays: Int {
+        let today = AppCalendar.startOfDay(.now)
+        let start = AppCalendar.calendar.date(byAdding: .day, value: -6, to: today) ?? today
+        return allRows.count { $0.completedAt >= start }
+    }
+
+    private var isHistoryDemoActive: Bool {
+        entries.contains { $0.rawText.hasPrefix(DemoData.historyMarker) }
+            || todos.contains { $0.text.hasPrefix(DemoData.historyMarker) }
     }
 
     var body: some View {
@@ -87,7 +154,11 @@ struct HistoryView: View {
                 LazyVStack(spacing: 12) {
                     HistorySummaryCard(
                         total: allRows.count,
-                        thisWeek: completedThisWeek
+                        lastSevenDays: completedLastSevenDays,
+                        completionDates: allRows.map(\.completedAt),
+                        isDemoActive: isHistoryDemoActive,
+                        activateDemoData: activateHistoryDemoData,
+                        deactivateDemoData: deactivateHistoryDemoData
                     )
 
                     HistoryFilterBar(
@@ -174,6 +245,16 @@ struct HistoryView: View {
         return allRows.count { $0.source.filter == filter }
     }
 
+    private func activateHistoryDemoData() {
+        DemoData.insertHistoryData(in: modelContext)
+        try? modelContext.save()
+    }
+
+    private func deactivateHistoryDemoData() {
+        DemoData.removeHistoryData(in: modelContext)
+        try? modelContext.save()
+    }
+
     private func restore(_ row: HistoryRow) {
         dismissRestoreTask?.cancel()
         withAnimation(.snappy(duration: 0.25, extraBounce: 0)) {
@@ -225,40 +306,280 @@ struct HistoryView: View {
 
 private struct HistorySummaryCard: View {
     let total: Int
-    let thisWeek: Int
+    let lastSevenDays: Int
+    let completionDates: [Date]
+    let isDemoActive: Bool
+    let activateDemoData: () -> Void
+    let deactivateDemoData: () -> Void
+    @State private var isExpanded = false
+
+    private var chartsHeight: CGFloat {
+        let count = HistoryChartPeriod.available(for: completionDates).count
+        return 28 + (CGFloat(count) * HistoryBarChart.layoutHeight) + (CGFloat(max(0, count - 1)) * 18)
+    }
 
     var body: some View {
-        HStack(spacing: 13) {
-            ZStack {
-                RoundedRectangle(cornerRadius: 11)
-                    .fill(Color.green.opacity(0.16))
-                Image(systemName: "checkmark.circle.fill")
-                    .font(.system(size: 20, weight: .semibold))
-                    .foregroundStyle(.green)
+        VStack(spacing: 0) {
+            HStack(spacing: 13) {
+                ZStack {
+                    RoundedRectangle(cornerRadius: 11)
+                        .fill(Color.green.opacity(0.16))
+                    Image(systemName: "checkmark.circle.fill")
+                        .font(.system(size: 20, weight: .semibold))
+                        .foregroundStyle(.green)
+                }
+                .frame(width: 42, height: 42)
+                .contentShape(RoundedRectangle(cornerRadius: 11))
+                .onTapGesture(count: isDemoActive ? 1 : 5) {
+                    if isDemoActive {
+                        deactivateDemoData()
+                    } else {
+                        activateDemoData()
+                        withAnimation(.snappy(duration: 0.38, extraBounce: 0)) {
+                            isExpanded = true
+                        }
+                    }
+                }
+                .accessibilityAction(named: isDemoActive ? "Demodata verwijderen" : "Demodata activeren") {
+                    if isDemoActive {
+                        deactivateDemoData()
+                    } else {
+                        activateDemoData()
+                        withAnimation(.snappy(duration: 0.38, extraBounce: 0)) {
+                            isExpanded = true
+                        }
+                    }
+                }
+
+                VStack(alignment: .leading, spacing: 3) {
+                    Text("\(total) afgerond")
+                        .font(.system(size: 17, weight: .semibold))
+                    Text("\(lastSevenDays) in afgelopen 7 dagen")
+                        .font(.system(size: 12, weight: .medium))
+                        .foregroundStyle(.secondary)
+                }
+
+                Spacer()
+
+                chartControl
             }
-            .frame(width: 42, height: 42)
+            .padding(14)
 
-            VStack(alignment: .leading, spacing: 3) {
-                Text(total == 1 ? "1 item afgerond" : "\(total) items afgerond")
-                    .font(.system(size: 17, weight: .semibold))
-                Text(thisWeek == 1 ? "1 deze week" : "\(thisWeek) deze week")
-                    .font(.system(size: 12, weight: .medium))
-                    .foregroundStyle(.secondary)
-            }
+            Divider()
+                .overlay(Color.primary.opacity(0.07))
+                .padding(.horizontal, 14)
+                .frame(height: isExpanded ? 1 : 0)
+                .clipped()
 
-            Spacer()
-
-            Image(systemName: "chart.line.uptrend.xyaxis")
-                .font(.system(size: 17, weight: .medium))
-                .foregroundStyle(.tertiary)
+            HistoryCharts(completionDates: completionDates)
+                .padding(14)
+                .frame(height: isExpanded ? chartsHeight : 0, alignment: .top)
+                .clipped()
         }
-        .padding(14)
+        .animation(.snappy(duration: 0.38, extraBounce: 0), value: isExpanded)
         .background(Color(.secondarySystemBackground), in: RoundedRectangle(cornerRadius: 14))
         .overlay {
             RoundedRectangle(cornerRadius: 14)
                 .stroke(Color.primary.opacity(0.045), lineWidth: 1)
         }
-        .accessibilityElement(children: .combine)
+    }
+
+    private var chartControl: some View {
+        Button {
+            withAnimation(.snappy(duration: 0.28, extraBounce: 0)) {
+                isExpanded.toggle()
+            }
+        } label: {
+            HStack(spacing: 7) {
+                Image(systemName: "chart.bar.fill")
+                    .font(.system(size: 17, weight: .medium))
+                Image(systemName: "chevron.down")
+                    .font(.system(size: 11, weight: .semibold))
+                    .rotationEffect(.degrees(isExpanded ? 180 : 0))
+            }
+            .foregroundStyle(.secondary)
+            .frame(width: 52, height: 42)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(isExpanded ? "Grafieken inklappen" : "Grafieken uitklappen")
+    }
+}
+
+private struct HistoryCharts: View {
+    let completionDates: [Date]
+
+    private var availablePeriods: [HistoryChartPeriod] {
+        HistoryChartPeriod.available(for: completionDates)
+    }
+
+    var body: some View {
+        VStack(spacing: 18) {
+            ForEach(availablePeriods) { period in
+                HistoryBarChart(
+                    period: period,
+                    buckets: period.buckets(for: completionDates)
+                )
+            }
+        }
+    }
+}
+
+private struct HistoryBarChart: View {
+    static let layoutHeight: CGFloat = 193
+
+    let period: HistoryChartPeriod
+    let buckets: [HistoryChartBucket]
+
+    private var yMaximum: Double {
+        let highest = buckets.map(\.count).max() ?? 0
+        return Double(highest + max(1, Int(ceil(Double(highest) * 0.15))))
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text(period.title)
+                .font(.system(size: 14, weight: .semibold))
+
+            Chart(buckets) { bucket in
+                BarMark(
+                    x: .value("Periode", bucket.label),
+                    y: .value("Afgerond", bucket.count),
+                    width: .ratio(0.62)
+                )
+                .foregroundStyle(bucket.isCurrent ? Color.green : Color.green.opacity(0.52))
+                .clipShape(UnevenRoundedRectangle(
+                    topLeadingRadius: 4,
+                    bottomLeadingRadius: 0,
+                    bottomTrailingRadius: 0,
+                    topTrailingRadius: 4
+                ))
+                .annotation(position: .top, spacing: 3) {
+                    if bucket.isCurrent {
+                        Text("\(bucket.count)")
+                            .font(.system(size: 10, weight: .semibold))
+                            .foregroundStyle(Color.gray)
+                    }
+                }
+            }
+            .chartXScale(domain: buckets.map(\.label))
+            .chartYScale(domain: 0...yMaximum)
+            .chartXAxis {
+                AxisMarks { _ in
+                    AxisValueLabel()
+                        .font(.system(size: 9, weight: .medium))
+                        .foregroundStyle(Color.gray)
+                }
+            }
+            .chartYAxis {
+                AxisMarks(position: .leading, values: .automatic(desiredCount: 4)) { _ in
+                    AxisGridLine()
+                        .foregroundStyle(Color.primary.opacity(0.07))
+                    AxisValueLabel()
+                        .font(.system(size: 9, weight: .medium))
+                        .foregroundStyle(Color.gray)
+                }
+            }
+            .frame(height: 142)
+        }
+        .padding(12)
+        .background(Color(.tertiarySystemFill), in: RoundedRectangle(cornerRadius: 12))
+        .frame(height: Self.layoutHeight, alignment: .top)
+        .transaction { transaction in
+            transaction.animation = nil
+            transaction.disablesAnimations = true
+        }
+    }
+}
+
+private struct HistoryChartBucket: Identifiable {
+    let start: Date
+    let label: String
+    let count: Int
+    let isCurrent: Bool
+
+    var id: Date { start }
+}
+
+private enum HistoryChartPeriod: String, Identifiable {
+    case days
+    case weeks
+    case months
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .days: "Afgelopen 7 dagen"
+        case .weeks: "Afgelopen 10 weken"
+        case .months: "Afgelopen 12 maanden"
+        }
+    }
+
+    static func available(for dates: [Date]) -> [HistoryChartPeriod] {
+        var periods: [HistoryChartPeriod] = [.days]
+        guard let oldest = dates.min() else { return periods }
+
+        let calendar = AppCalendar.calendar
+        let today = AppCalendar.startOfDay(.now)
+        let fourteenDaysAgo = calendar.date(byAdding: .day, value: -14, to: today) ?? today
+        if oldest < fourteenDaysAgo {
+            periods.append(.weeks)
+        }
+
+        let currentMonth = calendar.dateInterval(of: .month, for: today)?.start ?? today
+        let twoMonthsAgo = calendar.date(byAdding: .month, value: -2, to: currentMonth) ?? currentMonth
+        if oldest < twoMonthsAgo {
+            periods.append(.months)
+        }
+
+        return periods
+    }
+
+    func buckets(for dates: [Date]) -> [HistoryChartBucket] {
+        let calendar = AppCalendar.calendar
+        let today = AppCalendar.startOfDay(.now)
+        let currentStart: Date
+        let component: Calendar.Component
+        let numberOfBuckets: Int
+
+        switch self {
+        case .days:
+            currentStart = today
+            component = .day
+            numberOfBuckets = 7
+        case .weeks:
+            currentStart = calendar.dateInterval(of: .weekOfYear, for: today)?.start ?? today
+            component = .weekOfYear
+            numberOfBuckets = 10
+        case .months:
+            currentStart = calendar.dateInterval(of: .month, for: today)?.start ?? today
+            component = .month
+            numberOfBuckets = 12
+        }
+
+        return (0..<numberOfBuckets).map { index in
+            let offset = index - (numberOfBuckets - 1)
+            let start = calendar.date(byAdding: component, value: offset, to: currentStart) ?? currentStart
+            let end = calendar.date(byAdding: component, value: 1, to: start) ?? start
+            return HistoryChartBucket(
+                start: start,
+                label: label(for: start, calendar: calendar),
+                count: dates.count { $0 >= start && $0 < end },
+                isCurrent: index == numberOfBuckets - 1
+            )
+        }
+    }
+
+    private func label(for date: Date, calendar: Calendar) -> String {
+        switch self {
+        case .days:
+            AppCalendar.localizedDate(date, template: "EEE")
+        case .weeks:
+            "w\(calendar.component(.weekOfYear, from: date))"
+        case .months:
+            AppCalendar.localizedDate(date, template: "MMM")
+        }
     }
 }
 
@@ -267,22 +588,21 @@ private struct HistoryFilterBar: View {
     let count: (HistoryFilter) -> Int
 
     var body: some View {
-        ScrollView(.horizontal) {
-            HStack(spacing: 8) {
-                ForEach(HistoryFilter.allCases) { filter in
-                    HistoryFilterChip(
-                        filter: filter,
-                        itemCount: count(filter),
-                        isSelected: selection == filter
-                    ) {
-                        withAnimation(.snappy(duration: 0.2, extraBounce: 0)) {
-                            selection = filter
-                        }
+        HStack(spacing: 8) {
+            ForEach(HistoryFilter.allCases) { filter in
+                HistoryFilterChip(
+                    filter: filter,
+                    itemCount: count(filter),
+                    isSelected: selection == filter,
+                    showsTitle: filter == .all
+                ) {
+                    withAnimation(.snappy(duration: 0.2, extraBounce: 0)) {
+                        selection = filter
                     }
                 }
             }
         }
-        .scrollIndicators(.hidden)
+        .frame(maxWidth: .infinity)
     }
 }
 
@@ -290,18 +610,15 @@ private struct HistoryFilterChip: View {
     let filter: HistoryFilter
     let itemCount: Int
     let isSelected: Bool
+    let showsTitle: Bool
     let select: () -> Void
 
     private var foregroundColor: Color {
-        isSelected ? filter.color : .secondary
-    }
-
-    private var countColor: Color {
-        isSelected ? filter.color : Color.secondary.opacity(0.65)
+        isSelected ? .green : .secondary
     }
 
     private var backgroundColor: Color {
-        isSelected ? filter.color.opacity(0.13) : Color(.tertiarySystemFill)
+        isSelected ? Color.green.opacity(0.13) : Color(.tertiarySystemFill)
     }
 
     var body: some View {
@@ -316,23 +633,27 @@ private struct HistoryFilterChip: View {
     private var label: some View {
         HStack(spacing: 6) {
             Image(systemName: filter.icon)
-                .font(.system(size: 11, weight: .semibold))
+                .font(.system(size: 13.2, weight: .semibold))
 
-            Text(filter.rawValue)
-                .font(.system(size: 13, weight: .semibold))
-
-            Text("\(itemCount)")
-                .font(.system(size: 11, weight: .bold))
-                .foregroundStyle(countColor)
+            if showsTitle {
+                Text(filter.rawValue)
+                    .font(.system(size: 13, weight: .semibold))
+                    .fixedSize(horizontal: true, vertical: false)
+            }
         }
         .foregroundStyle(foregroundColor)
         .padding(.horizontal, 12)
-        .frame(height: 36)
+        .frame(
+            minWidth: showsTitle ? 100 : nil,
+            maxWidth: showsTitle ? nil : .infinity,
+            minHeight: 36,
+            maxHeight: 36
+        )
         .background(backgroundColor, in: Capsule())
         .overlay {
             if isSelected {
                 Capsule()
-                    .stroke(filter.color.opacity(0.22), lineWidth: 1)
+                    .stroke(Color.green.opacity(0.78), lineWidth: 1.5)
             }
         }
     }
@@ -344,28 +665,22 @@ private struct HistoryDayCard: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            HStack(alignment: .firstTextBaseline) {
-                Text(section.title)
-                    .font(.system(size: 14, weight: .semibold))
-                Spacer()
-                Text(section.countText)
-                    .font(.system(size: 11, weight: .medium))
-                    .foregroundStyle(.secondary)
-            }
-            .padding(.horizontal, 4)
+            Text(section.title)
+                .font(.system(size: 14, weight: .semibold))
+                .padding(.horizontal, 4)
 
             VStack(spacing: 0) {
                 ForEach(Array(section.rows.enumerated()), id: \.element.id) { index, row in
                     HistoryItemRow(row: row) {
                         restore(row)
                     }
-                    .padding(.horizontal, 13)
+                    .padding(.horizontal, 14)
                     .padding(.vertical, 11)
 
                     if index < section.rows.count - 1 {
                         Divider()
                             .overlay(Color.primary.opacity(0.06))
-                            .padding(.leading, 63)
+                            .padding(.leading, 67)
                     }
                 }
             }
@@ -385,13 +700,13 @@ private struct HistoryItemRow: View {
     var body: some View {
         HStack(alignment: .center, spacing: 11) {
             ZStack {
-                RoundedRectangle(cornerRadius: 9)
-                    .fill(row.source.color.opacity(0.16))
+                RoundedRectangle(cornerRadius: 11)
+                    .fill(row.color.opacity(0.16))
                 Image(systemName: row.source.icon)
                     .font(.system(size: 15, weight: .semibold))
-                    .foregroundStyle(row.source.color)
+                    .foregroundStyle(row.color)
             }
-            .frame(width: 38, height: 38)
+            .frame(width: 42, height: 42)
 
             VStack(alignment: .leading, spacing: 4) {
                 Text(row.title)
@@ -413,9 +728,9 @@ private struct HistoryItemRow: View {
             Button(action: restore) {
                 Image(systemName: "arrow.uturn.backward")
                     .font(.system(size: 14, weight: .semibold))
-                    .foregroundStyle(row.source.color)
+                    .foregroundStyle(row.color)
                     .frame(width: 36, height: 36)
-                    .background(row.source.color.opacity(0.12), in: Circle())
+                    .background(row.color.opacity(0.12), in: Circle())
             }
             .buttonStyle(.plain)
             .accessibilityLabel("Zet terug naar \(row.source.title)")
@@ -466,12 +781,9 @@ private struct HistoryDaySection: Identifiable {
     var title: String {
         if AppCalendar.calendar.isDateInToday(date) { return "Vandaag" }
         if AppCalendar.calendar.isDateInYesterday(date) { return "Gisteren" }
-        return date.formatted(.dateTime.weekday(.wide).day().month(.wide))
+        return AppCalendar.localizedDate(date, template: "EEEEdMMMM")
     }
 
-    var countText: String {
-        rows.count == 1 ? "1 item" : "\(rows.count) items"
-    }
 }
 
 private enum HistorySource {
@@ -495,14 +807,6 @@ private enum HistorySource {
         }
     }
 
-    var color: Color {
-        switch self {
-        case .agenda: .blue
-        case .recurring: .orange
-        case .todo: .green
-        }
-    }
-
     var filter: HistoryFilter {
         switch self {
         case .agenda: .agenda
@@ -517,23 +821,26 @@ private struct HistoryRow: Identifiable {
     let title: String
     let source: HistorySource
     let completedAt: Date
+    let color: Color
     private let entry: DayEntry?
     private let todo: TodoItem?
 
-    init(entry: DayEntry, source: HistorySource) {
+    init(entry: DayEntry, source: HistorySource, color: Color) {
         id = entry.id
         title = entry.rawText
         self.source = source
         completedAt = entry.completedAt ?? entry.date
+        self.color = color
         self.entry = entry
         todo = nil
     }
 
-    init(todo: TodoItem) {
+    init(todo: TodoItem, color: Color) {
         id = todo.id
         title = todo.text
         source = .todo
         completedAt = todo.completedAt ?? todo.createdAt
+        self.color = color
         entry = nil
         self.todo = todo
     }

@@ -677,7 +677,10 @@ struct AgendaEntryLine: View {
     private var modelContext
 
     @State private var isDeleting = false
+    @State private var draftText: String?
     @State private var textSelection: TextSelection?
+    @State private var isProtectingInitialTap = false
+    @State private var initialTapProtectionTask: Task<Void, Never>?
     @AppStorage(SettingsKeys.recurringCategories) private var recurringCategoriesData = ""
 
     var body: some View {
@@ -733,29 +736,45 @@ struct AgendaEntryLine: View {
         }
         .onChange(of: focusedField.wrappedValue) { oldValue, newValue in
             if !isDeleting, oldValue == .entry(entry.id), newValue != oldValue {
-                entry.refreshParsedFields()
+                commitDraft()
             }
 
             if newValue == .entry(entry.id), oldValue != newValue {
-                Task { @MainActor in
-                    await Task.yield()
-                    textSelection = TextSelection(insertionPoint: entry.rawText.endIndex)
-                }
+                prepareDraftForEditing()
             }
+        }
+        .onDisappear {
+            initialTapProtectionTask?.cancel()
+            commitDraft()
         }
     }
 
     @ViewBuilder private var entryContent: some View {
-        ZStack(alignment: .leading) {
-            TextField("", text: $entry.rawText, selection: $textSelection, axis: .vertical)
+        ZStack(alignment: .topLeading) {
+            Text(editableText.isEmpty ? " " : editableText)
+                .fixedSize(horizontal: false, vertical: true)
+                .hidden()
+                .accessibilityHidden(true)
+
+            TextField("", text: draftBinding, selection: $textSelection, axis: .vertical)
                 .textFieldStyle(.plain)
                 .focused(focusedField, equals: .entry(entry.id))
-                .onChange(of: entry.rawText) { _, _ in
-                    handleTextChange()
+                .lineLimit(1...)
+                .onChange(of: draftText) { _, newValue in
+                    guard let newValue else { return }
+                    handleTextChange(newValue)
                 }
                 .allowsHitTesting(!isMoveModeActive)
 
-            if isMoveModeActive {
+            if !isMoveModeActive
+                && (focusedField.wrappedValue != .entry(entry.id) || isProtectingInitialTap) {
+                Color.clear
+                    .contentShape(Rectangle())
+                    .onTapGesture {
+                        beginEditing()
+                    }
+                    .accessibilityLabel("Regel bewerken")
+            } else if isMoveModeActive {
                 Color.clear
                     .contentShape(Rectangle())
                     .onTapGesture(perform: finishMove)
@@ -769,18 +788,77 @@ struct AgendaEntryLine: View {
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 
-    private func handleTextChange() {
-        if entry.rawText.contains("\n") {
-            entry.rawText = entry.rawText
-                .replacingOccurrences(of: "\n", with: "")
-            entry.refreshParsedFields()
+    private var editableText: String {
+        draftText ?? entry.rawText
+    }
+
+    private var draftBinding: Binding<String> {
+        Binding(
+            get: { editableText },
+            set: { draftText = $0 }
+        )
+    }
+
+    private func beginEditing() {
+        if focusedField.wrappedValue != .entry(entry.id) {
+            prepareDraftForEditing()
+            protectInitialTap()
+            focusedField.wrappedValue = .entry(entry.id)
+        } else {
+            moveSelectionToEnd()
+        }
+    }
+
+    private func prepareDraftForEditing() {
+        if draftText == nil {
+            draftText = entry.rawText
+        }
+        moveSelectionToEnd()
+    }
+
+    private func moveSelectionToEnd() {
+        let text = editableText
+        textSelection = TextSelection(insertionPoint: text.endIndex)
+    }
+
+    private func protectInitialTap() {
+        initialTapProtectionTask?.cancel()
+        isProtectingInitialTap = true
+
+        initialTapProtectionTask = Task { @MainActor in
+            try? await Task.sleep(for: .milliseconds(320))
+            guard !Task.isCancelled else { return }
+            isProtectingInitialTap = false
+            initialTapProtectionTask = nil
+        }
+    }
+
+    private func handleTextChange(_ newValue: String) {
+        if newValue.contains("\n") {
+            draftText = newValue.replacingOccurrences(of: "\n", with: "")
+            commitDraft()
             focusedField.wrappedValue = nil
+        }
+    }
+
+    private func commitDraft() {
+        guard !isDeleting, let draftText else { return }
+
+        initialTapProtectionTask?.cancel()
+        initialTapProtectionTask = nil
+        isProtectingInitialTap = false
+
+        if draftText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            deleteEntry()
             return
         }
 
-        if entry.rawText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-            deleteEntry()
+        if entry.rawText != draftText {
+            entry.rawText = draftText
         }
+        entry.refreshParsedFields()
+        self.draftText = nil
+        try? modelContext.save()
     }
 
     private func deleteEntry() {

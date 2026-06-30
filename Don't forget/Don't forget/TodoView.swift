@@ -108,7 +108,6 @@ struct TodoView: View {
     @State private var isScrolled = false
     @State private var isKeyboardVisible = false
     @State private var newGroupTitle = ""
-    @State private var reorderingGroupID: String?
     @State private var recentlyCompletedTodoID: UUID?
     @State private var dismissUndoTask: Task<Void, Never>?
 
@@ -135,8 +134,9 @@ struct TodoView: View {
                             showsReorderHint: group.id == firstNonemptyGroupID,
                             canMoveUp: index > 0,
                             canMoveDown: index < groups.count - 1,
-                            canDeleteGroup: groups.count > 1 && !todos.contains(where: { $0.bucketRawValue == group.id }),
-                            isReordering: reorderingGroupID != nil,
+                            canDeleteGroup: groups.count > 1 && !todos.contains(where: {
+                                $0.bucketRawValue == group.id && !$0.isDone
+                            }),
                             rename: { renameGroup(group.id, to: $0) },
                             changeColor: { changeGroupColor(group.id, to: $0) },
                             changeIcon: { changeGroupIcon(group.id, to: $0) },
@@ -145,7 +145,6 @@ struct TodoView: View {
                             moveDown: { moveGroup(from: index, direction: 1) },
                             completed: showCompletionUndo
                         )
-                        .zIndex(reorderingGroupID == group.id ? 1 : 0)
                     }
 
                     if groups.count < TodoGroupStore.maxCount {
@@ -252,19 +251,10 @@ struct TodoView: View {
         let target = index + direction
         guard updated.indices.contains(index), updated.indices.contains(target) else { return }
 
-        let movingID = updated[index].id
         updated.swapAt(index, target)
-        reorderingGroupID = movingID
 
-        withAnimation(.snappy(duration: 0.22, extraBounce: 0.02)) {
+        withAnimation(.snappy(duration: 0.16, extraBounce: 0)) {
             groups = updated
-        }
-
-        Task { @MainActor in
-            try? await Task.sleep(for: .milliseconds(260))
-            if reorderingGroupID == movingID {
-                reorderingGroupID = nil
-            }
         }
     }
 
@@ -287,11 +277,15 @@ struct TodoView: View {
         var updated = groups
         guard updated.count > 1,
               let index = updated.firstIndex(where: { $0.id == id }),
-              !todos.contains(where: { $0.bucketRawValue == id }) else {
+              !todos.contains(where: { $0.bucketRawValue == id && !$0.isDone }) else {
             return
         }
 
         updated.remove(at: index)
+        guard let destinationID = updated.first?.id else { return }
+        for todo in todos where todo.bucketRawValue == id {
+            todo.bucketRawValue = destinationID
+        }
         groups = updated
         try? modelContext.save()
     }
@@ -352,7 +346,6 @@ private struct TodoBucketCard: View {
     let canMoveUp: Bool
     let canMoveDown: Bool
     let canDeleteGroup: Bool
-    let isReordering: Bool
     let rename: (String) -> Void
     let changeColor: (String) -> Void
     let changeIcon: (String) -> Void
@@ -482,7 +475,6 @@ private struct TodoBucketCard: View {
         .animation(nil, value: canMoveUp)
         .animation(nil, value: canMoveDown)
         .animation(nil, value: canDelete)
-        .allowsHitTesting(!isReordering)
     }
 
     private var openCountText: String {
@@ -611,6 +603,7 @@ private struct TodoLine: View {
     @State private var showMoveToAgenda = false
     @State private var agendaDate = AppCalendar.startOfDay(.now)
     @State private var showingReorderHint = false
+    @State private var isDeleting = false
 
     var body: some View {
         HStack(alignment: .top, spacing: 9) {
@@ -624,9 +617,12 @@ private struct TodoLine: View {
                 .foregroundStyle(todo.isDone ? .secondary : .primary)
                 .submitLabel(.done)
                 .onChange(of: todo.text) { _, newValue in
-                    guard newValue.contains("\n") else { return }
-                    todo.text = newValue.replacingOccurrences(of: "\n", with: " ")
-                    AppKeyboard.dismiss()
+                    if newValue.contains("\n") {
+                        todo.text = newValue.replacingOccurrences(of: "\n", with: " ")
+                        AppKeyboard.dismiss()
+                    } else if newValue.isEmpty {
+                        deleteTodo()
+                    }
                 }
                 .onSubmit {
                     AppKeyboard.dismiss()
@@ -740,6 +736,16 @@ private struct TodoLine: View {
     private var accessibleAgeText: String {
         let days = TodoAge.daysOpen(since: todo.createdAt)
         return days == 0 ? "Vandaag aangemaakt" : "\(days) dagen open"
+    }
+
+    private func deleteTodo() {
+        guard !isDeleting else { return }
+        isDeleting = true
+        Task { @MainActor in
+            await Task.yield()
+            modelContext.delete(todo)
+            try? modelContext.save()
+        }
     }
 
     private func moveToAgenda() {
