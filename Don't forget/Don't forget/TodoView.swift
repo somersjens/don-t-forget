@@ -253,7 +253,7 @@ struct TodoView: View {
 
         updated.swapAt(index, target)
 
-        withAnimation(.snappy(duration: 0.16, extraBounce: 0)) {
+        withAnimation(.easeOut(duration: 0.13)) {
             groups = updated
         }
     }
@@ -322,7 +322,9 @@ struct TodoView: View {
                 .foregroundStyle(.green)
             Text("To-do verplaatst naar History")
                 .font(.system(size: 14, weight: .medium))
-                .lineLimit(1)
+                .lineLimit(2)
+                .fixedSize(horizontal: false, vertical: true)
+                .layoutPriority(1)
             Spacer(minLength: 4)
             Button("Ongedaan maken", action: undoCompletion)
                 .font(.system(size: 14, weight: .semibold))
@@ -431,29 +433,6 @@ private struct TodoBucketCard: View {
                 changeIcon: changeIcon
             )
         }
-        .confirmationDialog(
-            "Categorie aanpassen",
-            isPresented: $showingCategoryActions,
-            titleVisibility: .hidden
-        ) {
-            Button(action: moveUp) {
-                Label("Omhoog verplaatsen", systemImage: "arrow.up")
-            }
-            .disabled(!canMoveUp)
-
-            Button(action: moveDown) {
-                Label("Omlaag verplaatsen", systemImage: "arrow.down")
-            }
-            .disabled(!canMoveDown)
-
-            if canDelete {
-                Button(role: .destructive, action: delete) {
-                    Label("Categorie verwijderen", systemImage: "trash")
-                }
-            }
-
-            Button("Annuleer", role: .cancel) {}
-        }
     }
 
     private var actionToolbar: some View {
@@ -468,13 +447,62 @@ private struct TodoBucketCard: View {
         .buttonStyle(.plain)
         .foregroundStyle(group.color)
         .accessibilityLabel("Volgorde van \(group.title) aanpassen")
-        .transaction { transaction in
-            transaction.animation = nil
-            transaction.disablesAnimations = true
+        .popover(
+            isPresented: $showingCategoryActions,
+            attachmentAnchor: .rect(.bounds),
+            arrowEdge: .top
+        ) {
+            categoryActionsPopover
+                .presentationCompactAdaptation(.popover)
         }
-        .animation(nil, value: canMoveUp)
-        .animation(nil, value: canMoveDown)
-        .animation(nil, value: canDelete)
+    }
+
+    private var categoryActionsPopover: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            categoryActionButton("Omhoog verplaatsen", systemImage: "arrow.up", enabled: canMoveUp, action: moveUp)
+            categoryActionButton("Omlaag verplaatsen", systemImage: "arrow.down", enabled: canMoveDown, action: moveDown)
+
+            if canDelete {
+                Divider()
+                Button(role: .destructive) {
+                    performCategoryAction(delete)
+                } label: {
+                    Label("Categorie verwijderen", systemImage: "trash")
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.leading, 20)
+                        .padding(.trailing, 14)
+                        .padding(.vertical, 11)
+                }
+                .buttonStyle(.plain)
+            }
+        }
+        .frame(width: 230)
+        .padding(.vertical, 5)
+    }
+
+    private func categoryActionButton(
+        _ title: String,
+        systemImage: String,
+        enabled: Bool,
+        action: @escaping () -> Void
+    ) -> some View {
+        Button {
+            performCategoryAction(action)
+        } label: {
+            Label(title, systemImage: systemImage)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.leading, 20)
+                .padding(.trailing, 14)
+                .padding(.vertical, 11)
+        }
+        .buttonStyle(.plain)
+        .disabled(!enabled)
+        .opacity(enabled ? 1 : 0.35)
+    }
+
+    private func performCategoryAction(_ action: () -> Void) {
+        showingCategoryActions = false
+        action()
     }
 
     private var openCountText: String {
@@ -741,11 +769,8 @@ private struct TodoLine: View {
     private func deleteTodo() {
         guard !isDeleting else { return }
         isDeleting = true
-        Task { @MainActor in
-            await Task.yield()
-            modelContext.delete(todo)
-            try? modelContext.save()
-        }
+        modelContext.delete(todo)
+        try? modelContext.save()
     }
 
     private func moveToAgenda() {
