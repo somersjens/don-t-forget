@@ -17,6 +17,7 @@ struct AgendaView: View {
     @State private var isScrolled = false
     @State private var activeMoveEntryID: UUID?
     @State private var moveDraftDate = AppCalendar.startOfDay(.now)
+    @State private var pendingMoveModeTask: Task<Void, Never>?
     @State private var scrollTargetDate: Date?
     @State private var loadedFutureWeeks = 26
 
@@ -175,6 +176,8 @@ struct AgendaView: View {
                         .accessibilityLabel("Laatste wijziging terugdraaien")
 
                         Button {
+                            pendingMoveModeTask?.cancel()
+                            pendingMoveModeTask = nil
                             focusedField = nil
                             activeMoveEntryID = nil
                         } label: {
@@ -250,17 +253,40 @@ struct AgendaView: View {
     }
 
     private func toggleMoveControls(for entry: DayEntry) {
-        focusedField = nil
+        pendingMoveModeTask?.cancel()
+        pendingMoveModeTask = nil
 
+        if activeMoveEntryID == entry.id {
+            setMoveMode(entryID: nil)
+            return
+        }
+
+        let entryID = entry.id
+        let entryDate = AppCalendar.startOfDay(entry.date)
+
+        guard focusedField != nil else {
+            setMoveMode(entryID: entryID, date: entryDate)
+            return
+        }
+
+        focusedField = nil
+        AppKeyboard.dismiss()
+
+        pendingMoveModeTask = Task { @MainActor in
+            try? await Task.sleep(for: .milliseconds(320))
+            guard !Task.isCancelled else { return }
+            try? modelContext.save()
+            setMoveMode(entryID: entryID, date: entryDate)
+            pendingMoveModeTask = nil
+        }
+    }
+
+    private func setMoveMode(entryID: UUID?, date: Date? = nil) {
         var transaction = Transaction()
         transaction.disablesAnimations = true
         withTransaction(transaction) {
-            if activeMoveEntryID == entry.id {
-                activeMoveEntryID = nil
-            } else {
-                activeMoveEntryID = entry.id
-                moveDraftDate = AppCalendar.startOfDay(entry.date)
-            }
+            activeMoveEntryID = entryID
+            if let date { moveDraftDate = date }
         }
     }
 
@@ -964,11 +990,13 @@ private struct AgendaMoveControls: View {
 
             HStack(spacing: 0) {
                 Menu {
-                    ForEach(todoGroups) { group in
-                        Button {
-                            moveToTodo(group.id)
-                        } label: {
-                            Label(group.title, systemImage: group.icon)
+                    Section("Verplaats naar:") {
+                        ForEach(todoGroups) { group in
+                            Button {
+                                moveToTodo(group.id)
+                            } label: {
+                                Label(group.title, systemImage: group.icon)
+                            }
                         }
                     }
                 } label: {
@@ -1022,7 +1050,7 @@ private struct AgendaMoveControls: View {
                 Button(action: finishMove) {
                     Image(systemName: "checkmark")
                         .font(.system(size: 13, weight: .bold))
-                        .foregroundStyle(Color.green)
+                        .foregroundStyle(.secondary)
                         .frame(width: 20, height: 32)
                         .contentShape(Rectangle().inset(by: -4))
                 }
