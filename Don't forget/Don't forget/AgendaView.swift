@@ -9,6 +9,7 @@ private struct AgendaRecurringCategoryAppearance: Decodable {
 struct AgendaView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(\.undoManager) private var undoManager
+    @Environment(\.locale) private var locale
 
     @Query(sort: \DayEntry.date, order: .forward)
     private var entries: [DayEntry]
@@ -155,25 +156,25 @@ struct AgendaView: View {
             }
             .toolbar(.hidden, for: .navigationBar)
             .safeAreaInset(edge: .top, spacing: 0) {
-                HStack {
-                    Text("Kalender")
+                ZStack {
+                    Text(AppSection.agenda.title(for: locale))
                         .font(.system(size: 26, weight: .bold))
                         .opacity(isScrolled ? 0 : 1)
                         .animation(.easeOut(duration: 0.18), value: isScrolled)
 
-                    Spacer()
-
-                    HStack(spacing: 10) {
+                    HStack {
                         Button {
                             undoManager?.undo()
                         } label: {
                             Image(systemName: "arrow.uturn.backward")
-                                .font(.system(size: 18, weight: .medium))
+                                .font(.system(size: 20, weight: .semibold))
                                 .frame(width: 44, height: 44)
                         }
                         .glassEffect(.regular.interactive(), in: Circle())
                         .disabled(!(undoManager?.canUndo ?? false))
                         .accessibilityLabel("Laatste wijziging terugdraaien")
+
+                        Spacer()
 
                         Button {
                             pendingMoveModeTask?.cancel()
@@ -182,7 +183,7 @@ struct AgendaView: View {
                             activeMoveEntryID = nil
                         } label: {
                             Image(systemName: "checkmark")
-                                .font(.system(size: 18, weight: .medium))
+                                .font(.system(size: 20, weight: .semibold))
                                 .frame(width: 44, height: 44)
                         }
                         .glassEffect(.regular.interactive(), in: Circle())
@@ -190,7 +191,8 @@ struct AgendaView: View {
                         .accessibilityLabel("Bewerken afsluiten")
                     }
                 }
-                .padding(.horizontal, 14)
+                .padding(.leading, 22)
+                .padding(.trailing, 18)
                 .padding(.vertical, 6)
             }
             .onAppear {
@@ -490,7 +492,8 @@ struct WeekCard: View {
                     )
                 }
             }
-            .padding(.horizontal, 14)
+            .padding(.leading, 14)
+            .padding(.trailing, 16)
             .padding(.vertical, 13)
             .background {
                 RoundedRectangle(cornerRadius: 8)
@@ -1085,9 +1088,14 @@ private struct AgendaMoveControls: View {
                     .labelsHidden()
                     .datePickerStyle(.compact)
                     .fixedSize()
-                    .scaleEffect(0.78)
+                    .opacity(0.02)
+                    .overlay {
+                        Text(AppCalendar.localizedDate(date, template: "dMMMyyyy"))
+                            .allowsHitTesting(false)
+                    }
                     .frame(width: 76, height: 32)
                     .contentShape(Rectangle().inset(by: -4))
+                    .accessibilityValue(AppCalendar.localizedDate(date, template: "dMMMyyyy"))
 
                 Spacer(minLength: 8)
 

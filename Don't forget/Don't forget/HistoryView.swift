@@ -37,6 +37,7 @@ enum HistoryFilter: String, CaseIterable, Identifiable {
 struct HistoryView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(\.undoManager) private var undoManager
+    @Environment(\.locale) private var locale
 
     @Query(sort: \DayEntry.date, order: .reverse)
     private var entries: [DayEntry]
@@ -188,40 +189,27 @@ struct HistoryView: View {
             }
             .toolbar(.hidden, for: .navigationBar)
             .safeAreaInset(edge: .top, spacing: 0) {
-                HStack {
-                    Text("History")
+                ZStack {
+                    Text(AppSection.history.title(for: locale))
                         .font(.system(size: 26, weight: .bold))
                         .opacity(isScrolled ? 0 : 1)
                         .animation(.easeOut(duration: 0.18), value: isScrolled)
 
-                    Spacer()
-
-                    HStack(spacing: 10) {
-                        Button {
-                            undoManager?.undo()
-                            try? modelContext.save()
-                            hideRestoreBar()
-                        } label: {
-                            Image(systemName: "arrow.uturn.backward")
-                                .font(.system(size: 18, weight: .medium))
-                                .frame(width: 44, height: 44)
-                        }
-                        .glassEffect(.regular.interactive(), in: Circle())
-                        .disabled(!(undoManager?.canUndo ?? false))
-                        .accessibilityLabel("Laatste wijziging terugdraaien")
+                    HStack {
+                        Spacer()
 
                         Button {
                             isShowingSettings = true
                         } label: {
                             Image(systemName: "gearshape")
-                                .font(.system(size: 18, weight: .medium))
+                                .font(.system(size: 20, weight: .semibold))
                                 .frame(width: 44, height: 44)
                         }
                         .glassEffect(.regular.interactive(), in: Circle())
                         .accessibilityLabel("Instellingen")
                     }
                 }
-                .padding(.horizontal, 14)
+                .padding(.horizontal, 18)
                 .padding(.vertical, 6)
             }
             .safeAreaInset(edge: .bottom, spacing: 8) {
@@ -596,9 +584,7 @@ private struct HistoryFilterBar: View {
                     isSelected: selection == filter,
                     showsTitle: filter == .all
                 ) {
-                    withAnimation(.snappy(duration: 0.2, extraBounce: 0)) {
-                        selection = filter
-                    }
+                    selection = filter
                 }
             }
         }
@@ -674,7 +660,8 @@ private struct HistoryDayCard: View {
                     HistoryItemRow(row: row) {
                         restore(row)
                     }
-                    .padding(.horizontal, 14)
+                    .padding(.leading, 14)
+                    .padding(.trailing, 8)
                     .padding(.vertical, 11)
 
                     if index < section.rows.count - 1 {

@@ -102,6 +102,9 @@ struct TodoView: View {
     @Environment(\.undoManager)
     private var undoManager
 
+    @Environment(\.locale)
+    private var locale
+
     @Query(sort: \TodoItem.createdAt, order: .forward)
     private var todos: [TodoItem]
 
@@ -165,31 +168,31 @@ struct TodoView: View {
             }
             .toolbar(.hidden, for: .navigationBar)
             .safeAreaInset(edge: .top, spacing: 0) {
-                HStack {
-                    Text("To-do")
+                ZStack {
+                    Text(AppSection.todo.title(for: locale))
                         .font(.system(size: 26, weight: .bold))
                         .opacity(isScrolled ? 0 : 1)
                         .animation(.easeOut(duration: 0.18), value: isScrolled)
 
-                    Spacer()
-
-                    HStack(spacing: 10) {
+                    HStack {
                         Button {
                             undoManager?.undo()
                         } label: {
                             Image(systemName: "arrow.uturn.backward")
-                                .font(.system(size: 18, weight: .medium))
+                                .font(.system(size: 20, weight: .semibold))
                                 .frame(width: 44, height: 44)
                         }
                         .glassEffect(.regular.interactive(), in: Circle())
                         .disabled(!(undoManager?.canUndo ?? false))
                         .accessibilityLabel("Laatste wijziging terugdraaien")
 
+                        Spacer()
+
                         Button {
                             AppKeyboard.dismiss()
                         } label: {
                             Image(systemName: "checkmark")
-                                .font(.system(size: 18, weight: .medium))
+                                .font(.system(size: 20, weight: .semibold))
                                 .frame(width: 44, height: 44)
                         }
                         .glassEffect(.regular.interactive(), in: Circle())
@@ -197,7 +200,8 @@ struct TodoView: View {
                         .accessibilityLabel("Toetsenbord sluiten")
                     }
                 }
-                .padding(.horizontal, 14)
+                .padding(.leading, 22)
+                .padding(.trailing, 18)
                 .padding(.vertical, 6)
             }
             .safeAreaInset(edge: .bottom, spacing: 8) {
@@ -320,7 +324,7 @@ struct TodoView: View {
         HStack(spacing: 12) {
             Image(systemName: "checkmark.circle.fill")
                 .foregroundStyle(.green)
-            Text("To-do verplaatst naar History")
+            Text("To-do verplaatst\nnaar History")
                 .font(.system(size: 14, weight: .medium))
                 .lineLimit(2)
                 .fixedSize(horizontal: false, vertical: true)
@@ -363,7 +367,7 @@ private struct TodoBucketCard: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
+        VStack(alignment: .leading, spacing: 0) {
             HStack(alignment: .top, spacing: 9) {
                 Button {
                     showingAppearancePicker = true
@@ -399,10 +403,13 @@ private struct TodoBucketCard: View {
 
                 actionToolbar
             }
+            .padding(.leading, 12)
+            .padding(.trailing, 8)
+            .padding(.vertical, 14)
 
             Divider()
                 .overlay(Color.primary.opacity(0.07))
-                .padding(.leading, 45)
+                .padding(.leading, 62)
 
             VStack(alignment: .leading, spacing: 7) {
                 ForEach(Array(todos.enumerated()), id: \.element.id) { index, todo in
@@ -417,9 +424,11 @@ private struct TodoBucketCard: View {
 
                 NewTodoLine(groupID: group.id)
             }
+            .padding(.leading, 12)
+            .padding(.trailing, 8)
+            .padding(.top, 10)
+            .padding(.bottom, 14)
         }
-        .padding(.horizontal, 13)
-        .padding(.vertical, 14)
         .background {
             RoundedRectangle(cornerRadius: 8)
                 .fill(Color(.secondarySystemBackground))
@@ -481,7 +490,7 @@ private struct TodoBucketCard: View {
     }
 
     private func categoryActionButton(
-        _ title: String,
+        _ title: LocalizedStringKey,
         systemImage: String,
         enabled: Bool,
         action: @escaping () -> Void
@@ -512,6 +521,7 @@ private struct TodoBucketCard: View {
 
 private struct TodoGroupAppearancePicker: View {
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.locale) private var locale
     let groupTitle: String
     let changeColor: (String) -> Void
     let changeIcon: (String) -> Void
@@ -561,8 +571,8 @@ private struct TodoGroupAppearancePicker: View {
                                                     .foregroundStyle(.white)
                                             }
                                         }
-                                        Text(option.title)
-                                            .font(.caption)
+                                        Text(option.title(for: locale))
+                                            .font(.callout)
                                             .foregroundStyle(.primary)
                                     }
                                     .frame(maxWidth: .infinity)
@@ -641,14 +651,17 @@ private struct TodoLine: View {
                 .font(.system(size: 16))
                 .textFieldStyle(.plain)
                 .lineLimit(1...)
+                .fixedSize(horizontal: false, vertical: true)
                 .strikethrough(todo.isDone)
                 .foregroundStyle(todo.isDone ? .secondary : .primary)
                 .submitLabel(.done)
                 .onChange(of: todo.text) { _, newValue in
-                    if newValue.contains("\n") {
-                        todo.text = newValue.replacingOccurrences(of: "\n", with: " ")
+                    let normalizedText = newValue.replacingOccurrences(of: "\n", with: " ")
+                    if normalizedText != newValue {
+                        todo.text = normalizedText
                         AppKeyboard.dismiss()
-                    } else if newValue.isEmpty {
+                    }
+                    if normalizedText.isEmpty {
                         deleteTodo()
                     }
                 }
@@ -800,18 +813,27 @@ private struct NewTodoLine: View {
     private var modelContext
 
     @State private var text = ""
+    @FocusState private var isTextFieldFocused: Bool
 
     var body: some View {
         HStack(alignment: .top, spacing: 9) {
-            Image(systemName: "plus.circle")
-                .font(.system(size: 15))
-                .foregroundStyle(.secondary)
-                .frame(width: 36, height: 24)
+            Button {
+                beginEditing()
+            } label: {
+                Image(systemName: "plus.circle")
+                    .font(.system(size: 15))
+                    .foregroundStyle(.secondary)
+                    .frame(width: 36, height: 24)
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("Nieuw to-do-item invoeren")
 
             TextField("typ iets", text: $text, axis: .vertical)
                 .font(.system(size: 16))
                 .textFieldStyle(.plain)
+                .focused($isTextFieldFocused)
                 .lineLimit(1...)
+                .fixedSize(horizontal: false, vertical: true)
                 .foregroundStyle(.primary)
                 .submitLabel(.done)
                 .onChange(of: text) { _, newValue in
@@ -826,8 +848,8 @@ private struct NewTodoLine: View {
                 }
 
             Button {
-            addTodo()
-        } label: {
+                addTodo()
+            } label: {
                 Image(systemName: "plus")
                     .font(.system(size: 12, weight: .semibold))
                     .frame(width: 36, height: 24)
@@ -851,22 +873,37 @@ private struct NewTodoLine: View {
         try? modelContext.save()
         text = ""
     }
+
+    private func beginEditing() {
+        Task { @MainActor in
+            await Task.yield()
+            isTextFieldFocused = true
+        }
+    }
 }
 
 private struct NewTodoGroupLine: View {
     @Binding var text: String
     let add: () -> Void
+    @FocusState private var isTextFieldFocused: Bool
 
     var body: some View {
         HStack(spacing: 10) {
-            Image(systemName: "plus.circle")
-                .font(.system(size: 17))
-                .foregroundStyle(.secondary)
-                .frame(width: 24, height: 24)
+            Button {
+                beginEditing()
+            } label: {
+                Image(systemName: "plus.circle")
+                    .font(.system(size: 17))
+                    .foregroundStyle(.secondary)
+                    .frame(width: 24, height: 24)
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("Nieuwe categorie invoeren")
 
             TextField("Nieuwe groep", text: $text, axis: .vertical)
                 .font(.system(size: 16, weight: .medium))
                 .textFieldStyle(.plain)
+                .focused($isTextFieldFocused)
                 .lineLimit(1...)
                 .onChange(of: text) { _, newValue in
                     guard newValue.contains("\n") else { return }
@@ -887,9 +924,17 @@ private struct NewTodoGroupLine: View {
             .foregroundStyle(.secondary)
             .opacity(text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? 0 : 1)
         }
-        .padding(.horizontal, 13)
+        .padding(.leading, 18)
+        .padding(.trailing, 13)
         .padding(.vertical, 12)
         .background(Color(.secondarySystemBackground), in: RoundedRectangle(cornerRadius: 8))
+    }
+
+    private func beginEditing() {
+        Task { @MainActor in
+            await Task.yield()
+            isTextFieldFocused = true
+        }
     }
 }
 
