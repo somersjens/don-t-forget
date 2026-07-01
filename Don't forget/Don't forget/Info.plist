@@ -4,6 +4,10 @@
 <dict>
 	<key>NSCalendarsFullAccessUsageDescription</key>
 	<string>Don't forget gebruikt toegang om je agenda-items met de iPhone Kalender te synchroniseren.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Don't forget gebruikt de microfoon om gesproken tekst aan een nieuwe invoer toe te voegen.</string>
+	<key>NSSpeechRecognitionUsageDescription</key>
+	<string>Don't forget gebruikt spraakherkenning om je gesproken invoer om te zetten naar tekst.</string>
 	<key>UIBackgroundModes</key>
 	<array>
 		<string>remote-notification</string>

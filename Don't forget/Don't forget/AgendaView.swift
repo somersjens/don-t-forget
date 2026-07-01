@@ -18,8 +18,9 @@ struct AgendaView: View {
     @State private var isScrolled = false
     @State private var activeMoveEntryID: UUID?
     @State private var moveDraftDate = AppCalendar.startOfDay(.now)
-    @State private var pendingMoveModeTask: Task<Void, Never>?
     @State private var scrollTargetDate: Date?
+    @State private var scrollTask: Task<Void, Never>?
+    @State private var visibleDates: Set<Date> = []
     @State private var loadedFutureWeeks = 26
 
     @AppStorage(SettingsKeys.weekStart) private var weekStartSetting = WeekStartOption.monday.rawValue
@@ -34,13 +35,13 @@ struct AgendaView: View {
     private var openPastDates: Set<Date> {
         let today = AppCalendar.startOfDay(.now)
         return Set(entries.compactMap { entry in
-            guard !entry.isDone, entry.date < today else { return nil }
+            guard !entry.isDone, !entry.isRemoved, entry.date < today else { return nil }
             return AppCalendar.startOfDay(entry.date)
         })
     }
 
     private var entriesByDay: [Date: [DayEntry]] {
-        Dictionary(grouping: entries) { AppCalendar.startOfDay($0.date) }
+        Dictionary(grouping: entries.filter { !$0.isRemoved }) { AppCalendar.startOfDay($0.date) }
     }
 
     private var activeMoveEntryHasTime: Bool {
@@ -51,7 +52,7 @@ struct AgendaView: View {
     private var weeks: [WeekSection] {
         let today = AppCalendar.startOfDay(.now)
         let oldestOpenDate = entries
-            .filter { !$0.isDone && $0.date < today }
+            .filter { !$0.isDone && !$0.isRemoved && $0.date < today }
             .map(\.date)
             .min()
         let startDate = oldestOpenDate ?? today
@@ -104,9 +105,7 @@ struct AgendaView: View {
                                 activeMoveEntryHasTime: activeMoveEntryHasTime,
                                 moveDraftDate: $moveDraftDate,
                                 toggleMoveControls: toggleMoveControls,
-                                scrollToDate: { date in
-                                    scrollTargetDate = AppCalendar.startOfDay(date)
-                                }
+                                dayVisibilityChanged: updateDayVisibility
                             )
                             .id(AgendaScrollTarget.week(week.startDate))
                             .onAppear {
@@ -128,22 +127,12 @@ struct AgendaView: View {
                 .onChange(of: scrollTargetDate) { _, targetDate in
                     guard let targetDate else { return }
 
-                    Task { @MainActor in
-                        await Task.yield()
-                        guard let weekStart = AppCalendar.calendar.dateInterval(
-                            of: .weekOfYear,
-                            for: targetDate
-                        )?.start else {
-                            scrollTargetDate = nil
-                            return
-                        }
-
-                        proxy.scrollTo(
-                            AgendaScrollTarget.week(weekStart),
-                            anchor: .center
-                        )
-                        await Task.yield()
-                        await Task.yield()
+                    scrollTask?.cancel()
+                    scrollTask = Task { @MainActor in
+                        // Give SwiftUI one layout pass to insert a newly exposed
+                        // week before asking the lazy stack for its day anchor.
+                        try? await Task.sleep(for: .milliseconds(50))
+                        guard !Task.isCancelled else { return }
                         withAnimation(.smooth(duration: 0.18, extraBounce: 0)) {
                             proxy.scrollTo(
                                 AgendaScrollTarget.day(targetDate),
@@ -151,6 +140,7 @@ struct AgendaView: View {
                             )
                         }
                         scrollTargetDate = nil
+                        scrollTask = nil
                     }
                 }
             }
@@ -177,8 +167,7 @@ struct AgendaView: View {
                         Spacer()
 
                         Button {
-                            pendingMoveModeTask?.cancel()
-                            pendingMoveModeTask = nil
+                            scrollTask?.cancel()
                             focusedField = nil
                             activeMoveEntryID = nil
                         } label: {
@@ -203,27 +192,36 @@ struct AgendaView: View {
                     try? modelContext.save()
                 }
             }
+            .onDisappear {
+                scrollTask?.cancel()
+            }
         }
     }
 
     private func moveEntry(_ entryID: UUID, to targetDate: Date, insertionIndex: Int? = nil) {
         guard let entry = entries.first(where: { $0.id == entryID }) else { return }
 
+        let originalDay = AppCalendar.startOfDay(entry.date)
         let day = AppCalendar.startOfDay(targetDate)
         let targetEntries = entries
-            .filter { AppCalendar.isSameDay($0.date, day) && $0.id != entryID }
+            .filter { !$0.isRemoved && AppCalendar.isSameDay($0.date, day) && $0.id != entryID }
             .sorted(by: sortEntries)
         let targetIndex = min(max(insertionIndex ?? targetEntries.count, 0), targetEntries.count)
 
         focusedField = nil
-        entry.date = day
-        moveDraftDate = day
-        if entry.recurringItemIdentifier != nil {
-            entry.recurringDateOverride = day
+        withAnimation(.smooth(duration: 0.22, extraBounce: 0)) {
+            entry.date = day
+            moveDraftDate = day
+            if entry.recurringItemIdentifier != nil {
+                entry.recurringDateOverride = day
+            }
+            entry.refreshParsedFields()
+            renumber(entries: targetEntries, inserting: entry, at: targetIndex)
         }
-        entry.refreshParsedFields()
-        renumber(entries: targetEntries, inserting: entry, at: targetIndex)
         try? modelContext.save()
+        if originalDay != day {
+            requestScroll(to: day)
+        }
     }
 
     private func loadMoreFutureWeeks(ifCurrentLimitIs expectedLimit: Int) {
@@ -237,50 +235,38 @@ struct AgendaView: View {
         let day = AppCalendar.startOfDay(targetDate)
         let targetEntries = entries
             .filter {
-                AppCalendar.isSameDay($0.date, day)
+                !$0.isRemoved
+                    && AppCalendar.isSameDay($0.date, day)
                     && !$0.hasTime
                     && $0.id != entryID
             }
             .sorted(by: sortEntries)
 
         focusedField = nil
-        entry.date = day
-        moveDraftDate = day
-        if entry.recurringItemIdentifier != nil {
-            entry.recurringDateOverride = day
+        withAnimation(.smooth(duration: 0.22, extraBounce: 0)) {
+            entry.date = day
+            moveDraftDate = day
+            if entry.recurringItemIdentifier != nil {
+                entry.recurringDateOverride = day
+            }
+            entry.refreshParsedFields()
+            entry.manualOrder = (targetEntries.map(\.manualOrder).min() ?? 0) - 1
         }
-        entry.refreshParsedFields()
-        entry.manualOrder = (targetEntries.map(\.manualOrder).min() ?? 0) - 1
         try? modelContext.save()
+        requestScroll(to: day)
     }
 
     private func toggleMoveControls(for entry: DayEntry) {
-        pendingMoveModeTask?.cancel()
-        pendingMoveModeTask = nil
-
         if activeMoveEntryID == entry.id {
             setMoveMode(entryID: nil)
             return
         }
 
-        let entryID = entry.id
         let entryDate = AppCalendar.startOfDay(entry.date)
-
-        guard focusedField != nil else {
-            setMoveMode(entryID: entryID, date: entryDate)
-            return
-        }
-
         focusedField = nil
         AppKeyboard.dismiss()
-
-        pendingMoveModeTask = Task { @MainActor in
-            try? await Task.sleep(for: .milliseconds(320))
-            guard !Task.isCancelled else { return }
-            try? modelContext.save()
-            setMoveMode(entryID: entryID, date: entryDate)
-            pendingMoveModeTask = nil
-        }
+        try? modelContext.save()
+        setMoveMode(entryID: entry.id, date: entryDate)
     }
 
     private func setMoveMode(entryID: UUID?, date: Date? = nil) {
@@ -316,10 +302,10 @@ struct AgendaView: View {
         }
 
         let movableEntries = entries
-            .filter { AppCalendar.isSameDay($0.date, day) && !$0.hasTime && $0.id != entryID }
+            .filter { !$0.isRemoved && AppCalendar.isSameDay($0.date, day) && !$0.hasTime && $0.id != entryID }
             .sorted(by: sortEntries)
         let currentEntries = entries
-            .filter { AppCalendar.isSameDay($0.date, day) && !$0.hasTime }
+            .filter { !$0.isRemoved && AppCalendar.isSameDay($0.date, day) && !$0.hasTime }
             .sorted(by: sortEntries)
 
         guard let currentIndex = currentEntries.firstIndex(where: { $0.id == entryID }) else {
@@ -360,7 +346,8 @@ struct AgendaView: View {
             return
         }
 
-        let allEntries = (try? modelContext.fetch(FetchDescriptor<DayEntry>())) ?? entries
+        let allEntries = ((try? modelContext.fetch(FetchDescriptor<DayEntry>())) ?? entries)
+            .filter { !$0.isRemoved }
         CalendarSyncService.deleteEventIfUnshared(for: entry, among: allEntries)
 
         let todo = TodoItem(text: cleanText, bucket: .today)
@@ -369,6 +356,29 @@ struct AgendaView: View {
         modelContext.delete(entry)
         activeMoveEntryID = nil
         try? modelContext.save()
+    }
+
+    private func requestScroll(to date: Date) {
+        let day = AppCalendar.startOfDay(date)
+        guard !visibleDates.contains(day) else { return }
+        if day > AppCalendar.startOfDay(.now) {
+            let weeksAhead = AppCalendar.calendar.dateComponents(
+                [.weekOfYear],
+                from: AppCalendar.startOfDay(.now),
+                to: day
+            ).weekOfYear ?? 0
+            loadedFutureWeeks = max(loadedFutureWeeks, weeksAhead + 1)
+        }
+        scrollTargetDate = day
+    }
+
+    private func updateDayVisibility(_ date: Date, isVisible: Bool) {
+        let day = AppCalendar.startOfDay(date)
+        if isVisible {
+            visibleDates.insert(day)
+        } else {
+            visibleDates.remove(day)
+        }
     }
 
     private func sortEntries(_ first: DayEntry, _ second: DayEntry) -> Bool {
@@ -444,7 +454,7 @@ struct WeekCard: View {
     let activeMoveEntryHasTime: Bool
     @Binding var moveDraftDate: Date
     let toggleMoveControls: (DayEntry) -> Void
-    let scrollToDate: (Date) -> Void
+    let dayVisibilityChanged: (Date, Bool) -> Void
 
     private var visibleDays: [DayInfo] {
         let today = AppCalendar.startOfDay(.now)
@@ -488,7 +498,7 @@ struct WeekCard: View {
                         activeMoveEntryHasTime: activeMoveEntryHasTime,
                         moveDraftDate: $moveDraftDate,
                         toggleMoveControls: toggleMoveControls,
-                        scrollToDate: scrollToDate
+                        dayVisibilityChanged: dayVisibilityChanged
                     )
                 }
             }
@@ -515,7 +525,7 @@ struct DayBlock: View {
     let activeMoveEntryHasTime: Bool
     @Binding var moveDraftDate: Date
     let toggleMoveControls: (DayEntry) -> Void
-    let scrollToDate: (Date) -> Void
+    let dayVisibilityChanged: (Date, Bool) -> Void
 
     private var sortedEntries: [DayEntry] {
         entries.sorted { first, second in
@@ -583,7 +593,6 @@ struct DayBlock: View {
                                 moveToDate: {
                                     let targetDate = AppCalendar.startOfDay(moveDraftDate)
                                     moveEntry(entry.id, targetDate, nil)
-                                    scrollToDate(targetDate)
                                 },
                                 moveToTodo: { groupID in
                                     moveEntryToTodo(entry.id, groupID)
@@ -626,6 +635,9 @@ struct DayBlock: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .id(AgendaScrollTarget.day(day.date))
+        .onScrollVisibilityChange(threshold: 0.01) { isVisible in
+            dayVisibilityChanged(day.date, isVisible)
+        }
     }
 
     private func moveActiveEntryHere() {
@@ -732,6 +744,7 @@ struct AgendaEntryLine: View {
                     moveDown: moveDown,
                     moveToDate: moveToDate,
                     moveToTodo: moveToTodo,
+                    remove: removeEntry,
                     todoGroups: todoGroups,
                     finishMove: finishMove
                 )
@@ -887,6 +900,22 @@ struct AgendaEntryLine: View {
                 CalendarSyncService.enqueueEventDeletion(withIdentifier: eventIdentifier)
             }
         }
+    }
+
+    private func removeEntry() {
+        guard !isDeleting else { return }
+        isDeleting = true
+        focusedField.wrappedValue = nil
+        AppKeyboard.dismiss()
+
+        let activeEntries = ((try? modelContext.fetch(FetchDescriptor<DayEntry>())) ?? [])
+            .filter { !$0.isRemoved }
+        CalendarSyncService.deleteEventIfUnshared(for: entry, among: activeEntries)
+        entry.isDone = false
+        entry.isRemoved = true
+        entry.completedAt = .now
+        finishMove()
+        try? modelContext.save()
     }
 
     private func toggleDone() {
@@ -1051,6 +1080,7 @@ private struct AgendaMoveControls: View {
     let moveDown: () -> Void
     let moveToDate: () -> Void
     let moveToTodo: (String) -> Void
+    let remove: () -> Void
     let todoGroups: [TodoGroup]
     let finishMove: () -> Void
 
@@ -1069,6 +1099,12 @@ private struct AgendaMoveControls: View {
                                 Label(group.title, systemImage: group.icon)
                             }
                         }
+                    }
+
+                    Divider()
+
+                    Button(role: .destructive, action: remove) {
+                        Label("Verwijderen", systemImage: "trash")
                     }
                 } label: {
                     Color.clear

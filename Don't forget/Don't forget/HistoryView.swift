@@ -11,7 +11,7 @@ enum HistoryFilter: String, CaseIterable, Identifiable {
     case all = "Alles"
     case agenda = "Agenda"
     case recurring = "Recurring"
-    case todo = "To-do"
+    case todo = "Taken"
 
     var id: String { rawValue }
 
@@ -48,21 +48,25 @@ struct HistoryView: View {
     @AppStorage(SettingsKeys.recurringCategories) private var recurringCategoriesData = ""
     @AppStorage(SettingsKeys.recurringBirthdayCategoryDeleted) private var birthdayCategoryDeleted = false
     @AppStorage(SettingsKeys.todoGroups) private var todoGroupsData = ""
+    @AppStorage(SettingsKeys.historyShowsDeletedItems) private var showsDeletedItems = false
 
     @State private var filter: HistoryFilter = .all
     @State private var isScrolled = false
     @State private var isShowingSettings = false
     @State private var recentlyRestoredTitle: String?
     @State private var dismissRestoreTask: Task<Void, Never>?
+    @State private var selectedDeletionRowID: UUID?
+    @State private var pendingPermanentDeletion: HistoryRow?
+    @State private var permanentDeletionTask: Task<Void, Never>?
 
     private var allRows: [HistoryRow] {
         let recurringColors = recurringCategoryColors
         let todoColors = todoCategoryColors
         let agendaRows = entries
-            .filter { $0.isDone && $0.source == .manual }
+            .filter { ($0.isDone || $0.isRemoved) && $0.source != .recurring }
             .map { HistoryRow(entry: $0, source: .agenda, color: .gray) }
         let recurringRows = entries
-            .filter { $0.isDone && $0.source == .recurring }
+            .filter { ($0.isDone || $0.isRemoved) && $0.source == .recurring }
             .map { entry in
                 let categoryID = entry.accentRawValue == "birthdayReminder"
                     ? RecurringTheme.birthday.rawValue
@@ -74,7 +78,7 @@ struct HistoryView: View {
                 )
             }
         let todoRows = todos
-            .filter(\.isDone)
+            .filter { $0.isDone || $0.isRemoved }
             .map { todo in
                 HistoryRow(
                     todo: todo,
@@ -125,8 +129,11 @@ struct HistoryView: View {
     }
 
     private var visibleRows: [HistoryRow] {
-        guard filter != .all else { return allRows }
-        return allRows.filter { $0.source.filter == filter }
+        allRows.filter { row in
+            (showsDeletedItems || !row.isRemoved)
+                && row.id != pendingPermanentDeletion?.id
+                && (filter == .all || row.source.filter == filter)
+        }
     }
 
     private var sections: [HistoryDaySection] {
@@ -141,7 +148,11 @@ struct HistoryView: View {
     private var completedLastSevenDays: Int {
         let today = AppCalendar.startOfDay(.now)
         let start = AppCalendar.calendar.date(byAdding: .day, value: -6, to: today) ?? today
-        return allRows.count { $0.completedAt >= start }
+        return completedRows.count { $0.completedAt >= start }
+    }
+
+    private var completedRows: [HistoryRow] {
+        allRows.filter { !$0.isRemoved }
     }
 
     private var isHistoryDemoActive: Bool {
@@ -154,9 +165,9 @@ struct HistoryView: View {
             ScrollView {
                 LazyVStack(spacing: 12) {
                     HistorySummaryCard(
-                        total: allRows.count,
+                        total: completedRows.count,
                         lastSevenDays: completedLastSevenDays,
-                        completionDates: allRows.map(\.completedAt),
+                        completionDates: completedRows.map(\.completedAt),
                         isDemoActive: isHistoryDemoActive,
                         activateDemoData: activateHistoryDemoData,
                         deactivateDemoData: deactivateHistoryDemoData
@@ -173,6 +184,9 @@ struct HistoryView: View {
                         ForEach(sections) { section in
                             HistoryDayCard(
                                 section: section,
+                                selectedDeletionRowID: selectedDeletionRowID,
+                                revealPermanentDelete: revealPermanentDelete,
+                                permanentlyDelete: beginPermanentDeletion,
                                 restore: restore
                             )
                         }
@@ -213,7 +227,11 @@ struct HistoryView: View {
                 .padding(.vertical, 6)
             }
             .safeAreaInset(edge: .bottom, spacing: 8) {
-                if let recentlyRestoredTitle {
+                if let pendingPermanentDeletion {
+                    permanentDeletionBar(title: pendingPermanentDeletion.title)
+                        .padding(.horizontal, 14)
+                        .transition(.move(edge: .bottom).combined(with: .opacity))
+                } else if let recentlyRestoredTitle {
                     restoreBar(title: recentlyRestoredTitle)
                         .padding(.horizontal, 14)
                         .transition(.move(edge: .bottom).combined(with: .opacity))
@@ -229,8 +247,9 @@ struct HistoryView: View {
     }
 
     private func count(for filter: HistoryFilter) -> Int {
-        guard filter != .all else { return allRows.count }
-        return allRows.count { $0.source.filter == filter }
+        let rows = allRows.filter { showsDeletedItems || !$0.isRemoved }
+        guard filter != .all else { return rows.count }
+        return rows.count { $0.source.filter == filter }
     }
 
     private func activateHistoryDemoData() {
@@ -244,6 +263,7 @@ struct HistoryView: View {
     }
 
     private func restore(_ row: HistoryRow) {
+        selectedDeletionRowID = nil
         dismissRestoreTask?.cancel()
         withAnimation(.snappy(duration: 0.25, extraBounce: 0)) {
             row.restore()
@@ -256,6 +276,73 @@ struct HistoryView: View {
             guard !Task.isCancelled else { return }
             hideRestoreBar()
         }
+    }
+
+    private func revealPermanentDelete(_ row: HistoryRow) {
+        withAnimation(.snappy(duration: 0.2, extraBounce: 0)) {
+            selectedDeletionRowID = selectedDeletionRowID == row.id ? nil : row.id
+        }
+    }
+
+    private func beginPermanentDeletion(_ row: HistoryRow) {
+        if let previous = pendingPermanentDeletion {
+            commitPermanentDeletion(previous)
+        }
+
+        permanentDeletionTask?.cancel()
+        dismissRestoreTask?.cancel()
+        recentlyRestoredTitle = nil
+        withAnimation(.snappy(duration: 0.25, extraBounce: 0)) {
+            selectedDeletionRowID = nil
+            pendingPermanentDeletion = row
+        }
+
+        permanentDeletionTask = Task { @MainActor in
+            try? await Task.sleep(for: .seconds(6))
+            guard !Task.isCancelled else { return }
+            commitPermanentDeletion(row)
+        }
+    }
+
+    private func undoPermanentDeletion() {
+        permanentDeletionTask?.cancel()
+        permanentDeletionTask = nil
+        withAnimation(.easeOut(duration: 0.2)) {
+            pendingPermanentDeletion = nil
+        }
+    }
+
+    private func commitPermanentDeletion(_ row: HistoryRow) {
+        permanentDeletionTask?.cancel()
+        permanentDeletionTask = nil
+        row.permanentlyDelete(in: modelContext)
+        try? modelContext.save()
+        withAnimation(.easeOut(duration: 0.2)) {
+            if pendingPermanentDeletion?.id == row.id {
+                pendingPermanentDeletion = nil
+            }
+        }
+    }
+
+    private func permanentDeletionBar(title: String) -> some View {
+        HStack(spacing: 12) {
+            Image(systemName: "trash.fill")
+                .foregroundStyle(.red)
+            Text("‘\(title)’ definitief verwijderd")
+                .font(.system(size: 14, weight: .medium))
+                .lineLimit(1)
+            Spacer(minLength: 4)
+            Button("Ongedaan maken", action: undoPermanentDeletion)
+                .font(.system(size: 14, weight: .semibold))
+        }
+        .padding(.horizontal, 14)
+        .frame(minHeight: 50)
+        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 14))
+        .overlay {
+            RoundedRectangle(cornerRadius: 14)
+                .stroke(Color.primary.opacity(0.08), lineWidth: 1)
+        }
+        .shadow(color: .black.opacity(0.12), radius: 12, y: 4)
     }
 
     private func hideRestoreBar() {
@@ -293,6 +380,7 @@ struct HistoryView: View {
 }
 
 private struct HistorySummaryCard: View {
+    @Environment(\.colorScheme) private var colorScheme
     let total: Int
     let lastSevenDays: Int
     let completionDates: [Date]
@@ -311,10 +399,10 @@ private struct HistorySummaryCard: View {
             HStack(spacing: 13) {
                 ZStack {
                     RoundedRectangle(cornerRadius: 11)
-                        .fill(Color.green.opacity(0.16))
+                        .fill(colorScheme == .light ? Color.brandLightBlue : Color.brandHardBlue.opacity(0.22))
                     Image(systemName: "checkmark.circle.fill")
                         .font(.system(size: 20, weight: .semibold))
-                        .foregroundStyle(.green)
+                        .foregroundStyle(Color.brandHardBlue)
                 }
                 .frame(width: 42, height: 42)
                 .contentShape(RoundedRectangle(cornerRadius: 11))
@@ -435,7 +523,7 @@ private struct HistoryBarChart: View {
                     y: .value("Afgerond", bucket.count),
                     width: .ratio(0.62)
                 )
-                .foregroundStyle(bucket.isCurrent ? Color.green : Color.green.opacity(0.52))
+                .foregroundStyle(bucket.isCurrent ? Color.brandHardBlue : Color.brandHardBlue.opacity(0.52))
                 .clipShape(UnevenRoundedRectangle(
                     topLeadingRadius: 4,
                     bottomLeadingRadius: 0,
@@ -593,6 +681,7 @@ private struct HistoryFilterBar: View {
 }
 
 private struct HistoryFilterChip: View {
+    @Environment(\.colorScheme) private var colorScheme
     let filter: HistoryFilter
     let itemCount: Int
     let isSelected: Bool
@@ -600,11 +689,13 @@ private struct HistoryFilterChip: View {
     let select: () -> Void
 
     private var foregroundColor: Color {
-        isSelected ? .green : .secondary
+        isSelected ? Color.brandHardBlue : Color.secondary
     }
 
     private var backgroundColor: Color {
-        isSelected ? Color.green.opacity(0.13) : Color(.tertiarySystemFill)
+        isSelected
+            ? (colorScheme == .light ? .brandLightBlue : Color.brandHardBlue.opacity(0.22))
+            : Color(.tertiarySystemFill)
     }
 
     var body: some View {
@@ -639,7 +730,7 @@ private struct HistoryFilterChip: View {
         .overlay {
             if isSelected {
                 Capsule()
-                    .stroke(Color.green.opacity(0.78), lineWidth: 1.5)
+                    .stroke(Color.brandHardBlue.opacity(0.78), lineWidth: 1.5)
             }
         }
     }
@@ -647,6 +738,9 @@ private struct HistoryFilterChip: View {
 
 private struct HistoryDayCard: View {
     let section: HistoryDaySection
+    let selectedDeletionRowID: UUID?
+    let revealPermanentDelete: (HistoryRow) -> Void
+    let permanentlyDelete: (HistoryRow) -> Void
     let restore: (HistoryRow) -> Void
 
     var body: some View {
@@ -657,9 +751,13 @@ private struct HistoryDayCard: View {
 
             VStack(spacing: 0) {
                 ForEach(Array(section.rows.enumerated()), id: \.element.id) { index, row in
-                    HistoryItemRow(row: row) {
-                        restore(row)
-                    }
+                    HistoryItemRow(
+                        row: row,
+                        showsPermanentDelete: selectedDeletionRowID == row.id,
+                        revealPermanentDelete: { revealPermanentDelete(row) },
+                        permanentlyDelete: { permanentlyDelete(row) },
+                        restore: { restore(row) }
+                    )
                     .padding(.leading, 14)
                     .padding(.trailing, 8)
                     .padding(.vertical, 11)
@@ -682,24 +780,32 @@ private struct HistoryDayCard: View {
 
 private struct HistoryItemRow: View {
     let row: HistoryRow
+    let showsPermanentDelete: Bool
+    let revealPermanentDelete: () -> Void
+    let permanentlyDelete: () -> Void
     let restore: () -> Void
 
     var body: some View {
         HStack(alignment: .center, spacing: 11) {
-            ZStack {
-                RoundedRectangle(cornerRadius: 11)
-                    .fill(row.color.opacity(0.16))
-                Image(systemName: row.source.icon)
-                    .font(.system(size: 15, weight: .semibold))
-                    .foregroundStyle(row.color)
+            Button(action: revealPermanentDelete) {
+                ZStack {
+                    RoundedRectangle(cornerRadius: 11)
+                        .fill(row.color.opacity(0.16))
+                    Image(systemName: row.source.icon)
+                        .font(.system(size: 15, weight: .semibold))
+                        .foregroundStyle(row.color)
+                }
+                .frame(width: 42, height: 42)
             }
-            .frame(width: 42, height: 42)
+            .buttonStyle(.plain)
+            .accessibilityLabel("Acties voor \(row.title)")
 
             VStack(alignment: .leading, spacing: 4) {
                 Text(row.title)
                     .font(.system(size: 15, weight: .medium))
                     .foregroundStyle(.primary)
                     .lineLimit(2)
+                    .strikethrough(row.isRemoved)
 
                 HStack(spacing: 5) {
                     Text(row.source.title)
@@ -712,19 +818,33 @@ private struct HistoryItemRow: View {
 
             Spacer(minLength: 6)
 
-            Button(action: restore) {
-                Image(systemName: "arrow.uturn.backward")
-                    .font(.system(size: 14, weight: .semibold))
-                    .foregroundStyle(row.color)
-                    .frame(width: 36, height: 36)
-                    .background(row.color.opacity(0.12), in: Circle())
+            if showsPermanentDelete {
+                Button(role: .destructive, action: permanentlyDelete) {
+                    Image(systemName: "trash")
+                        .font(.system(size: 14, weight: .semibold))
+                        .frame(width: 36, height: 36)
+                        .background(Color.red.opacity(0.12), in: Circle())
+                }
+                .buttonStyle(.plain)
+                .transition(.opacity.combined(with: .scale))
+                .accessibilityLabel("Definitief verwijderen")
+            } else {
+                Button(action: restore) {
+                    Image(systemName: "arrow.uturn.backward")
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundStyle(row.color)
+                        .frame(width: 36, height: 36)
+                        .background(row.color.opacity(0.12), in: Circle())
+                }
+                .buttonStyle(.plain)
+                .transition(.opacity.combined(with: .scale))
+                .accessibilityLabel("Zet terug naar \(row.source.title)")
             }
-            .buttonStyle(.plain)
-            .accessibilityLabel("Zet terug naar \(row.source.title)")
         }
         .contentShape(Rectangle())
         .contextMenu {
             Button("Terugzetten", systemImage: "arrow.uturn.backward", action: restore)
+            Button("Definitief verwijderen", systemImage: "trash", role: .destructive, action: permanentlyDelete)
         }
     }
 }
@@ -782,7 +902,7 @@ private enum HistorySource {
         switch self {
         case .agenda: "Agenda"
         case .recurring: "Recurring"
-        case .todo: "To-do"
+        case .todo: "Taken"
         }
     }
 
@@ -809,6 +929,7 @@ private struct HistoryRow: Identifiable {
     let source: HistorySource
     let completedAt: Date
     let color: Color
+    let isRemoved: Bool
     private let entry: DayEntry?
     private let todo: TodoItem?
 
@@ -818,6 +939,7 @@ private struct HistoryRow: Identifiable {
         self.source = source
         completedAt = entry.completedAt ?? entry.date
         self.color = color
+        isRemoved = entry.isRemoved
         self.entry = entry
         todo = nil
     }
@@ -828,14 +950,28 @@ private struct HistoryRow: Identifiable {
         source = .todo
         completedAt = todo.completedAt ?? todo.createdAt
         self.color = color
+        isRemoved = todo.isRemoved
         entry = nil
         self.todo = todo
     }
 
     func restore() {
         entry?.isDone = false
+        entry?.isRemoved = false
         entry?.completedAt = nil
         todo?.isDone = false
+        todo?.isRemoved = false
         todo?.completedAt = nil
+    }
+
+    func permanentlyDelete(in modelContext: ModelContext) {
+        if let entry {
+            let entries = (try? modelContext.fetch(FetchDescriptor<DayEntry>())) ?? []
+            CalendarSyncService.deleteEventIfUnshared(for: entry, among: entries)
+            modelContext.delete(entry)
+        }
+        if let todo {
+            modelContext.delete(todo)
+        }
     }
 }

@@ -113,6 +113,8 @@ struct TodoView: View {
     @State private var newGroupTitle = ""
     @State private var recentlyCompletedTodoID: UUID?
     @State private var dismissUndoTask: Task<Void, Never>?
+    @State private var activeReorderHintID: UUID?
+    @Namespace private var reorderHintNamespace
 
     @AppStorage(SettingsKeys.todoGroups) private var todoGroupsData = ""
 
@@ -122,23 +124,22 @@ struct TodoView: View {
     }
 
     var body: some View {
+        let hintSequence = groups.flatMap { todosFor($0.id) }
+        let hintWaveSignature = hintSequence.map(\.id.uuidString).joined(separator: "|")
+
         NavigationStack {
             ScrollView {
                 LazyVStack(spacing: 12) {
                     ForEach(Array(groups.enumerated()), id: \.element.id) { index, group in
                         let groupTodos = todosFor(group.id)
-                        let firstNonemptyGroupID = groups.first {
-                            !todosFor($0.id).isEmpty
-                        }?.id
                         TodoBucketCard(
                             group: group,
                             groups: groups,
                             todos: groupTodos,
-                            showsReorderHint: group.id == firstNonemptyGroupID,
                             canMoveUp: index > 0,
                             canMoveDown: index < groups.count - 1,
                             canDeleteGroup: groups.count > 1 && !todos.contains(where: {
-                                $0.bucketRawValue == group.id && !$0.isDone
+                                $0.bucketRawValue == group.id && !$0.isDone && !$0.isRemoved
                             }),
                             rename: { renameGroup(group.id, to: $0) },
                             changeColor: { changeGroupColor(group.id, to: $0) },
@@ -146,6 +147,8 @@ struct TodoView: View {
                             delete: { deleteGroup(group.id) },
                             moveUp: { moveGroup(from: index, direction: -1) },
                             moveDown: { moveGroup(from: index, direction: 1) },
+                            activeReorderHintID: activeReorderHintID,
+                            reorderHintNamespace: reorderHintNamespace,
                             completed: showCompletionUndo
                         )
                     }
@@ -220,12 +223,46 @@ struct TodoView: View {
             .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillHideNotification)) { _ in
                 isKeyboardVisible = false
             }
+            .task(id: hintWaveSignature) {
+                await runReorderHintWave(itemIDs: hintSequence.map(\.id))
+            }
+        }
+    }
+
+    private func runReorderHintWave(itemIDs: [UUID]) async {
+        var transaction = Transaction()
+        transaction.disablesAnimations = true
+        withTransaction(transaction) {
+            activeReorderHintID = nil
+        }
+        guard !itemIDs.isEmpty else { return }
+
+        do {
+            try await Task.sleep(for: .seconds(6))
+            while !Task.isCancelled {
+                for id in itemIDs {
+                    try Task.checkCancellation()
+                    withAnimation(.smooth(duration: 0.26, extraBounce: 0)) {
+                        activeReorderHintID = id
+                    }
+                    try await Task.sleep(for: .milliseconds(280))
+                }
+
+                withAnimation(.smooth(duration: 0.28, extraBounce: 0)) {
+                    activeReorderHintID = nil
+                }
+                try await Task.sleep(for: .seconds(5))
+            }
+        } catch {
+            withTransaction(transaction) {
+                activeReorderHintID = nil
+            }
         }
     }
 
     private func todosFor(_ groupID: String) -> [TodoItem] {
         todos
-            .filter { $0.bucketRawValue == groupID && !$0.isDone }
+            .filter { $0.bucketRawValue == groupID && !$0.isDone && !$0.isRemoved }
             .sorted { $0.createdAt < $1.createdAt }
     }
 
@@ -281,7 +318,7 @@ struct TodoView: View {
         var updated = groups
         guard updated.count > 1,
               let index = updated.firstIndex(where: { $0.id == id }),
-              !todos.contains(where: { $0.bucketRawValue == id && !$0.isDone }) else {
+              !todos.contains(where: { $0.bucketRawValue == id && !$0.isDone && !$0.isRemoved }) else {
             return
         }
 
@@ -324,7 +361,7 @@ struct TodoView: View {
         HStack(spacing: 12) {
             Image(systemName: "checkmark.circle.fill")
                 .foregroundStyle(.green)
-            Text("To-do verplaatst\nnaar History")
+            Text("Taak verplaatst\nnaar History")
                 .font(.system(size: 14, weight: .medium))
                 .lineLimit(2)
                 .fixedSize(horizontal: false, vertical: true)
@@ -348,7 +385,6 @@ private struct TodoBucketCard: View {
     let group: TodoGroup
     let groups: [TodoGroup]
     let todos: [TodoItem]
-    let showsReorderHint: Bool
     let canMoveUp: Bool
     let canMoveDown: Bool
     let canDeleteGroup: Bool
@@ -358,6 +394,8 @@ private struct TodoBucketCard: View {
     let delete: () -> Void
     let moveUp: () -> Void
     let moveDown: () -> Void
+    let activeReorderHintID: UUID?
+    let reorderHintNamespace: Namespace.ID
     let completed: (TodoItem) -> Void
     @State private var showingAppearancePicker = false
     @State private var showingCategoryActions = false
@@ -417,7 +455,8 @@ private struct TodoBucketCard: View {
                         todo: todo,
                         groups: groups,
                         color: group.color,
-                        showsReorderHint: showsReorderHint && index == 0,
+                        isReorderHintActive: activeReorderHintID == todo.id,
+                        reorderHintNamespace: reorderHintNamespace,
                         completed: completed
                     )
                 }
@@ -632,7 +671,8 @@ private struct TodoLine: View {
     @Bindable var todo: TodoItem
     let groups: [TodoGroup]
     let color: Color
-    let showsReorderHint: Bool
+    let isReorderHintActive: Bool
+    let reorderHintNamespace: Namespace.ID
     let completed: (TodoItem) -> Void
 
     @Environment(\.modelContext)
@@ -640,7 +680,6 @@ private struct TodoLine: View {
 
     @State private var showMoveToAgenda = false
     @State private var agendaDate = AppCalendar.startOfDay(.now)
-    @State private var showingReorderHint = false
     @State private var isDeleting = false
 
     var body: some View {
@@ -685,17 +724,6 @@ private struct TodoLine: View {
                     .frame(width: 36, height: 24)
             }
             .buttonStyle(.plain)
-        }
-        .task(id: showsReorderHint) {
-            guard showsReorderHint else { return }
-            while !Task.isCancelled {
-                try? await Task.sleep(for: .seconds(10))
-                guard !Task.isCancelled else { return }
-                withAnimation(.easeInOut(duration: 0.25)) { showingReorderHint = true }
-                try? await Task.sleep(for: .seconds(2))
-                guard !Task.isCancelled else { return }
-                withAnimation(.easeInOut(duration: 0.25)) { showingReorderHint = false }
-            }
         }
         .sheet(isPresented: $showMoveToAgenda) {
             NavigationStack {
@@ -744,11 +772,20 @@ private struct TodoLine: View {
             } label: {
                 Label("Naar agenda...", systemImage: "calendar.badge.plus")
             }
+
+            Divider()
+
+            Button(role: .destructive) {
+                removeTodo()
+            } label: {
+                Label("Verwijderen", systemImage: "trash")
+            }
         } label: {
             Group {
-                if showingReorderHint && showsReorderHint {
+                if isReorderHintActive {
                     Image(systemName: "arrow.left.arrow.right")
                         .font(.system(size: 12, weight: .semibold))
+                        .matchedGeometryEffect(id: "todoReorderHint", in: reorderHintNamespace)
                         .transition(.opacity.combined(with: .scale))
                 } else {
                     Text(ageBadgeText)
@@ -763,7 +800,7 @@ private struct TodoLine: View {
             .foregroundStyle(color)
             .frame(width: 36, height: 24, alignment: .center)
         }
-        .accessibilityLabel("\(accessibleAgeText), to-do verplaatsen")
+        .accessibilityLabel("\(accessibleAgeText), taak verplaatsen")
     }
 
     private var ageBadgeText: String {
@@ -783,6 +820,15 @@ private struct TodoLine: View {
         guard !isDeleting else { return }
         isDeleting = true
         modelContext.delete(todo)
+        try? modelContext.save()
+    }
+
+    private func removeTodo() {
+        guard !isDeleting else { return }
+        isDeleting = true
+        todo.isDone = false
+        todo.isRemoved = true
+        todo.completedAt = .now
         try? modelContext.save()
     }
 
@@ -826,7 +872,7 @@ private struct NewTodoLine: View {
                     .frame(width: 36, height: 24)
             }
             .buttonStyle(.plain)
-            .accessibilityLabel("Nieuw to-do-item invoeren")
+            .accessibilityLabel("Nieuwe taak invoeren")
 
             TextField("typ iets", text: $text, axis: .vertical)
                 .font(.system(size: 16))
@@ -908,13 +954,13 @@ private struct NewTodoGroupLine: View {
                 .onChange(of: text) { _, newValue in
                     guard newValue.contains("\n") else { return }
                     text = newValue.replacingOccurrences(of: "\n", with: "")
-                    add()
+                    addAndDismissKeyboard()
                 }
                 .onSubmit {
-                    add()
+                    addAndDismissKeyboard()
                 }
 
-            Button(action: add) {
+            Button(action: addAndDismissKeyboard) {
                 Image(systemName: "plus")
                     .font(.system(size: 13, weight: .semibold))
                     .frame(width: 30, height: 30)
@@ -935,6 +981,13 @@ private struct NewTodoGroupLine: View {
             await Task.yield()
             isTextFieldFocused = true
         }
+    }
+
+    private func addAndDismissKeyboard() {
+        guard !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
+        add()
+        isTextFieldFocused = false
+        AppKeyboard.dismiss()
     }
 }
 

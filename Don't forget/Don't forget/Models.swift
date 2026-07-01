@@ -63,6 +63,7 @@ final class DayEntry {
 
     var isUncertain: Bool
     var isDone: Bool
+    var isRemoved: Bool = false
     var showOnWidget: Bool
 
     var sourceRawValue: String
@@ -89,6 +90,7 @@ final class DayEntry {
         self.endMinutes = nil
         self.isUncertain = false
         self.isDone = false
+        self.isRemoved = false
         self.showOnWidget = true
         self.sourceRawValue = source.rawValue
         self.manualOrder = manualOrder
@@ -137,6 +139,7 @@ final class TodoItem {
     var bucketRawValue: String
 
     var isDone: Bool
+    var isRemoved: Bool = false
     var showOnWidget: Bool
 
     var createdAt: Date
@@ -151,6 +154,7 @@ final class TodoItem {
         self.text = text
         self.bucketRawValue = bucket.rawValue
         self.isDone = false
+        self.isRemoved = false
         self.showOnWidget = showOnWidget
         self.createdAt = .now
         self.completedAt = nil
