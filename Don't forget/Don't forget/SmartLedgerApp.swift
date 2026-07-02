@@ -2,16 +2,13 @@ import SwiftUI
 import SwiftData
 
 @main
+@MainActor
 struct SmartLedgerApp: App {
     var body: some Scene {
         WindowGroup {
             UndoLimitedRootView()
         }
-        .modelContainer(for: [
-            DayEntry.self,
-            TodoItem.self,
-            RecurringItem.self
-        ])
+        .modelContainer(AppModelStore.shared)
     }
 }
 
