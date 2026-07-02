@@ -9,6 +9,61 @@ import XCTest
 
 final class Don_t_forgetTests: XCTestCase {
 
+    func testStringCatalogHasCompleteEnglishAndDutchTranslations() throws {
+        let testFile = URL(fileURLWithPath: #filePath)
+        let catalogURL = testFile
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+            .appendingPathComponent("Don't forget/Localizable.xcstrings")
+        let data = try Data(contentsOf: catalogURL)
+        let json = try XCTUnwrap(JSONSerialization.jsonObject(with: data) as? [String: Any])
+        let strings = try XCTUnwrap(json["strings"] as? [String: Any])
+
+        for (key, rawEntry) in strings {
+            let entry = try XCTUnwrap(rawEntry as? [String: Any], "Invalid entry for \(key)")
+            let localizations = try XCTUnwrap(
+                entry["localizations"] as? [String: Any],
+                "No localizations for \(key)"
+            )
+
+            for language in ["en", "nl"] {
+                let localization = try XCTUnwrap(
+                    localizations[language] as? [String: Any],
+                    "Missing \(language) translation for \(key)"
+                )
+                let stringUnit = try XCTUnwrap(
+                    localization["stringUnit"] as? [String: Any],
+                    "Missing string unit for \(language): \(key)"
+                )
+                XCTAssertEqual(stringUnit["state"] as? String, "translated", "Unfinished \(language): \(key)")
+                XCTAssertNotNil(stringUnit["value"] as? String, "Missing value for \(language): \(key)")
+            }
+        }
+    }
+
+    func testHistoryMessagesDoNotMixLanguages() throws {
+        let testFile = URL(fileURLWithPath: #filePath)
+        let catalogURL = testFile
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+            .appendingPathComponent("Don't forget/Localizable.xcstrings")
+        let data = try Data(contentsOf: catalogURL)
+        let json = try XCTUnwrap(JSONSerialization.jsonObject(with: data) as? [String: Any])
+        let strings = try XCTUnwrap(json["strings"] as? [String: Any])
+        let key = "Taak verplaatst\nnaar History"
+        let entry = try XCTUnwrap(strings[key] as? [String: Any])
+        let localizations = try XCTUnwrap(entry["localizations"] as? [String: Any])
+
+        func value(_ language: String) throws -> String {
+            let localization = try XCTUnwrap(localizations[language] as? [String: Any])
+            let unit = try XCTUnwrap(localization["stringUnit"] as? [String: Any])
+            return try XCTUnwrap(unit["value"] as? String)
+        }
+
+        XCTAssertEqual(try value("nl"), "Taak verplaatst\nnaar geschiedenis")
+        XCTAssertEqual(try value("en"), "Task Moved\nto History")
+    }
+
     override func setUpWithError() throws {
         // Put setup code here. This method is called before the invocation of each test method in the class.
     }

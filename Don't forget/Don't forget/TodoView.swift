@@ -95,7 +95,18 @@ private enum TodoGroupIcons {
     ]
 }
 
+private struct TodoAgendaMoveUndo {
+    let entryID: UUID
+    let destinationDate: Date
+    let text: String
+    let bucketRawValue: String
+    let showOnWidget: Bool
+    let createdAt: Date
+}
+
 struct TodoView: View {
+    let isActive: Bool
+
     @Environment(\.modelContext)
     private var modelContext
 
@@ -113,8 +124,10 @@ struct TodoView: View {
     @State private var newGroupTitle = ""
     @State private var recentlyCompletedTodoID: UUID?
     @State private var dismissUndoTask: Task<Void, Never>?
-    @State private var activeReorderHintID: UUID?
-    @Namespace private var reorderHintNamespace
+    @State private var recentlyRemovedTodoID: UUID?
+    @State private var recentlyRemovedTodoTitle = ""
+    @State private var recentlyMovedToAgenda: TodoAgendaMoveUndo?
+    @State private var activeReorderHintIDs: Set<UUID> = []
 
     @AppStorage(SettingsKeys.todoGroups) private var todoGroupsData = ""
 
@@ -124,14 +137,21 @@ struct TodoView: View {
     }
 
     var body: some View {
-        let hintSequence = groups.flatMap { todosFor($0.id) }
+        let activeTodosByGroup = Dictionary(
+            grouping: todos.filter { !$0.isDone && !$0.isRemoved },
+            by: \.bucketRawValue
+        ).mapValues { items in
+            items.sorted { $0.createdAt < $1.createdAt }
+        }
+        let hintSequence = groups.flatMap { activeTodosByGroup[$0.id] ?? [] }
         let hintWaveSignature = hintSequence.map(\.id.uuidString).joined(separator: "|")
+        let hintWaveTaskID = isActive ? hintWaveSignature : ""
 
         NavigationStack {
             ScrollView {
                 LazyVStack(spacing: 12) {
                     ForEach(Array(groups.enumerated()), id: \.element.id) { index, group in
-                        let groupTodos = todosFor(group.id)
+                        let groupTodos = activeTodosByGroup[group.id] ?? []
                         TodoBucketCard(
                             group: group,
                             groups: groups,
@@ -147,9 +167,10 @@ struct TodoView: View {
                             delete: { deleteGroup(group.id) },
                             moveUp: { moveGroup(from: index, direction: -1) },
                             moveDown: { moveGroup(from: index, direction: 1) },
-                            activeReorderHintID: activeReorderHintID,
-                            reorderHintNamespace: reorderHintNamespace,
-                            completed: showCompletionUndo
+                            activeReorderHintIDs: activeReorderHintIDs,
+                            completed: showCompletionUndo,
+                            removed: showRemovalUndo,
+                            movedToAgenda: showMoveToAgendaUndo
                         )
                     }
 
@@ -208,7 +229,15 @@ struct TodoView: View {
                 .padding(.vertical, 6)
             }
             .safeAreaInset(edge: .bottom, spacing: 8) {
-                if recentlyCompletedTodoID != nil {
+                if recentlyMovedToAgenda != nil {
+                    moveToAgendaUndoBar
+                        .padding(.horizontal, 14)
+                        .transition(.move(edge: .bottom).combined(with: .opacity))
+                } else if recentlyRemovedTodoID != nil {
+                    removalUndoBar
+                        .padding(.horizontal, 14)
+                        .transition(.move(edge: .bottom).combined(with: .opacity))
+                } else if recentlyCompletedTodoID != nil {
                     completionUndoBar
                         .padding(.horizontal, 14)
                         .transition(.move(edge: .bottom).combined(with: .opacity))
@@ -223,7 +252,11 @@ struct TodoView: View {
             .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillHideNotification)) { _ in
                 isKeyboardVisible = false
             }
-            .task(id: hintWaveSignature) {
+            .task(id: hintWaveTaskID) {
+                guard isActive else {
+                    activeReorderHintIDs.removeAll()
+                    return
+                }
                 await runReorderHintWave(itemIDs: hintSequence.map(\.id))
             }
         }
@@ -233,37 +266,42 @@ struct TodoView: View {
         var transaction = Transaction()
         transaction.disablesAnimations = true
         withTransaction(transaction) {
-            activeReorderHintID = nil
+            activeReorderHintIDs.removeAll()
         }
         guard !itemIDs.isEmpty else { return }
 
         do {
             try await Task.sleep(for: .seconds(6))
             while !Task.isCancelled {
+                var previousID: UUID?
+
                 for id in itemIDs {
                     try Task.checkCancellation()
-                    withAnimation(.smooth(duration: 0.26, extraBounce: 0)) {
-                        activeReorderHintID = id
+                    withAnimation(.smooth(duration: 0.34, extraBounce: 0)) {
+                        _ = activeReorderHintIDs.insert(id)
                     }
-                    try await Task.sleep(for: .milliseconds(280))
+                    try await Task.sleep(for: .milliseconds(160))
+
+                    if let previousID {
+                        withAnimation(.smooth(duration: 0.38, extraBounce: 0)) {
+                            _ = activeReorderHintIDs.remove(previousID)
+                        }
+                    }
+                    previousID = id
+                    try await Task.sleep(for: .milliseconds(100))
                 }
 
-                withAnimation(.smooth(duration: 0.28, extraBounce: 0)) {
-                    activeReorderHintID = nil
+                try await Task.sleep(for: .milliseconds(160))
+                withAnimation(.smooth(duration: 0.38, extraBounce: 0)) {
+                    activeReorderHintIDs.removeAll()
                 }
                 try await Task.sleep(for: .seconds(5))
             }
         } catch {
             withTransaction(transaction) {
-                activeReorderHintID = nil
+                activeReorderHintIDs.removeAll()
             }
         }
-    }
-
-    private func todosFor(_ groupID: String) -> [TodoItem] {
-        todos
-            .filter { $0.bucketRawValue == groupID && !$0.isDone && !$0.isRemoved }
-            .sorted { $0.createdAt < $1.createdAt }
     }
 
     private func renameGroup(_ id: String, to title: String) {
@@ -333,6 +371,8 @@ struct TodoView: View {
 
     private func showCompletionUndo(_ todo: TodoItem) {
         dismissUndoTask?.cancel()
+        recentlyRemovedTodoID = nil
+        recentlyMovedToAgenda = nil
         withAnimation(.snappy(duration: 0.25)) {
             recentlyCompletedTodoID = todo.id
         }
@@ -343,6 +383,117 @@ struct TodoView: View {
                 recentlyCompletedTodoID = nil
             }
         }
+    }
+
+    private func showRemovalUndo(_ todo: TodoItem) {
+        dismissUndoTask?.cancel()
+        recentlyCompletedTodoID = nil
+        recentlyMovedToAgenda = nil
+        recentlyRemovedTodoID = todo.id
+        recentlyRemovedTodoTitle = todo.text
+        dismissUndoTask = Task { @MainActor in
+            try? await Task.sleep(for: .seconds(6))
+            guard !Task.isCancelled else { return }
+            withAnimation(.easeOut(duration: 0.2)) {
+                recentlyRemovedTodoID = nil
+            }
+        }
+    }
+
+    private func undoRemoval() {
+        guard let id = recentlyRemovedTodoID,
+              let todo = todos.first(where: { $0.id == id }) else { return }
+        todo.isDone = false
+        todo.isRemoved = false
+        todo.completedAt = nil
+        try? modelContext.save()
+        dismissUndoTask?.cancel()
+        withAnimation(.easeOut(duration: 0.2)) {
+            recentlyRemovedTodoID = nil
+        }
+    }
+
+    private var removalUndoBar: some View {
+        HStack(spacing: 12) {
+            Image(systemName: "trash.fill")
+                .foregroundStyle(.red)
+            Text("‘\(recentlyRemovedTodoTitle)’ verwijderd")
+                .font(.system(size: 14, weight: .medium))
+                .lineLimit(1)
+            Spacer(minLength: 4)
+            Button("Ongedaan maken", action: undoRemoval)
+                .font(.system(size: 14, weight: .semibold))
+        }
+        .padding(.horizontal, 14)
+        .frame(minHeight: 50)
+        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 14))
+        .overlay {
+            RoundedRectangle(cornerRadius: 14)
+                .stroke(Color.primary.opacity(0.08), lineWidth: 1)
+        }
+        .shadow(color: .black.opacity(0.12), radius: 12, y: 4)
+    }
+
+    private func showMoveToAgendaUndo(_ move: TodoAgendaMoveUndo) {
+        dismissUndoTask?.cancel()
+        recentlyCompletedTodoID = nil
+        recentlyRemovedTodoID = nil
+        recentlyMovedToAgenda = move
+        dismissUndoTask = Task { @MainActor in
+            try? await Task.sleep(for: .seconds(6))
+            guard !Task.isCancelled else { return }
+            withAnimation(.easeOut(duration: 0.2)) {
+                recentlyMovedToAgenda = nil
+            }
+        }
+    }
+
+    private func undoMoveToAgenda() {
+        guard let move = recentlyMovedToAgenda else { return }
+
+        let entries = (try? modelContext.fetch(FetchDescriptor<DayEntry>())) ?? []
+        if let entry = entries.first(where: { $0.id == move.entryID }) {
+            modelContext.delete(entry)
+        }
+
+        let restoredTodo = TodoItem(text: move.text)
+        restoredTodo.bucketRawValue = move.bucketRawValue
+        restoredTodo.showOnWidget = move.showOnWidget
+        restoredTodo.createdAt = move.createdAt
+        modelContext.insert(restoredTodo)
+        try? modelContext.save()
+
+        dismissUndoTask?.cancel()
+        withAnimation(.easeOut(duration: 0.2)) {
+            recentlyMovedToAgenda = nil
+        }
+    }
+
+    private var moveToAgendaUndoBar: some View {
+        HStack(spacing: 12) {
+            Image(systemName: "calendar.badge.checkmark")
+                .foregroundStyle(.blue)
+            Text(moveToAgendaUndoText)
+                .font(.system(size: 14, weight: .medium))
+                .lineLimit(2)
+            Spacer(minLength: 4)
+            Button("Ongedaan maken", action: undoMoveToAgenda)
+                .font(.system(size: 14, weight: .semibold))
+        }
+        .padding(.horizontal, 14)
+        .frame(minHeight: 50)
+        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 14))
+        .overlay {
+            RoundedRectangle(cornerRadius: 14)
+                .stroke(Color.primary.opacity(0.08), lineWidth: 1)
+        }
+        .shadow(color: .black.opacity(0.12), radius: 12, y: 4)
+    }
+
+    private var moveToAgendaUndoText: String {
+        guard let move = recentlyMovedToAgenda else { return "" }
+        let date = AppCalendar.localizedDate(move.destinationDate, template: "dMMM")
+        return "‘\(move.text)’ verplaatst naar \(date)"
     }
 
     private func undoCompletion() {
@@ -394,9 +545,10 @@ private struct TodoBucketCard: View {
     let delete: () -> Void
     let moveUp: () -> Void
     let moveDown: () -> Void
-    let activeReorderHintID: UUID?
-    let reorderHintNamespace: Namespace.ID
+    let activeReorderHintIDs: Set<UUID>
     let completed: (TodoItem) -> Void
+    let removed: (TodoItem) -> Void
+    let movedToAgenda: (TodoAgendaMoveUndo) -> Void
     @State private var showingAppearancePicker = false
     @State private var showingCategoryActions = false
 
@@ -455,9 +607,10 @@ private struct TodoBucketCard: View {
                         todo: todo,
                         groups: groups,
                         color: group.color,
-                        isReorderHintActive: activeReorderHintID == todo.id,
-                        reorderHintNamespace: reorderHintNamespace,
-                        completed: completed
+                        isReorderHintActive: activeReorderHintIDs.contains(todo.id),
+                        completed: completed,
+                        removed: removed,
+                        movedToAgenda: movedToAgenda
                     )
                 }
 
@@ -516,12 +669,14 @@ private struct TodoBucketCard: View {
                     performCategoryAction(delete)
                 } label: {
                     Label("Categorie verwijderen", systemImage: "trash")
+                        .foregroundStyle(.red)
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .padding(.leading, 20)
                         .padding(.trailing, 14)
                         .padding(.vertical, 11)
                 }
                 .buttonStyle(.plain)
+                .tint(.red)
             }
         }
         .frame(width: 230)
@@ -672,8 +827,9 @@ private struct TodoLine: View {
     let groups: [TodoGroup]
     let color: Color
     let isReorderHintActive: Bool
-    let reorderHintNamespace: Namespace.ID
     let completed: (TodoItem) -> Void
+    let removed: (TodoItem) -> Void
+    let movedToAgenda: (TodoAgendaMoveUndo) -> Void
 
     @Environment(\.modelContext)
     private var modelContext
@@ -727,14 +883,19 @@ private struct TodoLine: View {
         }
         .sheet(isPresented: $showMoveToAgenda) {
             NavigationStack {
-                Form {
+                VStack(spacing: 0) {
                     DatePicker(
                         "Datum",
                         selection: $agendaDate,
                         displayedComponents: .date
                     )
+                    .datePickerStyle(.graphical)
+                    .labelsHidden()
+                    .padding(.horizontal, 16)
+
+                    Spacer(minLength: 0)
                 }
-                .navigationTitle("Naar agenda")
+                .navigationTitle("Kies datum")
                 .navigationBarTitleDisplayMode(.inline)
                 .toolbar {
                     ToolbarItem(placement: .cancellationAction) {
@@ -745,12 +906,12 @@ private struct TodoLine: View {
 
                     ToolbarItem(placement: .confirmationAction) {
                         Button("Verplaats") {
-                            moveToAgenda()
+                            moveToAgenda(on: agendaDate)
                         }
                     }
                 }
             }
-            .presentationDetents([.height(220)])
+            .presentationDetents([.medium])
         }
     }
 
@@ -767,10 +928,25 @@ private struct TodoLine: View {
             Divider()
 
             Button {
-                agendaDate = AppCalendar.startOfDay(.now)
-                showMoveToAgenda = true
+                moveToAgenda(on: AppCalendar.startOfDay(.now))
             } label: {
-                Label("Naar agenda...", systemImage: "calendar.badge.plus")
+                Label("Naar vandaag \(todayDateText)", systemImage: "calendar.badge.checkmark")
+            }
+
+            Button {
+                let today = AppCalendar.startOfDay(.now)
+                agendaDate = AppCalendar.calendar.date(
+                    byAdding: .day,
+                    value: 1,
+                    to: today
+                ) ?? today
+                Task { @MainActor in
+                    // Let the menu finish dismissing before presenting the sheet.
+                    try? await Task.sleep(for: .milliseconds(120))
+                    showMoveToAgenda = true
+                }
+            } label: {
+                Label("Andere datum in agenda...", systemImage: "calendar.badge.plus")
             }
 
             Divider()
@@ -779,14 +955,26 @@ private struct TodoLine: View {
                 removeTodo()
             } label: {
                 Label("Verwijderen", systemImage: "trash")
+                    .foregroundStyle(.red)
             }
+            .tint(.red)
         } label: {
             Group {
                 if isReorderHintActive {
-                    Image(systemName: "arrow.left.arrow.right")
-                        .font(.system(size: 12, weight: .semibold))
-                        .matchedGeometryEffect(id: "todoReorderHint", in: reorderHintNamespace)
-                        .transition(.opacity.combined(with: .scale))
+                    ZStack {
+                        Capsule()
+                            .fill(color.opacity(0.14))
+                            .frame(width: 30, height: 20)
+
+                        Image(systemName: "arrow.left.arrow.right")
+                            .font(.system(size: 10, weight: .semibold))
+                    }
+                    .transition(
+                        .asymmetric(
+                            insertion: .opacity.combined(with: .scale(scale: 0.72)),
+                            removal: .opacity.combined(with: .scale(scale: 1.12))
+                        )
+                    )
                 } else {
                     Text(ageBadgeText)
                         .font(.system(size: 10, weight: .semibold, design: .rounded))
@@ -794,7 +982,12 @@ private struct TodoLine: View {
                         .padding(.horizontal, 5)
                         .padding(.vertical, 3)
                         .background(color.opacity(0.14), in: Capsule())
-                        .transition(.opacity.combined(with: .scale))
+                        .transition(
+                            .asymmetric(
+                                insertion: .opacity.combined(with: .scale(scale: 0.88)),
+                                removal: .opacity.combined(with: .scale(scale: 0.82))
+                            )
+                        )
                 }
             }
             .foregroundStyle(color)
@@ -816,6 +1009,14 @@ private struct TodoLine: View {
         return days == 0 ? "Vandaag aangemaakt" : "\(days) dagen open"
     }
 
+    private var todayDateText: String {
+        let formatter = DateFormatter()
+        formatter.calendar = AppCalendar.calendar
+        formatter.locale = Locale(identifier: "nl_NL")
+        formatter.dateFormat = "dd/MM"
+        return formatter.string(from: .now)
+    }
+
     private func deleteTodo() {
         guard !isDeleting else { return }
         isDeleting = true
@@ -830,9 +1031,10 @@ private struct TodoLine: View {
         todo.isRemoved = true
         todo.completedAt = .now
         try? modelContext.save()
+        removed(todo)
     }
 
-    private func moveToAgenda() {
+    private func moveToAgenda(on date: Date) {
         let cleanText = todo.text.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !cleanText.isEmpty else {
             showMoveToAgenda = false
@@ -840,14 +1042,23 @@ private struct TodoLine: View {
         }
 
         let agendaEntry = DayEntry(
-            date: agendaDate,
+            date: date,
             rawText: cleanText,
             source: .todo
+        )
+        let undo = TodoAgendaMoveUndo(
+            entryID: agendaEntry.id,
+            destinationDate: AppCalendar.startOfDay(date),
+            text: cleanText,
+            bucketRawValue: todo.bucketRawValue,
+            showOnWidget: todo.showOnWidget,
+            createdAt: todo.createdAt
         )
 
         modelContext.insert(agendaEntry)
         modelContext.delete(todo)
         try? modelContext.save()
+        movedToAgenda(undo)
         showMoveToAgenda = false
     }
 }

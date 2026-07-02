@@ -15,6 +15,15 @@ enum HistoryFilter: String, CaseIterable, Identifiable {
 
     var id: String { rawValue }
 
+    func title(for locale: Locale) -> String {
+        switch self {
+        case .all: locale.localized("Alles", "All")
+        case .agenda: locale.localized("Agenda", "Calendar")
+        case .recurring: locale.localized("Herhalingen", "Recurring")
+        case .todo: locale.localized("Taken", "Tasks")
+        }
+    }
+
     var icon: String {
         switch self {
         case .all: "square.grid.2x2.fill"
@@ -53,7 +62,7 @@ struct HistoryView: View {
     @State private var filter: HistoryFilter = .all
     @State private var isScrolled = false
     @State private var isShowingSettings = false
-    @State private var recentlyRestoredTitle: String?
+    @State private var recentlyRestoredRow: HistoryRow?
     @State private var dismissRestoreTask: Task<Void, Never>?
     @State private var selectedDeletionRowID: UUID?
     @State private var pendingPermanentDeletion: HistoryRow?
@@ -128,16 +137,16 @@ struct HistoryView: View {
         })
     }
 
-    private var visibleRows: [HistoryRow] {
-        allRows.filter { row in
+    private func visibleRows(from rows: [HistoryRow]) -> [HistoryRow] {
+        rows.filter { row in
             (showsDeletedItems || !row.isRemoved)
                 && row.id != pendingPermanentDeletion?.id
                 && (filter == .all || row.source.filter == filter)
         }
     }
 
-    private var sections: [HistoryDaySection] {
-        let grouped = Dictionary(grouping: visibleRows) {
+    private func sections(from rows: [HistoryRow]) -> [HistoryDaySection] {
+        let grouped = Dictionary(grouping: rows) {
             AppCalendar.startOfDay($0.completedAt)
         }
         return grouped
@@ -145,14 +154,10 @@ struct HistoryView: View {
             .sorted { $0.date > $1.date }
     }
 
-    private var completedLastSevenDays: Int {
+    private func completedLastSevenDays(in rows: [HistoryRow]) -> Int {
         let today = AppCalendar.startOfDay(.now)
         let start = AppCalendar.calendar.date(byAdding: .day, value: -6, to: today) ?? today
-        return completedRows.count { $0.completedAt >= start }
-    }
-
-    private var completedRows: [HistoryRow] {
-        allRows.filter { !$0.isRemoved }
+        return rows.count { $0.completedAt >= start }
     }
 
     private var isHistoryDemoActive: Bool {
@@ -161,12 +166,17 @@ struct HistoryView: View {
     }
 
     var body: some View {
+        let historyRows = allRows
+        let completedRows = historyRows.filter { !$0.isRemoved }
+        let visibleRows = visibleRows(from: historyRows)
+        let sections = sections(from: visibleRows)
+
         NavigationStack {
             ScrollView {
                 LazyVStack(spacing: 12) {
                     HistorySummaryCard(
                         total: completedRows.count,
-                        lastSevenDays: completedLastSevenDays,
+                        lastSevenDays: completedLastSevenDays(in: completedRows),
                         completionDates: completedRows.map(\.completedAt),
                         isDemoActive: isHistoryDemoActive,
                         activateDemoData: activateHistoryDemoData,
@@ -175,7 +185,7 @@ struct HistoryView: View {
 
                     HistoryFilterBar(
                         selection: $filter,
-                        count: count(for:)
+                        count: { count(for: $0, among: historyRows) }
                     )
 
                     if sections.isEmpty {
@@ -231,8 +241,8 @@ struct HistoryView: View {
                     permanentDeletionBar(title: pendingPermanentDeletion.title)
                         .padding(.horizontal, 14)
                         .transition(.move(edge: .bottom).combined(with: .opacity))
-                } else if let recentlyRestoredTitle {
-                    restoreBar(title: recentlyRestoredTitle)
+                } else if let recentlyRestoredRow {
+                    restoreBar(title: recentlyRestoredRow.title)
                         .padding(.horizontal, 14)
                         .transition(.move(edge: .bottom).combined(with: .opacity))
                 }
@@ -246,8 +256,8 @@ struct HistoryView: View {
         }
     }
 
-    private func count(for filter: HistoryFilter) -> Int {
-        let rows = allRows.filter { showsDeletedItems || !$0.isRemoved }
+    private func count(for filter: HistoryFilter, among historyRows: [HistoryRow]) -> Int {
+        let rows = historyRows.filter { showsDeletedItems || !$0.isRemoved }
         guard filter != .all else { return rows.count }
         return rows.count { $0.source.filter == filter }
     }
@@ -267,7 +277,7 @@ struct HistoryView: View {
         dismissRestoreTask?.cancel()
         withAnimation(.snappy(duration: 0.25, extraBounce: 0)) {
             row.restore()
-            recentlyRestoredTitle = row.title
+            recentlyRestoredRow = row
         }
         try? modelContext.save()
 
@@ -291,7 +301,7 @@ struct HistoryView: View {
 
         permanentDeletionTask?.cancel()
         dismissRestoreTask?.cancel()
-        recentlyRestoredTitle = nil
+        recentlyRestoredRow = nil
         withAnimation(.snappy(duration: 0.25, extraBounce: 0)) {
             selectedDeletionRowID = nil
             pendingPermanentDeletion = row
@@ -349,7 +359,7 @@ struct HistoryView: View {
         dismissRestoreTask?.cancel()
         dismissRestoreTask = nil
         withAnimation(.easeOut(duration: 0.2)) {
-            recentlyRestoredTitle = nil
+            recentlyRestoredRow = nil
         }
     }
 
@@ -362,9 +372,7 @@ struct HistoryView: View {
                 .lineLimit(1)
             Spacer(minLength: 4)
             Button("Ongedaan maken") {
-                undoManager?.undo()
-                try? modelContext.save()
-                hideRestoreBar()
+                undoRestore()
             }
             .font(.system(size: 14, weight: .semibold))
         }
@@ -376,6 +384,13 @@ struct HistoryView: View {
                 .stroke(Color.primary.opacity(0.08), lineWidth: 1)
         }
         .shadow(color: .black.opacity(0.12), radius: 12, y: 4)
+    }
+
+    private func undoRestore() {
+        guard let row = recentlyRestoredRow else { return }
+        row.undoRestore()
+        try? modelContext.save()
+        hideRestoreBar()
     }
 }
 
@@ -502,6 +517,8 @@ private struct HistoryCharts: View {
 }
 
 private struct HistoryBarChart: View {
+    @Environment(\.locale) private var locale
+
     static let layoutHeight: CGFloat = 193
 
     let period: HistoryChartPeriod
@@ -514,7 +531,7 @@ private struct HistoryBarChart: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text(period.title)
+            Text(period.title(for: locale))
                 .font(.system(size: 14, weight: .semibold))
 
             Chart(buckets) { bucket in
@@ -584,11 +601,11 @@ private enum HistoryChartPeriod: String, Identifiable {
 
     var id: String { rawValue }
 
-    var title: String {
+    func title(for locale: Locale) -> String {
         switch self {
-        case .days: "Afgelopen 7 dagen"
-        case .weeks: "Afgelopen 10 weken"
-        case .months: "Afgelopen 12 maanden"
+        case .days: locale.localized("Afgelopen 7 dagen", "Last 7 Days")
+        case .weeks: locale.localized("Afgelopen 10 weken", "Last 10 Weeks")
+        case .months: locale.localized("Afgelopen 12 maanden", "Last 12 Months")
         }
     }
 
@@ -682,6 +699,7 @@ private struct HistoryFilterBar: View {
 
 private struct HistoryFilterChip: View {
     @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.locale) private var locale
     let filter: HistoryFilter
     let itemCount: Int
     let isSelected: Bool
@@ -703,7 +721,7 @@ private struct HistoryFilterChip: View {
             label
         }
         .buttonStyle(.plain)
-        .accessibilityLabel("\(filter.rawValue), \(itemCount) items")
+        .accessibilityLabel("\(filter.title(for: locale)), \(itemCount) items")
         .accessibilityAddTraits(isSelected ? .isSelected : [])
     }
 
@@ -713,7 +731,7 @@ private struct HistoryFilterChip: View {
                 .font(.system(size: 13.2, weight: .semibold))
 
             if showsTitle {
-                Text(filter.rawValue)
+                Text(filter.title(for: locale))
                     .font(.system(size: 13, weight: .semibold))
                     .fixedSize(horizontal: true, vertical: false)
             }
@@ -737,6 +755,8 @@ private struct HistoryFilterChip: View {
 }
 
 private struct HistoryDayCard: View {
+    @Environment(\.locale) private var locale
+
     let section: HistoryDaySection
     let selectedDeletionRowID: UUID?
     let revealPermanentDelete: (HistoryRow) -> Void
@@ -745,7 +765,7 @@ private struct HistoryDayCard: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text(section.title)
+            Text(section.title(for: locale))
                 .font(.system(size: 14, weight: .semibold))
                 .padding(.horizontal, 4)
 
@@ -779,6 +799,8 @@ private struct HistoryDayCard: View {
 }
 
 private struct HistoryItemRow: View {
+    @Environment(\.locale) private var locale
+
     let row: HistoryRow
     let showsPermanentDelete: Bool
     let revealPermanentDelete: () -> Void
@@ -808,7 +830,7 @@ private struct HistoryItemRow: View {
                     .strikethrough(row.isRemoved)
 
                 HStack(spacing: 5) {
-                    Text(row.source.title)
+                    Text(row.source.title(for: locale))
                     Text("·")
                     Text(row.completedAt.formatted(date: .omitted, time: .shortened))
                 }
@@ -838,7 +860,10 @@ private struct HistoryItemRow: View {
                 }
                 .buttonStyle(.plain)
                 .transition(.opacity.combined(with: .scale))
-                .accessibilityLabel("Zet terug naar \(row.source.title)")
+                .accessibilityLabel(locale.localized(
+                    "Zet terug naar \(row.source.title(for: locale))",
+                    "Restore to \(row.source.title(for: locale))"
+                ))
             }
         }
         .contentShape(Rectangle())
@@ -850,6 +875,8 @@ private struct HistoryItemRow: View {
 }
 
 private struct HistoryEmptyState: View {
+    @Environment(\.locale) private var locale
+
     let filter: HistoryFilter
 
     var body: some View {
@@ -863,7 +890,12 @@ private struct HistoryEmptyState: View {
             }
             .frame(width: 62, height: 62)
 
-            Text(filter == .all ? "Nog geen history" : "Geen afgeronde \(filter.rawValue.lowercased())-items")
+            Text(filter == .all
+                ? locale.localized("Nog geen geschiedenis", "No history yet")
+                : locale.localized(
+                    "Geen afgeronde \(filter.title(for: locale).lowercased())-items",
+                    "No completed \(filter.title(for: locale).lowercased()) items"
+                ))
                 .font(.system(size: 17, weight: .semibold))
                 .multilineTextAlignment(.center)
             Text("Afgeronde items verschijnen hier automatisch en kun je altijd weer terugzetten.")
@@ -885,9 +917,9 @@ private struct HistoryDaySection: Identifiable {
 
     var id: Date { date }
 
-    var title: String {
-        if AppCalendar.calendar.isDateInToday(date) { return "Vandaag" }
-        if AppCalendar.calendar.isDateInYesterday(date) { return "Gisteren" }
+    func title(for locale: Locale) -> String {
+        if AppCalendar.calendar.isDateInToday(date) { return locale.localized("Vandaag", "Today") }
+        if AppCalendar.calendar.isDateInYesterday(date) { return locale.localized("Gisteren", "Yesterday") }
         return AppCalendar.localizedDate(date, template: "EEEEdMMMM")
     }
 
@@ -898,11 +930,11 @@ private enum HistorySource {
     case recurring
     case todo
 
-    var title: String {
+    func title(for locale: Locale) -> String {
         switch self {
-        case .agenda: "Agenda"
-        case .recurring: "Recurring"
-        case .todo: "Taken"
+        case .agenda: locale.localized("Agenda", "Calendar")
+        case .recurring: locale.localized("Herhalingen", "Recurring")
+        case .todo: locale.localized("Taken", "Tasks")
         }
     }
 
@@ -929,7 +961,9 @@ private struct HistoryRow: Identifiable {
     let source: HistorySource
     let completedAt: Date
     let color: Color
+    let isDone: Bool
     let isRemoved: Bool
+    private let originalCompletedAt: Date?
     private let entry: DayEntry?
     private let todo: TodoItem?
 
@@ -939,7 +973,9 @@ private struct HistoryRow: Identifiable {
         self.source = source
         completedAt = entry.completedAt ?? entry.date
         self.color = color
+        isDone = entry.isDone
         isRemoved = entry.isRemoved
+        originalCompletedAt = entry.completedAt
         self.entry = entry
         todo = nil
     }
@@ -950,7 +986,9 @@ private struct HistoryRow: Identifiable {
         source = .todo
         completedAt = todo.completedAt ?? todo.createdAt
         self.color = color
+        isDone = todo.isDone
         isRemoved = todo.isRemoved
+        originalCompletedAt = todo.completedAt
         entry = nil
         self.todo = todo
     }
@@ -962,6 +1000,15 @@ private struct HistoryRow: Identifiable {
         todo?.isDone = false
         todo?.isRemoved = false
         todo?.completedAt = nil
+    }
+
+    func undoRestore() {
+        entry?.isDone = isDone
+        entry?.isRemoved = isRemoved
+        entry?.completedAt = originalCompletedAt
+        todo?.isDone = isDone
+        todo?.isRemoved = isRemoved
+        todo?.completedAt = originalCompletedAt
     }
 
     func permanentlyDelete(in modelContext: ModelContext) {

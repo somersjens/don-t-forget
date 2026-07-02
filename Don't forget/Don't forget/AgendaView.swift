@@ -22,6 +22,10 @@ struct AgendaView: View {
     @State private var scrollTask: Task<Void, Never>?
     @State private var visibleDates: Set<Date> = []
     @State private var loadedFutureWeeks = 26
+    @State private var recentlyRemovedEntryID: UUID?
+    @State private var recentlyRemovedEntryTitle = ""
+    @State private var recentlyRemovedEventIdentifier: String?
+    @State private var dismissRemovalUndoTask: Task<Void, Never>?
 
     @AppStorage(SettingsKeys.weekStart) private var weekStartSetting = WeekStartOption.monday.rawValue
     @AppStorage(SettingsKeys.weekNumberRule) private var weekNumberSetting = WeekNumberRule.iso8601.rawValue
@@ -105,6 +109,7 @@ struct AgendaView: View {
                                 activeMoveEntryHasTime: activeMoveEntryHasTime,
                                 moveDraftDate: $moveDraftDate,
                                 toggleMoveControls: toggleMoveControls,
+                                removed: showRemovalUndo,
                                 dayVisibilityChanged: updateDayVisibility
                             )
                             .id(AgendaScrollTarget.week(week.startDate))
@@ -184,6 +189,13 @@ struct AgendaView: View {
                 .padding(.trailing, 18)
                 .padding(.vertical, 6)
             }
+            .safeAreaInset(edge: .bottom, spacing: 8) {
+                if recentlyRemovedEntryID != nil {
+                    removalUndoBar
+                        .padding(.horizontal, 14)
+                        .transition(.move(edge: .bottom).combined(with: .opacity))
+                }
+            }
             .onAppear {
                 modelContext.undoManager = undoManager
             }
@@ -196,6 +208,58 @@ struct AgendaView: View {
                 scrollTask?.cancel()
             }
         }
+    }
+
+    private func showRemovalUndo(_ entry: DayEntry, eventIdentifier: String?) {
+        dismissRemovalUndoTask?.cancel()
+        recentlyRemovedEntryID = entry.id
+        recentlyRemovedEntryTitle = entry.rawText
+        recentlyRemovedEventIdentifier = eventIdentifier
+        dismissRemovalUndoTask = Task { @MainActor in
+            try? await Task.sleep(for: .seconds(6))
+            guard !Task.isCancelled else { return }
+            withAnimation(.easeOut(duration: 0.2)) {
+                recentlyRemovedEntryID = nil
+            }
+        }
+    }
+
+    private func undoRemoval() {
+        guard let id = recentlyRemovedEntryID,
+              let entry = entries.first(where: { $0.id == id }) else { return }
+        entry.isDone = false
+        entry.isRemoved = false
+        entry.completedAt = nil
+        if let identifier = recentlyRemovedEventIdentifier {
+            CalendarSyncService.cancelEventDeletion(withIdentifier: identifier)
+            entry.calendarEventIdentifier = identifier
+        }
+        try? modelContext.save()
+        dismissRemovalUndoTask?.cancel()
+        withAnimation(.easeOut(duration: 0.2)) {
+            recentlyRemovedEntryID = nil
+        }
+    }
+
+    private var removalUndoBar: some View {
+        HStack(spacing: 12) {
+            Image(systemName: "trash.fill")
+                .foregroundStyle(.red)
+            Text("‘\(recentlyRemovedEntryTitle)’ verwijderd")
+                .font(.system(size: 14, weight: .medium))
+                .lineLimit(1)
+            Spacer(minLength: 4)
+            Button("Ongedaan maken", action: undoRemoval)
+                .font(.system(size: 14, weight: .semibold))
+        }
+        .padding(.horizontal, 14)
+        .frame(minHeight: 50)
+        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 14))
+        .overlay {
+            RoundedRectangle(cornerRadius: 14)
+                .stroke(Color.primary.opacity(0.08), lineWidth: 1)
+        }
+        .shadow(color: .black.opacity(0.12), radius: 12, y: 4)
     }
 
     private func moveEntry(_ entryID: UUID, to targetDate: Date, insertionIndex: Int? = nil) {
@@ -454,6 +518,7 @@ struct WeekCard: View {
     let activeMoveEntryHasTime: Bool
     @Binding var moveDraftDate: Date
     let toggleMoveControls: (DayEntry) -> Void
+    let removed: (DayEntry, String?) -> Void
     let dayVisibilityChanged: (Date, Bool) -> Void
 
     private var visibleDays: [DayInfo] {
@@ -498,6 +563,7 @@ struct WeekCard: View {
                         activeMoveEntryHasTime: activeMoveEntryHasTime,
                         moveDraftDate: $moveDraftDate,
                         toggleMoveControls: toggleMoveControls,
+                        removed: removed,
                         dayVisibilityChanged: dayVisibilityChanged
                     )
                 }
@@ -525,6 +591,7 @@ struct DayBlock: View {
     let activeMoveEntryHasTime: Bool
     @Binding var moveDraftDate: Date
     let toggleMoveControls: (DayEntry) -> Void
+    let removed: (DayEntry, String?) -> Void
     let dayVisibilityChanged: (Date, Bool) -> Void
 
     private var sortedEntries: [DayEntry] {
@@ -598,6 +665,7 @@ struct DayBlock: View {
                                     moveEntryToTodo(entry.id, groupID)
                                 },
                                 todoGroups: todoGroups,
+                                removed: removed,
                                 finishMove: {
                                     activeMoveEntryID = nil
                                 }
@@ -686,6 +754,7 @@ struct AgendaEntryLine: View {
     let moveToDate: () -> Void
     let moveToTodo: (String) -> Void
     let todoGroups: [TodoGroup]
+    let removed: (DayEntry, String?) -> Void
     let finishMove: () -> Void
 
     @Environment(\.modelContext)
@@ -908,6 +977,7 @@ struct AgendaEntryLine: View {
         focusedField.wrappedValue = nil
         AppKeyboard.dismiss()
 
+        let eventIdentifier = entry.calendarEventIdentifier
         let activeEntries = ((try? modelContext.fetch(FetchDescriptor<DayEntry>())) ?? [])
             .filter { !$0.isRemoved }
         CalendarSyncService.deleteEventIfUnshared(for: entry, among: activeEntries)
@@ -916,6 +986,7 @@ struct AgendaEntryLine: View {
         entry.completedAt = .now
         finishMove()
         try? modelContext.save()
+        removed(entry, eventIdentifier)
     }
 
     private func toggleDone() {
@@ -963,9 +1034,6 @@ struct AgendaInputLine: View {
 
     @State private var text = ""
 
-    @AppStorage(SettingsKeys.agendaPlaceholder)
-    private var agendaPlaceholder = "x"
-
     var body: some View {
         HStack(alignment: .top, spacing: AgendaLayout.rowSpacing) {
             AgendaLinePrefix(
@@ -983,12 +1051,6 @@ struct AgendaInputLine: View {
                 }
 
             ZStack(alignment: .leading) {
-                if text.isEmpty && !placeholderText.isEmpty {
-                    Text(placeholderText)
-                        .foregroundStyle(.secondary)
-                        .allowsHitTesting(false)
-                }
-
                 TextField("", text: $text, axis: .vertical)
                     .textFieldStyle(.plain)
                     .focused(focusedField, equals: .newEntry(date))
@@ -1033,10 +1095,6 @@ struct AgendaInputLine: View {
         .onDisappear {
             addEntry(continueEditing: false)
         }
-    }
-
-    private var placeholderText: String {
-        agendaPlaceholder.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
     private func addEntry(continueEditing: Bool = true) {
@@ -1105,7 +1163,9 @@ private struct AgendaMoveControls: View {
 
                     Button(role: .destructive, action: remove) {
                         Label("Verwijderen", systemImage: "trash")
+                            .foregroundStyle(.red)
                     }
+                    .tint(.red)
                 } label: {
                     Color.clear
                         .frame(width: 22, height: 32)
