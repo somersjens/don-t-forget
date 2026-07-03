@@ -36,11 +36,25 @@ enum AppCalendar {
         let weekRule = WeekNumberRule(
             rawValue: defaults.string(forKey: SettingsKeys.weekNumberRule) ?? ""
         ) ?? .iso8601
+        let locale = locale
+        let timeZone = TimeZone.current
+        let cacheKey = [
+            "AppCalendar.calendar",
+            locale.identifier,
+            timeZone.identifier,
+            String(weekStart.calendarWeekday),
+            weekRule.rawValue
+        ].joined(separator: "|")
+        if let cached = Thread.current.threadDictionary[cacheKey] as? Calendar {
+            return cached
+        }
+
         var calendar = Calendar(identifier: .gregorian)
-        calendar.timeZone = .current
+        calendar.timeZone = timeZone
         calendar.locale = locale
         calendar.firstWeekday = weekStart.calendarWeekday
         calendar.minimumDaysInFirstWeek = weekRule == .iso8601 ? 4 : 1
+        Thread.current.threadDictionary[cacheKey] = calendar
         return calendar
     }
 
@@ -55,9 +69,7 @@ enum AppCalendar {
                 "juli", "augustus", "september", "oktober", "november", "december"
             ]
         }
-        let formatter = DateFormatter()
-        formatter.locale = locale
-        return formatter.monthSymbols
+        return cachedFormatter(template: "MMMM").monthSymbols
     }
 
     static func monthName(_ month: Int) -> String {
@@ -66,11 +78,7 @@ enum AppCalendar {
     }
 
     static func localizedDate(_ date: Date, template: String) -> String {
-        let formatter = DateFormatter()
-        formatter.locale = locale
-        formatter.calendar = calendar
-        formatter.setLocalizedDateFormatFromTemplate(template)
-        return formatter.string(from: date)
+        cachedFormatter(template: template).string(from: date)
     }
 
     static func localizedLongDate(_ date: Date, includeYear: Bool) -> String {
@@ -88,9 +96,7 @@ enum AppCalendar {
         numberOfWeeks: Int = 12
     ) -> [WeekSection] {
         let configuredCalendar = calendar
-        let dateFormatter = DateFormatter()
-        dateFormatter.locale = locale
-        dateFormatter.dateFormat = "dd-MM"
+        let dateFormatter = cachedFormatter(dateFormat: "dd-MM")
 
         guard let firstWeekStart = configuredCalendar.dateInterval(of: .weekOfYear, for: date)?.start else {
             return []
@@ -172,5 +178,44 @@ enum AppCalendar {
         case 7: return "Z"
         default: return "Z"
         }
+    }
+
+    private static func cachedFormatter(template: String) -> DateFormatter {
+        cachedFormatter(cacheComponent: "template:\(template)") { formatter in
+            formatter.setLocalizedDateFormatFromTemplate(template)
+        }
+    }
+
+    private static func cachedFormatter(dateFormat: String) -> DateFormatter {
+        cachedFormatter(cacheComponent: "format:\(dateFormat)") { formatter in
+            formatter.dateFormat = dateFormat
+        }
+    }
+
+    private static func cachedFormatter(
+        cacheComponent: String,
+        configure: (DateFormatter) -> Void
+    ) -> DateFormatter {
+        let configuredCalendar = calendar
+        let configuredLocale = locale
+        let cacheKey = [
+            "AppCalendar.formatter",
+            configuredLocale.identifier,
+            configuredCalendar.timeZone.identifier,
+            String(configuredCalendar.firstWeekday),
+            String(configuredCalendar.minimumDaysInFirstWeek),
+            cacheComponent
+        ].joined(separator: "|")
+
+        if let formatter = Thread.current.threadDictionary[cacheKey] as? DateFormatter {
+            return formatter
+        }
+
+        let formatter = DateFormatter()
+        formatter.locale = configuredLocale
+        formatter.calendar = configuredCalendar
+        configure(formatter)
+        Thread.current.threadDictionary[cacheKey] = formatter
+        return formatter
     }
 }

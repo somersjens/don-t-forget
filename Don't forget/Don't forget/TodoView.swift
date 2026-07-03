@@ -30,9 +30,24 @@ enum TodoGroupStore {
 
     static func defaults(for locale: Locale) -> [TodoGroup] {
         [
-            TodoGroup(id: shortTermID, title: "Short term", icon: "bolt.fill", colorRawValue: RecurringThemeColorOption.orange.rawValue),
-            TodoGroup(id: longTermID, title: "Long term", icon: "mountain.2.fill", colorRawValue: RecurringThemeColorOption.indigo.rawValue),
-            TodoGroup(id: shoppingID, title: locale.localized("Boodschappen", "Groceries"), icon: "cart.fill", colorRawValue: RecurringThemeColorOption.green.rawValue)
+            TodoGroup(
+                id: shortTermID,
+                title: String(localized: "category.todo.soon", locale: locale),
+                icon: "bolt.fill",
+                colorRawValue: RecurringThemeColorOption.orange.rawValue
+            ),
+            TodoGroup(
+                id: longTermID,
+                title: String(localized: "category.todo.longTerm", locale: locale),
+                icon: "mountain.2.fill",
+                colorRawValue: RecurringThemeColorOption.indigo.rawValue
+            ),
+            TodoGroup(
+                id: shoppingID,
+                title: String(localized: "category.todo.groceries", locale: locale),
+                icon: "cart.fill",
+                colorRawValue: RecurringThemeColorOption.green.rawValue
+            )
         ]
     }
 
@@ -103,7 +118,7 @@ enum TodoGroupStore {
             todayID: ["Today", "Vandaag"],
             asSoonAsPossibleID: ["As soon as possible!", "Zo snel mogelijk!"],
             shortTermID: ["Short term", "Soon", "Binnenkort"],
-            longTermID: ["Long term", "For later", "Voor later"],
+            longTermID: ["Long term", "For later", "Voor later", "Lange termijn"],
             shoppingID: ["Boodschappen", "Groceries"]
         ]
         return knownTitles[id]?.contains(title) == true
@@ -161,8 +176,6 @@ private struct TodoAgendaMoveUndo {
 }
 
 struct TodoView: View {
-    let isActive: Bool
-
     @Environment(\.modelContext)
     private var modelContext
 
@@ -172,15 +185,21 @@ struct TodoView: View {
     @Environment(\.locale)
     private var locale
 
-    @Query(sort: \TodoItem.createdAt, order: .forward)
+    @Query(
+        filter: #Predicate<TodoItem> { todo in
+            !todo.isDone && !todo.isRemoved
+        },
+        sort: \TodoItem.createdAt,
+        order: .forward
+    )
     private var todos: [TodoItem]
 
     @State private var isScrolled = false
     @State private var isKeyboardVisible = false
     @State private var newGroupTitle = ""
-    @State private var recentlyCompletedTodoID: UUID?
+    @State private var recentlyCompletedTodo: TodoItem?
     @State private var dismissUndoTask: Task<Void, Never>?
-    @State private var recentlyRemovedTodoID: UUID?
+    @State private var recentlyRemovedTodo: TodoItem?
     @State private var recentlyRemovedTodoTitle = ""
     @State private var recentlyMovedToAgenda: TodoAgendaMoveUndo?
     @State private var activeReorderHintIDs: Set<UUID> = []
@@ -194,14 +213,10 @@ struct TodoView: View {
 
     var body: some View {
         let activeTodosByGroup = Dictionary(
-            grouping: todos.filter { !$0.isDone && !$0.isRemoved },
+            grouping: todos,
             by: \.bucketRawValue
-        ).mapValues { items in
-            items.sorted { $0.createdAt < $1.createdAt }
-        }
+        )
         let hintSequence = groups.flatMap { activeTodosByGroup[$0.id] ?? [] }
-        let hintWaveSignature = hintSequence.map(\.id.uuidString).joined(separator: "|")
-        let hintWaveTaskID = isActive ? hintWaveSignature : ""
 
         NavigationStack {
             ScrollView {
@@ -215,7 +230,7 @@ struct TodoView: View {
                             canMoveUp: index > 0,
                             canMoveDown: index < groups.count - 1,
                             canDeleteGroup: groups.count > 1 && !todos.contains(where: {
-                                $0.bucketRawValue == group.id && !$0.isDone && !$0.isRemoved
+                                $0.bucketRawValue == group.id
                             }),
                             rename: { renameGroup(group.id, to: $0) },
                             changeColor: { changeGroupColor(group.id, to: $0) },
@@ -289,11 +304,11 @@ struct TodoView: View {
                     moveToAgendaUndoBar
                         .padding(.horizontal, 14)
                         .transition(.move(edge: .bottom).combined(with: .opacity))
-                } else if recentlyRemovedTodoID != nil {
+                } else if recentlyRemovedTodo != nil {
                     removalUndoBar
                         .padding(.horizontal, 14)
                         .transition(.move(edge: .bottom).combined(with: .opacity))
-                } else if recentlyCompletedTodoID != nil {
+                } else if recentlyCompletedTodo != nil {
                     completionUndoBar
                         .padding(.horizontal, 14)
                         .transition(.move(edge: .bottom).combined(with: .opacity))
@@ -309,11 +324,7 @@ struct TodoView: View {
             .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillHideNotification)) { _ in
                 isKeyboardVisible = false
             }
-            .task(id: hintWaveTaskID) {
-                guard isActive else {
-                    activeReorderHintIDs.removeAll()
-                    return
-                }
+            .task {
                 await runReorderHintWave(itemIDs: hintSequence.map(\.id))
             }
         }
@@ -329,30 +340,27 @@ struct TodoView: View {
 
         do {
             try await Task.sleep(for: .seconds(6))
-            while !Task.isCancelled {
-                var previousID: UUID?
+            var previousID: UUID?
 
-                for id in itemIDs {
-                    try Task.checkCancellation()
-                    withAnimation(.smooth(duration: 0.34, extraBounce: 0)) {
-                        _ = activeReorderHintIDs.insert(id)
-                    }
-                    try await Task.sleep(for: .milliseconds(160))
-
-                    if let previousID {
-                        withAnimation(.smooth(duration: 0.38, extraBounce: 0)) {
-                            _ = activeReorderHintIDs.remove(previousID)
-                        }
-                    }
-                    previousID = id
-                    try await Task.sleep(for: .milliseconds(100))
+            for id in itemIDs {
+                try Task.checkCancellation()
+                withAnimation(.smooth(duration: 0.34, extraBounce: 0)) {
+                    _ = activeReorderHintIDs.insert(id)
                 }
-
                 try await Task.sleep(for: .milliseconds(160))
-                withAnimation(.smooth(duration: 0.38, extraBounce: 0)) {
-                    activeReorderHintIDs.removeAll()
+
+                if let previousID {
+                    withAnimation(.smooth(duration: 0.38, extraBounce: 0)) {
+                        _ = activeReorderHintIDs.remove(previousID)
+                    }
                 }
-                try await Task.sleep(for: .seconds(5))
+                previousID = id
+                try await Task.sleep(for: .milliseconds(100))
+            }
+
+            try await Task.sleep(for: .milliseconds(160))
+            withAnimation(.smooth(duration: 0.38, extraBounce: 0)) {
+                activeReorderHintIDs.removeAll()
             }
         } catch {
             withTransaction(transaction) {
@@ -428,7 +436,7 @@ struct TodoView: View {
         var updated = groups
         guard updated.count > 1,
               let index = updated.firstIndex(where: { $0.id == id }),
-              !todos.contains(where: { $0.bucketRawValue == id && !$0.isDone && !$0.isRemoved }) else {
+              !todos.contains(where: { $0.bucketRawValue == id }) else {
             return
         }
 
@@ -443,45 +451,44 @@ struct TodoView: View {
 
     private func showCompletionUndo(_ todo: TodoItem) {
         dismissUndoTask?.cancel()
-        recentlyRemovedTodoID = nil
+        recentlyRemovedTodo = nil
         recentlyMovedToAgenda = nil
         withAnimation(.snappy(duration: 0.25)) {
-            recentlyCompletedTodoID = todo.id
+            recentlyCompletedTodo = todo
         }
         dismissUndoTask = Task { @MainActor in
             try? await Task.sleep(for: .seconds(6))
             guard !Task.isCancelled else { return }
             withAnimation(.easeOut(duration: 0.2)) {
-                recentlyCompletedTodoID = nil
+                recentlyCompletedTodo = nil
             }
         }
     }
 
     private func showRemovalUndo(_ todo: TodoItem) {
         dismissUndoTask?.cancel()
-        recentlyCompletedTodoID = nil
+        recentlyCompletedTodo = nil
         recentlyMovedToAgenda = nil
-        recentlyRemovedTodoID = todo.id
+        recentlyRemovedTodo = todo
         recentlyRemovedTodoTitle = todo.text
         dismissUndoTask = Task { @MainActor in
             try? await Task.sleep(for: .seconds(6))
             guard !Task.isCancelled else { return }
             withAnimation(.easeOut(duration: 0.2)) {
-                recentlyRemovedTodoID = nil
+                recentlyRemovedTodo = nil
             }
         }
     }
 
     private func undoRemoval() {
-        guard let id = recentlyRemovedTodoID,
-              let todo = todos.first(where: { $0.id == id }) else { return }
+        guard let todo = recentlyRemovedTodo else { return }
         todo.isDone = false
         todo.isRemoved = false
         todo.completedAt = nil
         try? modelContext.save()
         dismissUndoTask?.cancel()
         withAnimation(.easeOut(duration: 0.2)) {
-            recentlyRemovedTodoID = nil
+            recentlyRemovedTodo = nil
         }
     }
 
@@ -508,8 +515,8 @@ struct TodoView: View {
 
     private func showMoveToAgendaUndo(_ move: TodoAgendaMoveUndo) {
         dismissUndoTask?.cancel()
-        recentlyCompletedTodoID = nil
-        recentlyRemovedTodoID = nil
+        recentlyCompletedTodo = nil
+        recentlyRemovedTodo = nil
         recentlyMovedToAgenda = move
         dismissUndoTask = Task { @MainActor in
             try? await Task.sleep(for: .seconds(6))
@@ -569,14 +576,13 @@ struct TodoView: View {
     }
 
     private func undoCompletion() {
-        guard let id = recentlyCompletedTodoID,
-              let todo = todos.first(where: { $0.id == id }) else { return }
+        guard let todo = recentlyCompletedTodo else { return }
         todo.isDone = false
         todo.completedAt = nil
         try? modelContext.save()
         dismissUndoTask?.cancel()
         withAnimation(.easeOut(duration: 0.2)) {
-            recentlyCompletedTodoID = nil
+            recentlyCompletedTodo = nil
         }
     }
 
@@ -647,10 +653,11 @@ private struct TodoBucketCard: View {
                 .accessibilityLabel("Kleur en icoon van \(group.title) aanpassen")
 
                 VStack(alignment: .leading, spacing: 2) {
-                    TextField("Groep", text: Binding(
-                        get: { group.title },
-                        set: { rename($0) }
-                    ))
+                    DeferredCommitTextField(
+                        "Groep",
+                        value: group.title,
+                        commit: rename
+                    )
                     .font(.system(size: 17, weight: .semibold))
                     .textFieldStyle(.plain)
 

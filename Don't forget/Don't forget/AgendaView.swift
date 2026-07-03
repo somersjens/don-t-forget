@@ -6,23 +6,47 @@ private struct AgendaRecurringCategoryAppearance: Decodable {
     let colorRawValue: String
 }
 
+/// Day visibility changes rapidly during a fling. Keeping this outside
+/// observable SwiftUI state prevents every entering/leaving day from
+/// invalidating and rebuilding the complete agenda hierarchy.
+@MainActor
+private final class AgendaVisibilityCache {
+    var dates: Set<Date> = []
+    var isScrollIdle = true
+    var pendingFutureLoadLimit: Int?
+    var futureLoadTask: Task<Void, Never>?
+}
+
+@Observable
+@MainActor
+private final class AgendaScrollPresentation {
+    var isScrolled = false
+}
+
 struct AgendaView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(\.undoManager) private var undoManager
     @Environment(\.locale) private var locale
 
-    @Query(sort: \DayEntry.date, order: .forward)
+    @Query(
+        filter: #Predicate<DayEntry> { entry in
+            !entry.isDone && !entry.isRemoved
+        },
+        sort: \DayEntry.date,
+        order: .forward
+    )
     private var entries: [DayEntry]
 
     @FocusState private var focusedField: AgendaField?
-    @State private var isScrolled = false
+    @State private var scrollPresentation = AgendaScrollPresentation()
     @State private var activeMoveEntryID: UUID?
     @State private var moveDraftDate = AppCalendar.startOfDay(.now)
     @State private var scrollTargetDate: Date?
     @State private var scrollTask: Task<Void, Never>?
-    @State private var visibleDates: Set<Date> = []
+    @State private var visibilityCache = AgendaVisibilityCache()
     @State private var loadedFutureWeeks = 26
-    @State private var recentlyRemovedEntryID: UUID?
+    @State private var isLoadingMoreFuture = false
+    @State private var recentlyRemovedEntry: DayEntry?
     @State private var recentlyRemovedEntryTitle = ""
     @State private var recentlyRemovedEventIdentifier: String?
     @State private var dismissRemovalUndoTask: Task<Void, Never>?
@@ -31,6 +55,10 @@ struct AgendaView: View {
     @AppStorage(SettingsKeys.weekNumberRule) private var weekNumberSetting = WeekNumberRule.iso8601.rawValue
     @AppStorage(SettingsKeys.language) private var languageSetting = AppLanguage.system.rawValue
     @AppStorage(SettingsKeys.todoGroups) private var todoGroupsData = ""
+    @AppStorage(SettingsKeys.recurringHorizon)
+    private var recurringHorizon = RecurringHorizonOption.threeMonths.rawValue
+    @AppStorage(SettingsKeys.recurringExtendedThrough)
+    private var recurringExtendedThrough = 0.0
 
     private var todoGroups: [TodoGroup] {
         TodoGroupStore.decode(todoGroupsData)
@@ -39,13 +67,13 @@ struct AgendaView: View {
     private var openPastDates: Set<Date> {
         let today = AppCalendar.startOfDay(.now)
         return Set(entries.compactMap { entry in
-            guard !entry.isDone, !entry.isRemoved, entry.date < today else { return nil }
+            guard entry.date < today else { return nil }
             return AppCalendar.startOfDay(entry.date)
         })
     }
 
     private var entriesByDay: [Date: [DayEntry]] {
-        Dictionary(grouping: entries.filter { !$0.isRemoved }) { AppCalendar.startOfDay($0.date) }
+        Dictionary(grouping: entries) { AppCalendar.startOfDay($0.date) }
     }
 
     private var activeMoveEntryHasTime: Bool {
@@ -56,7 +84,7 @@ struct AgendaView: View {
     private var weeks: [WeekSection] {
         let today = AppCalendar.startOfDay(.now)
         let oldestOpenDate = entries
-            .filter { !$0.isDone && !$0.isRemoved && $0.date < today }
+            .filter { $0.date < today }
             .map(\.date)
             .min()
         let startDate = oldestOpenDate ?? today
@@ -114,20 +142,36 @@ struct AgendaView: View {
                             )
                             .id(AgendaScrollTarget.week(week.startDate))
                             .onAppear {
-                                if index >= visibleWeeks.count - 5 {
-                                    loadMoreFutureWeeks(ifCurrentLimitIs: loadedWeekLimit)
+                                if index >= visibleWeeks.count - 2 {
+                                    queueMoreFutureWeeks(ifCurrentLimitIs: loadedWeekLimit)
                                 }
                             }
+                        }
+
+                        if loadedWeekLimit < maximumFutureWeekCount {
+                            AgendaFutureLoadingFooter(locale: locale)
+                                .onAppear {
+                                    queueMoreFutureWeeks(ifCurrentLimitIs: loadedWeekLimit)
+                                }
                         }
                     }
                     .padding(.horizontal, 14)
                     .padding(.vertical, 12)
                 }
+                .scrollDisabled(isLoadingMoreFuture)
                 .scrollEdgeEffectStyle(.soft, for: .top)
+                .onScrollPhaseChange { _, newPhase in
+                    visibilityCache.isScrollIdle = newPhase == .idle
+                    if newPhase == .idle {
+                        startPendingFutureLoad()
+                    } else {
+                        cancelDeferredFutureLoad()
+                    }
+                }
                 .onScrollGeometryChange(for: Bool.self) { geometry in
                     geometry.contentOffset.y + geometry.contentInsets.top > 12
                 } action: { _, newValue in
-                    isScrolled = newValue
+                    scrollPresentation.isScrolled = newValue
                 }
                 .onChange(of: scrollTargetDate) { _, targetDate in
                     guard let targetDate else { return }
@@ -152,10 +196,10 @@ struct AgendaView: View {
             .toolbar(.hidden, for: .navigationBar)
             .safeAreaInset(edge: .top, spacing: 0) {
                 ZStack {
-                    Text(AppSection.agenda.title(for: locale))
-                        .font(.system(size: 26, weight: .bold))
-                        .opacity(isScrolled ? 0 : 1)
-                        .animation(.easeOut(duration: 0.18), value: isScrolled)
+                    AgendaTopTitle(
+                        presentation: scrollPresentation,
+                        locale: locale
+                    )
 
                     HStack {
                         Button {
@@ -190,7 +234,7 @@ struct AgendaView: View {
                 .padding(.vertical, 6)
             }
             .safeAreaInset(edge: .bottom, spacing: 8) {
-                if recentlyRemovedEntryID != nil {
+                if recentlyRemovedEntry != nil {
                     removalUndoBar
                         .padding(.horizontal, 14)
                         .transition(.move(edge: .bottom).combined(with: .opacity))
@@ -198,35 +242,43 @@ struct AgendaView: View {
             }
             .onAppear {
                 modelContext.undoManager = undoManager
+                configureLoadedHorizon()
+            }
+            .onChange(of: recurringHorizon) { _, _ in
+                configureLoadedHorizon()
             }
             .onChange(of: focusedField) { _, newValue in
                 if newValue == nil {
                     try? modelContext.save()
+                    startPendingFutureLoad()
+                } else {
+                    // Text input always outranks speculative future loading.
+                    cancelDeferredFutureLoad()
                 }
             }
             .onDisappear {
                 scrollTask?.cancel()
+                visibilityCache.futureLoadTask?.cancel()
             }
         }
     }
 
     private func showRemovalUndo(_ entry: DayEntry, eventIdentifier: String?) {
         dismissRemovalUndoTask?.cancel()
-        recentlyRemovedEntryID = entry.id
+        recentlyRemovedEntry = entry
         recentlyRemovedEntryTitle = entry.rawText
         recentlyRemovedEventIdentifier = eventIdentifier
         dismissRemovalUndoTask = Task { @MainActor in
             try? await Task.sleep(for: .seconds(6))
             guard !Task.isCancelled else { return }
             withAnimation(.easeOut(duration: 0.2)) {
-                recentlyRemovedEntryID = nil
+                recentlyRemovedEntry = nil
             }
         }
     }
 
     private func undoRemoval() {
-        guard let id = recentlyRemovedEntryID,
-              let entry = entries.first(where: { $0.id == id }) else { return }
+        guard let entry = recentlyRemovedEntry else { return }
         entry.isDone = false
         entry.isRemoved = false
         entry.completedAt = nil
@@ -237,7 +289,7 @@ struct AgendaView: View {
         try? modelContext.save()
         dismissRemovalUndoTask?.cancel()
         withAnimation(.easeOut(duration: 0.2)) {
-            recentlyRemovedEntryID = nil
+            recentlyRemovedEntry = nil
         }
     }
 
@@ -289,8 +341,144 @@ struct AgendaView: View {
     }
 
     private func loadMoreFutureWeeks(ifCurrentLimitIs expectedLimit: Int) {
-        guard loadedFutureWeeks == expectedLimit, loadedFutureWeeks < 105 else { return }
-        loadedFutureWeeks = min(loadedFutureWeeks + 13, 105)
+        guard loadedFutureWeeks == expectedLimit,
+              loadedFutureWeeks < maximumFutureWeekCount,
+              !isLoadingMoreFuture,
+              visibilityCache.futureLoadTask == nil else {
+            return
+        }
+
+        let today = AppCalendar.startOfDay(.now)
+        let currentEndDate = AppCalendar.calendar.date(
+            byAdding: .weekOfYear,
+            value: loadedFutureWeeks,
+            to: today
+        ) ?? today
+        let maximumEndDate = AppCalendar.calendar.date(
+            byAdding: .month,
+            value: 24,
+            to: today
+        ) ?? currentEndDate
+        let proposedEndDate = AppCalendar.calendar.date(
+            byAdding: .month,
+            value: 3,
+            to: currentEndDate
+        ) ?? currentEndDate
+        let endDate = min(proposedEndDate, maximumEndDate)
+        let newLimit = weekCount(through: endDate)
+
+        visibilityCache.futureLoadTask = Task { @MainActor in
+            // Loading is speculative. Wait until scrolling has settled and
+            // leave a generous window in which a tap can focus a text field.
+            try? await Task.sleep(for: .milliseconds(850))
+            guard !Task.isCancelled,
+                  visibilityCache.isScrollIdle,
+                  focusedField == nil,
+                  activeMoveEntryID == nil else {
+                visibilityCache.futureLoadTask = nil
+                return
+            }
+
+            visibilityCache.pendingFutureLoadLimit = nil
+            isLoadingMoreFuture = true
+            await Task.yield()
+            guard !Task.isCancelled else {
+                isLoadingMoreFuture = false
+                visibilityCache.futureLoadTask = nil
+                return
+            }
+
+            do {
+                try RecurringScheduler.extendAll(
+                    in: modelContext.container,
+                    from: currentEndDate,
+                    through: endDate
+                )
+                recurringExtendedThrough = max(
+                    recurringExtendedThrough,
+                    endDate.timeIntervalSinceReferenceDate
+                )
+                // Give the live @Query one run-loop turn to merge the single
+                // store save before exposing the newly generated weeks.
+                try? await Task.sleep(for: .milliseconds(50))
+                loadedFutureWeeks = newLimit
+            } catch {
+                // Keep the current boundary; approaching it retries naturally.
+            }
+            isLoadingMoreFuture = false
+            visibilityCache.futureLoadTask = nil
+        }
+    }
+
+    private func queueMoreFutureWeeks(ifCurrentLimitIs expectedLimit: Int) {
+        guard loadedFutureWeeks == expectedLimit,
+              loadedFutureWeeks < maximumFutureWeekCount else {
+            return
+        }
+
+        visibilityCache.pendingFutureLoadLimit = expectedLimit
+        if visibilityCache.isScrollIdle {
+            startPendingFutureLoad()
+        }
+    }
+
+    private func startPendingFutureLoad() {
+        guard visibilityCache.isScrollIdle,
+              !isLoadingMoreFuture,
+              focusedField == nil,
+              activeMoveEntryID == nil,
+              visibilityCache.futureLoadTask == nil,
+              let expectedLimit = visibilityCache.pendingFutureLoadLimit else {
+            return
+        }
+
+        loadMoreFutureWeeks(ifCurrentLimitIs: expectedLimit)
+    }
+
+    private func cancelDeferredFutureLoad() {
+        guard !isLoadingMoreFuture else { return }
+        visibilityCache.futureLoadTask?.cancel()
+        visibilityCache.futureLoadTask = nil
+    }
+
+    private func configureLoadedHorizon() {
+        visibilityCache.futureLoadTask?.cancel()
+        visibilityCache.futureLoadTask = nil
+        visibilityCache.pendingFutureLoadLimit = nil
+        isLoadingMoreFuture = false
+        let option = RecurringHorizonOption(rawValue: recurringHorizon) ?? .threeMonths
+        let today = AppCalendar.startOfDay(.now)
+        let configuredEndDate = AppCalendar.calendar.date(
+            byAdding: .month,
+            value: option.months,
+            to: today
+        ) ?? today
+        // A previously generated recurrence range may be longer than the
+        // user's current display preference. It must not make the initial
+        // agenda (and its scroll indicator) longer than that preference.
+        loadedFutureWeeks = min(
+            weekCount(through: configuredEndDate),
+            maximumFutureWeekCount
+        )
+    }
+
+    private var maximumFutureWeekCount: Int {
+        let today = AppCalendar.startOfDay(.now)
+        let maximumEndDate = AppCalendar.calendar.date(
+            byAdding: .month,
+            value: 24,
+            to: today
+        ) ?? today
+        return weekCount(through: maximumEndDate)
+    }
+
+    private func weekCount(through endDate: Date) -> Int {
+        let days = AppCalendar.calendar.dateComponents(
+            [.day],
+            from: AppCalendar.startOfDay(.now),
+            to: AppCalendar.startOfDay(endDate)
+        ).day ?? 0
+        return max(1, (max(0, days) + 6) / 7)
     }
 
     private func moveEntryToStartOfUntimedEntries(_ entryID: UUID, on targetDate: Date) {
@@ -424,7 +612,7 @@ struct AgendaView: View {
 
     private func requestScroll(to date: Date) {
         let day = AppCalendar.startOfDay(date)
-        guard !visibleDates.contains(day) else { return }
+        guard !visibilityCache.dates.contains(day) else { return }
         if day > AppCalendar.startOfDay(.now) {
             let weeksAhead = AppCalendar.calendar.dateComponents(
                 [.weekOfYear],
@@ -439,9 +627,9 @@ struct AgendaView: View {
     private func updateDayVisibility(_ date: Date, isVisible: Bool) {
         let day = AppCalendar.startOfDay(date)
         if isVisible {
-            visibleDates.insert(day)
+            visibilityCache.dates.insert(day)
         } else {
-            visibleDates.remove(day)
+            visibilityCache.dates.remove(day)
         }
     }
 
@@ -473,6 +661,41 @@ struct AgendaView: View {
         }
     }
 
+}
+
+private struct AgendaTopTitle: View {
+    let presentation: AgendaScrollPresentation
+    let locale: Locale
+
+    var body: some View {
+        Text(AppSection.agenda.title(for: locale))
+            .font(.system(size: 26, weight: .bold))
+            .opacity(presentation.isScrolled ? 0 : 1)
+            .animation(.easeOut(duration: 0.18), value: presentation.isScrolled)
+    }
+}
+
+private struct AgendaFutureLoadingFooter: View {
+    let locale: Locale
+
+    var body: some View {
+        HStack(spacing: 10) {
+            ProgressView()
+            Text(locale.localized(
+                "Volgende 3 maanden laden…",
+                "Loading the Next 3 Months…"
+            ))
+            .font(.system(size: 16, weight: .medium))
+            .foregroundStyle(.secondary)
+        }
+        .frame(maxWidth: .infinity)
+        .frame(minHeight: 51)
+        .background {
+            RoundedRectangle(cornerRadius: 8)
+                .fill(Color(.secondarySystemBackground))
+        }
+        .accessibilityElement(children: .combine)
+    }
 }
 
 enum AgendaField: Hashable {

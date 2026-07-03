@@ -3,6 +3,89 @@ import SwiftData
 
 @MainActor
 enum RecurringScheduler {
+    /// Builds a complete recurrence batch in an isolated context. The app's
+    /// live queries only observe the single save at the end, instead of every
+    /// inserted or updated occurrence along the way.
+    static func syncAll(
+        in modelContainer: ModelContainer,
+        through endDate: Date
+    ) throws {
+        let batchContext = ModelContext(modelContainer)
+        batchContext.autosaveEnabled = false
+        let items = try batchContext.fetch(FetchDescriptor<RecurringItem>())
+        syncAll(items: items, in: batchContext, through: endDate)
+        if batchContext.hasChanges {
+            try batchContext.save()
+        }
+    }
+
+    /// Appends one future batch without recalculating or deleting the already
+    /// visible horizon. A small overlap preserves reminders that fall just
+    /// before the new occurrence window.
+    static func extendAll(
+        in modelContainer: ModelContainer,
+        from startDate: Date,
+        through endDate: Date
+    ) throws {
+        let batchContext = ModelContext(modelContainer)
+        batchContext.autosaveEnabled = false
+        let items = try batchContext.fetch(FetchDescriptor<RecurringItem>())
+        let largestReminderOffset = items.compactMap(\.reminderDaysBefore).max() ?? 0
+        let generationStart = AppCalendar.calendar.date(
+            byAdding: .day,
+            value: -max(0, largestReminderOffset),
+            to: AppCalendar.startOfDay(startDate)
+        ) ?? AppCalendar.startOfDay(startDate)
+        let descriptor = FetchDescriptor<DayEntry>(predicate: #Predicate { entry in
+            entry.recurringItemIdentifier != nil
+                && entry.date >= generationStart
+                && entry.date <= endDate
+        })
+        let existingEntries = try batchContext.fetch(descriptor)
+        var existingByIdentity: [OccurrenceIdentity: DayEntry] = [:]
+
+        for entry in existingEntries {
+            guard let itemID = entry.recurringItemIdentifier,
+                  let key = entry.recurringOccurrenceKey else {
+                continue
+            }
+            existingByIdentity[OccurrenceIdentity(itemID: itemID, key: key)] = entry
+        }
+
+        for item in items {
+            RecurrenceEngine.prepareLegacyItem(item)
+            let desired = desiredEntries(
+                for: item,
+                from: generationStart,
+                through: endDate
+            )
+
+            for desiredEntry in desired {
+                let identity = OccurrenceIdentity(itemID: item.id, key: desiredEntry.key)
+                if let existing = existingByIdentity[identity] {
+                    update(existing, with: desiredEntry, item: item)
+                    continue
+                }
+
+                let entry = DayEntry(
+                    date: desiredEntry.date,
+                    rawText: desiredEntry.title,
+                    source: .recurring,
+                    manualOrder: 0
+                )
+                entry.recurringItemIdentifier = item.id
+                entry.recurringOccurrenceKey = desiredEntry.key
+                entry.accentRawValue = desiredEntry.accent
+                batchContext.insert(entry)
+                existingByIdentity[identity] = entry
+            }
+        }
+
+        if batchContext.hasChanges {
+            try batchContext.save()
+        }
+    }
+
     static func syncAll(
         items: [RecurringItem],
         in modelContext: ModelContext,
@@ -43,6 +126,11 @@ enum RecurringScheduler {
         let date: Date
         let title: String
         let accent: String
+    }
+
+    private struct OccurrenceIdentity: Hashable {
+        let itemID: UUID
+        let key: String
     }
 
     private static func desiredEntries(

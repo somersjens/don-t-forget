@@ -44,14 +44,28 @@ enum HistoryFilter: String, CaseIterable, Identifiable {
 }
 
 struct HistoryView: View {
+    private static let pageSize = 250
+
     @Environment(\.modelContext) private var modelContext
     @Environment(\.undoManager) private var undoManager
     @Environment(\.locale) private var locale
 
-    @Query(sort: \DayEntry.date, order: .reverse)
+    @Query(
+        filter: #Predicate<DayEntry> { entry in
+            entry.isDone || entry.isRemoved
+        },
+        sort: \DayEntry.date,
+        order: .reverse
+    )
     private var entries: [DayEntry]
 
-    @Query(sort: \TodoItem.createdAt, order: .reverse)
+    @Query(
+        filter: #Predicate<TodoItem> { todo in
+            todo.isDone || todo.isRemoved
+        },
+        sort: \TodoItem.createdAt,
+        order: .reverse
+    )
     private var todos: [TodoItem]
 
     @AppStorage(SettingsKeys.recurringCategories) private var recurringCategoriesData = ""
@@ -67,15 +81,16 @@ struct HistoryView: View {
     @State private var selectedDeletionRowID: UUID?
     @State private var pendingPermanentDeletion: HistoryRow?
     @State private var permanentDeletionTask: Task<Void, Never>?
+    @State private var visibleHistoryLimit = Self.pageSize
 
     private var allRows: [HistoryRow] {
         let recurringColors = recurringCategoryColors
         let todoColors = todoCategoryColors
         let agendaRows = entries
-            .filter { ($0.isDone || $0.isRemoved) && $0.source != .recurring }
+            .filter { $0.source != .recurring }
             .map { HistoryRow(entry: $0, source: .agenda, color: .gray) }
         let recurringRows = entries
-            .filter { ($0.isDone || $0.isRemoved) && $0.source == .recurring }
+            .filter { $0.source == .recurring }
             .map { entry in
                 let categoryID = entry.accentRawValue == "birthdayReminder"
                     ? RecurringTheme.birthday.rawValue
@@ -87,7 +102,6 @@ struct HistoryView: View {
                 )
             }
         let todoRows = todos
-            .filter { $0.isDone || $0.isRemoved }
             .map { todo in
                 HistoryRow(
                     todo: todo,
@@ -168,8 +182,10 @@ struct HistoryView: View {
     var body: some View {
         let historyRows = allRows
         let completedRows = historyRows.filter { !$0.isRemoved }
-        let visibleRows = visibleRows(from: historyRows)
-        let sections = sections(from: visibleRows)
+        let filteredRows = visibleRows(from: historyRows)
+        let pagedRows = Array(filteredRows.prefix(visibleHistoryLimit))
+        let sections = sections(from: pagedRows)
+        let remainingRowCount = max(0, filteredRows.count - pagedRows.count)
 
         NavigationStack {
             ScrollView {
@@ -199,6 +215,22 @@ struct HistoryView: View {
                                 permanentlyDelete: beginPermanentDeletion,
                                 restore: restore
                             )
+                        }
+                        if remainingRowCount > 0 {
+                            Button {
+                                visibleHistoryLimit += Self.pageSize
+                            } label: {
+                                Label(
+                                    locale.localized(
+                                        "Laad oudere items (\(min(Self.pageSize, remainingRowCount)))",
+                                        "Load Older Items (\(min(Self.pageSize, remainingRowCount)))"
+                                    ),
+                                    systemImage: "arrow.down.circle"
+                                )
+                                .frame(maxWidth: .infinity)
+                            }
+                            .buttonStyle(.bordered)
+                            .tint(Color.brandHardBlue)
                         }
                     }
                 }
@@ -252,6 +284,12 @@ struct HistoryView: View {
             }
             .onAppear {
                 modelContext.undoManager = undoManager
+            }
+            .onChange(of: filter) { _, _ in
+                visibleHistoryLimit = Self.pageSize
+            }
+            .onChange(of: showsDeletedItems) { _, _ in
+                visibleHistoryLimit = Self.pageSize
             }
         }
     }
