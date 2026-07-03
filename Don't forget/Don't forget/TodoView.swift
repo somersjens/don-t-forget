@@ -11,6 +11,10 @@ struct TodoGroup: Codable, Equatable, Identifiable {
         RecurringThemeColorOption(rawValue: colorRawValue ?? "")?.color ?? .blue
     }
 
+    var backgroundColor: Color {
+        RecurringThemeColorOption(rawValue: colorRawValue ?? "")?.backgroundColor ?? Color.blue.opacity(0.18)
+    }
+
     var trimmedTitle: String {
         title.trimmingCharacters(in: .whitespacesAndNewlines)
     }
@@ -642,7 +646,7 @@ private struct TodoBucketCard: View {
                 } label: {
                     ZStack {
                         RoundedRectangle(cornerRadius: 9)
-                            .fill(group.color.opacity(0.18))
+                            .fill(group.backgroundColor)
                         Image(systemName: group.icon)
                             .font(.system(size: 15, weight: .semibold))
                             .foregroundStyle(group.color)
@@ -686,6 +690,7 @@ private struct TodoBucketCard: View {
                         todo: todo,
                         groups: groups,
                         color: group.color,
+                        backgroundColor: group.backgroundColor,
                         isReorderHintActive: activeReorderHintIDs.contains(todo.id),
                         completed: completed,
                         removed: removed,
@@ -905,6 +910,7 @@ private struct TodoLine: View {
     @Bindable var todo: TodoItem
     let groups: [TodoGroup]
     let color: Color
+    let backgroundColor: Color
     let isReorderHintActive: Bool
     let completed: (TodoItem) -> Void
     let removed: (TodoItem) -> Void
@@ -1049,7 +1055,7 @@ private struct TodoLine: View {
                 if isReorderHintActive {
                     ZStack {
                         Capsule()
-                            .fill(color.opacity(0.14))
+                            .fill(backgroundColor)
                             .frame(width: 30, height: 20)
 
                         Image(systemName: "arrow.left.arrow.right")
@@ -1067,7 +1073,7 @@ private struct TodoLine: View {
                         .monospacedDigit()
                         .padding(.horizontal, 5)
                         .padding(.vertical, 3)
-                        .background(color.opacity(0.14), in: Capsule())
+                        .background(backgroundColor, in: Capsule())
                         .transition(
                             .asymmetric(
                                 insertion: .opacity.combined(with: .scale(scale: 0.88)),

@@ -383,28 +383,29 @@ struct AgendaView: View {
     }
 
     private func showPreviousAgendaTutorialStep() {
-        agendaTutorialStep = max(agendaTutorialStep - 1, 0)
-        hasPerformedAgendaTutorialMove = false
-        if agendaTutorialStep < 2 {
-            activeMoveEntryID = nil
-        }
+        showAgendaTutorialStep(agendaTutorialStep - 1)
     }
 
     private func showNextAgendaTutorialStep() {
-        if agendaTutorialStep == 1, let entry = onboardingMoveExampleEntry {
-            setMoveMode(entryID: entry.id, date: entry.date)
-            hasPerformedAgendaTutorialMove = false
-            agendaTutorialStep = 2
-            return
-        }
-
         if agendaTutorialStep == 3 {
             finishAgendaTutorial()
             return
         }
 
-        guard agendaTutorialStep < 2 else { return }
-        agendaTutorialStep += 1
+        showAgendaTutorialStep(agendaTutorialStep + 1)
+    }
+
+    private func showAgendaTutorialStep(_ requestedStep: Int) {
+        let targetStep = min(max(requestedStep, 0), AgendaHelpCard.stepCount - 1)
+        hasPerformedAgendaTutorialMove = false
+
+        if targetStep == 2, let entry = onboardingMoveExampleEntry {
+            setMoveMode(entryID: entry.id, date: entry.date)
+        } else {
+            setMoveMode(entryID: nil)
+        }
+
+        agendaTutorialStep = targetStep
     }
 
     private func completeAgendaTutorialAction(for step: Int) {
@@ -990,6 +991,18 @@ private struct AgendaHelpCard: View {
 
     private var stepContent: some View {
         VStack(alignment: .leading, spacing: 14) {
+            instructionContent
+
+            navigationControls
+                .id(step)
+                .transaction { transaction in
+                    transaction.animation = nil
+                }
+        }
+    }
+
+    private var instructionContent: some View {
+        VStack(alignment: .leading, spacing: 14) {
             VStack(alignment: .leading, spacing: 7) {
                 HStack(spacing: 7) {
                     Image(systemName: currentStep.icon)
@@ -1017,29 +1030,32 @@ private struct AgendaHelpCard: View {
                 .padding(10)
                 .background(Color.yellow.opacity(0.28), in: RoundedRectangle(cornerRadius: 10))
             }
+        }
+    }
 
-            HStack {
-                Button(action: previous) {
-                    Image(systemName: "arrow.left")
-                        .font(.system(size: 14, weight: .bold))
-                        .foregroundStyle(.secondary)
-                        .frame(width: 34, height: 30)
-                }
-                .buttonStyle(.plain)
-                .disabled(step == 0)
-                .opacity(step == 0 ? 0.25 : 1)
-
-                Spacer()
-
-                Button(action: next) {
-                    Image(systemName: "arrow.right")
-                        .font(.system(size: 14, weight: .bold))
-                        .foregroundStyle(step == 2 ? Color.secondary : Color.brandHardBlue)
-                        .frame(width: 34, height: 30)
-                }
-                .buttonStyle(.plain)
-                .disabled(step == 2)
+    private var navigationControls: some View {
+        HStack {
+            Button(action: previous) {
+                Image(systemName: "arrow.left")
+                    .font(.system(size: 14, weight: .bold))
+                    .foregroundStyle(.secondary)
+                    .frame(width: 34, height: 30)
             }
+            .buttonStyle(.plain)
+            .disabled(step == 0)
+            .opacity(step == 0 ? 0.25 : 1)
+            .accessibilityLabel(locale.localized("Vorige stap", "Previous step"))
+
+            Spacer()
+
+            Button(action: next) {
+                Image(systemName: "arrow.right")
+                    .font(.system(size: 14, weight: .bold))
+                    .foregroundStyle(Color.brandHardBlue)
+                    .frame(width: 34, height: 30)
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel(locale.localized("Volgende stap", "Next step"))
         }
     }
 

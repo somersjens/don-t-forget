@@ -41,6 +41,15 @@ enum HistoryFilter: String, CaseIterable, Identifiable {
         case .todo: .green
         }
     }
+
+    var backgroundColor: Color {
+        switch self {
+        case .all: Color(.tertiarySystemFill)
+        case .agenda: RecurringThemeColorOption.blue.backgroundColor
+        case .recurring: RecurringThemeColorOption.orange.backgroundColor
+        case .todo: RecurringThemeColorOption.green.backgroundColor
+        }
+    }
 }
 
 struct HistoryView: View {
@@ -74,6 +83,7 @@ struct HistoryView: View {
     @AppStorage(SettingsKeys.historyShowsDeletedItems) private var showsDeletedItems = true
 
     @State private var filter: HistoryFilter = .all
+    @State private var searchText = ""
     @State private var isScrolled = false
     @State private var isShowingSettings = false
     @State private var recentlyRestoredRow: HistoryRow?
@@ -85,10 +95,19 @@ struct HistoryView: View {
 
     private var allRows: [HistoryRow] {
         let recurringColors = recurringCategoryColors
+        let recurringBackgroundColors = recurringCategoryBackgroundColors
         let todoColors = todoCategoryColors
+        let todoBackgroundColors = todoCategoryBackgroundColors
         let agendaRows = entries
             .filter { $0.source != .recurring }
-            .map { HistoryRow(entry: $0, source: .agenda, color: .gray) }
+            .map {
+                HistoryRow(
+                    entry: $0,
+                    source: .agenda,
+                    color: RecurringThemeColorOption.gray.color,
+                    backgroundColor: RecurringThemeColorOption.gray.backgroundColor
+                )
+            }
         let recurringRows = entries
             .filter { $0.source == .recurring }
             .map { entry in
@@ -98,14 +117,18 @@ struct HistoryView: View {
                 return HistoryRow(
                     entry: entry,
                     source: .recurring,
-                    color: recurringColors[categoryID] ?? .gray
+                    color: recurringColors[categoryID] ?? RecurringThemeColorOption.gray.color,
+                    backgroundColor: recurringBackgroundColors[categoryID]
+                        ?? RecurringThemeColorOption.gray.backgroundColor
                 )
             }
         let todoRows = todos
             .map { todo in
                 HistoryRow(
                     todo: todo,
-                    color: todoColors[todo.bucketRawValue] ?? .gray
+                    color: todoColors[todo.bucketRawValue] ?? RecurringThemeColorOption.gray.color,
+                    backgroundColor: todoBackgroundColors[todo.bucketRawValue]
+                        ?? RecurringThemeColorOption.gray.backgroundColor
                 )
             }
 
@@ -151,11 +174,38 @@ struct HistoryView: View {
         })
     }
 
+    private var recurringCategoryBackgroundColors: [String: Color] {
+        Dictionary(uniqueKeysWithValues: recurringCategoryAppearances.compactMap { appearance in
+            guard let color = RecurringThemeColorOption(rawValue: appearance.colorRawValue) else { return nil }
+            return (appearance.id, color.backgroundColor)
+        })
+    }
+
+    private var todoCategoryBackgroundColors: [String: Color] {
+        Dictionary(uniqueKeysWithValues: TodoGroupStore.decode(todoGroupsData).map {
+            ($0.id, $0.backgroundColor)
+        })
+    }
+
+    private var recurringCategoryAppearances: [HistoryRecurringCategoryAppearance] {
+        if let data = recurringCategoriesData.data(using: .utf8),
+           let decoded = try? JSONDecoder().decode([HistoryRecurringCategoryAppearance].self, from: data) {
+            return decoded
+        }
+        return [
+            HistoryRecurringCategoryAppearance(id: RecurringTheme.birthday.rawValue, colorRawValue: RecurringThemeColorOption.blue.rawValue),
+            HistoryRecurringCategoryAppearance(id: "holidays", colorRawValue: RecurringThemeColorOption.orange.rawValue),
+            HistoryRecurringCategoryAppearance(id: RecurringTheme.general.rawValue, colorRawValue: RecurringThemeColorOption.yellow.rawValue)
+        ]
+    }
+
     private func visibleRows(from rows: [HistoryRow]) -> [HistoryRow] {
-        rows.filter { row in
+        let query = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
+        return rows.filter { row in
             (showsDeletedItems || !row.isRemoved)
                 && row.id != pendingPermanentDeletion?.id
                 && (filter == .all || row.source.filter == filter)
+                && (query.isEmpty || row.title.localizedStandardContains(query))
         }
     }
 
@@ -182,6 +232,9 @@ struct HistoryView: View {
     var body: some View {
         let historyRows = allRows
         let completedRows = historyRows.filter { !$0.isRemoved }
+        let chartRows = completedRows.filter {
+            filter == .all || $0.source.filter == filter
+        }
         let filteredRows = visibleRows(from: historyRows)
         let pagedRows = Array(filteredRows.prefix(visibleHistoryLimit))
         let sections = sections(from: pagedRows)
@@ -190,22 +243,29 @@ struct HistoryView: View {
         NavigationStack {
             ScrollView {
                 LazyVStack(spacing: 12) {
-                    HistorySummaryCard(
-                        total: completedRows.count,
-                        lastSevenDays: completedLastSevenDays(in: completedRows),
-                        completionDates: completedRows.map(\.completedAt),
-                        isDemoActive: isHistoryDemoActive,
-                        activateDemoData: activateHistoryDemoData,
-                        deactivateDemoData: deactivateHistoryDemoData
-                    )
-
                     HistoryFilterBar(
                         selection: $filter,
                         count: { count(for: $0, among: historyRows) }
                     )
 
+                    HistorySummaryCard(
+                        total: chartRows.count,
+                        lastSevenDays: completedLastSevenDays(in: chartRows),
+                        completionDates: chartRows.map(\.completedAt),
+                        isDemoActive: isHistoryDemoActive,
+                        activateDemoData: activateHistoryDemoData,
+                        deactivateDemoData: deactivateHistoryDemoData
+                    )
+
+                    HistorySearchBar(text: $searchText)
+
                     if sections.isEmpty {
-                        HistoryEmptyState(filter: filter)
+                        HistoryEmptyState(
+                            filter: filter,
+                            hasSearchQuery: !searchText
+                                .trimmingCharacters(in: .whitespacesAndNewlines)
+                                .isEmpty
+                        )
                     } else {
                         ForEach(sections) { section in
                             HistoryDayCard(
@@ -289,6 +349,9 @@ struct HistoryView: View {
                 visibleHistoryLimit = Self.pageSize
             }
             .onChange(of: showsDeletedItems) { _, _ in
+                visibleHistoryLimit = Self.pageSize
+            }
+            .onChange(of: searchText) { _, _ in
                 visibleHistoryLimit = Self.pageSize
             }
         }
@@ -792,6 +855,47 @@ private struct HistoryFilterChip: View {
     }
 }
 
+private struct HistorySearchBar: View {
+    @Environment(\.locale) private var locale
+    @Binding var text: String
+
+    var body: some View {
+        HStack(spacing: 10) {
+            Image(systemName: "magnifyingglass")
+                .font(.system(size: 15, weight: .semibold))
+                .foregroundStyle(.secondary)
+
+            TextField(
+                locale.localized("Zoek in geschiedenis", "Search history"),
+                text: $text
+            )
+            .font(.system(size: 15))
+            .textInputAutocapitalization(.never)
+            .autocorrectionDisabled()
+            .submitLabel(.search)
+
+            if !text.isEmpty {
+                Button {
+                    text = ""
+                } label: {
+                    Image(systemName: "xmark.circle.fill")
+                        .font(.system(size: 17, weight: .semibold))
+                        .foregroundStyle(.secondary)
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel(locale.localized("Zoekopdracht wissen", "Clear search"))
+            }
+        }
+        .padding(.horizontal, 13)
+        .frame(minHeight: 44)
+        .background(Color(.secondarySystemBackground), in: RoundedRectangle(cornerRadius: 14))
+        .overlay {
+            RoundedRectangle(cornerRadius: 14)
+                .stroke(Color.primary.opacity(0.045), lineWidth: 1)
+        }
+    }
+}
+
 private struct HistoryDayCard: View {
     @Environment(\.locale) private var locale
 
@@ -850,7 +954,7 @@ private struct HistoryItemRow: View {
             Button(action: revealPermanentDelete) {
                 ZStack {
                     RoundedRectangle(cornerRadius: 11)
-                        .fill(row.color.opacity(0.16))
+                        .fill(row.backgroundColor)
                     Image(systemName: row.source.icon)
                         .font(.system(size: 15, weight: .semibold))
                         .foregroundStyle(row.color)
@@ -883,7 +987,7 @@ private struct HistoryItemRow: View {
                     Image(systemName: "trash")
                         .font(.system(size: 14, weight: .semibold))
                         .frame(width: 36, height: 36)
-                        .background(Color.red.opacity(0.12), in: Circle())
+                        .background(RecurringThemeColorOption.red.backgroundColor, in: Circle())
                 }
                 .buttonStyle(.plain)
                 .transition(.opacity.combined(with: .scale))
@@ -894,7 +998,7 @@ private struct HistoryItemRow: View {
                         .font(.system(size: 14, weight: .semibold))
                         .foregroundStyle(row.color)
                         .frame(width: 36, height: 36)
-                        .background(row.color.opacity(0.12), in: Circle())
+                        .background(row.backgroundColor, in: Circle())
                 }
                 .buttonStyle(.plain)
                 .transition(.opacity.combined(with: .scale))
@@ -916,27 +1020,48 @@ private struct HistoryEmptyState: View {
     @Environment(\.locale) private var locale
 
     let filter: HistoryFilter
+    let hasSearchQuery: Bool
+
+    private var title: String {
+        if hasSearchQuery {
+            return locale.localized("Geen zoekresultaten", "No search results")
+        }
+        if filter == .all {
+            return locale.localized("Nog geen geschiedenis", "No history yet")
+        }
+        return locale.localized(
+            "Geen afgeronde \(filter.title(for: locale).lowercased())-items",
+            "No completed \(filter.title(for: locale).lowercased()) items"
+        )
+    }
+
+    private var subtitle: String {
+        hasSearchQuery
+            ? locale.localized(
+                "Probeer een andere zoekopdracht of wis de zoekbalk.",
+                "Try another search or clear the search bar."
+            )
+            : locale.localized(
+                "Afgeronde items verschijnen hier automatisch en kun je altijd weer terugzetten.",
+                "Completed items appear here automatically and can always be restored."
+            )
+    }
 
     var body: some View {
         VStack(spacing: 12) {
             ZStack {
                 Circle()
-                    .fill(filter.color.opacity(0.12))
-                Image(systemName: filter == .all ? "clock.arrow.circlepath" : filter.icon)
+                    .fill(filter.backgroundColor)
+                Image(systemName: hasSearchQuery ? "magnifyingglass" : (filter == .all ? "clock.arrow.circlepath" : filter.icon))
                     .font(.system(size: 27, weight: .medium))
                     .foregroundStyle(filter.color)
             }
             .frame(width: 62, height: 62)
 
-            Text(filter == .all
-                ? locale.localized("Nog geen geschiedenis", "No history yet")
-                : locale.localized(
-                    "Geen afgeronde \(filter.title(for: locale).lowercased())-items",
-                    "No completed \(filter.title(for: locale).lowercased()) items"
-                ))
+            Text(title)
                 .font(.system(size: 17, weight: .semibold))
                 .multilineTextAlignment(.center)
-            Text("Afgeronde items verschijnen hier automatisch en kun je altijd weer terugzetten.")
+            Text(subtitle)
                 .font(.system(size: 13))
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
@@ -999,18 +1124,20 @@ private struct HistoryRow: Identifiable {
     let source: HistorySource
     let completedAt: Date
     let color: Color
+    let backgroundColor: Color
     let isDone: Bool
     let isRemoved: Bool
     private let originalCompletedAt: Date?
     private let entry: DayEntry?
     private let todo: TodoItem?
 
-    init(entry: DayEntry, source: HistorySource, color: Color) {
+    init(entry: DayEntry, source: HistorySource, color: Color, backgroundColor: Color) {
         id = entry.id
         title = entry.rawText
         self.source = source
         completedAt = entry.completedAt ?? entry.date
         self.color = color
+        self.backgroundColor = backgroundColor
         isDone = entry.isDone
         isRemoved = entry.isRemoved
         originalCompletedAt = entry.completedAt
@@ -1018,12 +1145,13 @@ private struct HistoryRow: Identifiable {
         todo = nil
     }
 
-    init(todo: TodoItem, color: Color) {
+    init(todo: TodoItem, color: Color, backgroundColor: Color) {
         id = todo.id
         title = todo.text
         source = .todo
         completedAt = todo.completedAt ?? todo.createdAt
         self.color = color
+        self.backgroundColor = backgroundColor
         isDone = todo.isDone
         isRemoved = todo.isRemoved
         originalCompletedAt = todo.completedAt

@@ -6,8 +6,37 @@
 //
 
 import XCTest
+@testable import Don_t_forget
 
 final class Don_t_forgetTests: XCTestCase {
+
+    @MainActor
+    func testEndOfDayReminderFormattingAndDefaultTime() {
+        XCTAssertEqual(EndOfDayReminderService.defaultMinutes, 21 * 60 + 50)
+        XCTAssertEqual(
+            EndOfDayReminderService.reminderBody(texts: [
+                "paella maken",
+                "sporten op werk",
+                "slapen bij Fran"
+            ]),
+            "3x | paella maken | sporten op werk | slapen bij Fran"
+        )
+        XCTAssertEqual(
+            EndOfDayReminderService.testReminderBody(
+                texts: [],
+                emptyText: "Geen openstaande taken voor vandaag"
+            ),
+            "0x | Geen openstaande taken voor vandaag"
+        )
+        XCTAssertEqual(
+            EndOfDayReminderService.notificationTitle(for: .dutch),
+            "Niet vergeten"
+        )
+        XCTAssertEqual(
+            EndOfDayReminderService.notificationTitle(for: .english),
+            "Don't Forget"
+        )
+    }
 
     func testStringCatalogHasCompleteEnglishAndDutchTranslations() throws {
         let testFile = URL(fileURLWithPath: #filePath)

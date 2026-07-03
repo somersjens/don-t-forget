@@ -8,6 +8,7 @@ struct SmartLedgerApp: App {
     private var hasCompletedWelcome = false
 
     init() {
+        EndOfDayReminderService.configureNotificationPresentation()
         if AppModelStore.isICloudSyncEnabled {
             CloudSettingsSynchronizer.shared.start()
         }
