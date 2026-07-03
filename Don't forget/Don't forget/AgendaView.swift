@@ -50,6 +50,23 @@ struct AgendaView: View {
     @State private var recentlyRemovedEntryTitle = ""
     @State private var recentlyRemovedEventIdentifier: String?
     @State private var dismissRemovalUndoTask: Task<Void, Never>?
+    @State private var isHelpExpanded = false
+    @State private var hasPerformedAgendaTutorialMove = false
+
+    @AppStorage(SettingsKeys.hasPresentedAgendaHelp)
+    private var hasPresentedAgendaHelp = false
+
+    @AppStorage(SettingsKeys.hasOpenedAgendaHelp)
+    private var hasOpenedAgendaHelp = false
+
+    @AppStorage(SettingsKeys.agendaTutorialStep)
+    private var agendaTutorialStep = 0
+
+    @AppStorage(SettingsKeys.hasCompletedAgendaTutorial)
+    private var hasCompletedAgendaTutorial = false
+
+    @AppStorage(SettingsKeys.hasSeededAgendaExamples)
+    private var hasSeededAgendaExamples = false
 
     @AppStorage(SettingsKeys.weekStart) private var weekStartSetting = WeekStartOption.monday.rawValue
     @AppStorage(SettingsKeys.weekNumberRule) private var weekNumberSetting = WeekNumberRule.iso8601.rawValue
@@ -76,9 +93,17 @@ struct AgendaView: View {
         Dictionary(grouping: entries) { AppCalendar.startOfDay($0.date) }
     }
 
-    private var activeMoveEntryHasTime: Bool {
-        guard let activeMoveEntryID else { return false }
-        return entries.first(where: { $0.id == activeMoveEntryID })?.hasTime == true
+    private var onboardingMoveExampleEntry: DayEntry? {
+        let today = AppCalendar.startOfDay(.now)
+        let todayEntries = entries
+            .filter { AppCalendar.isSameDay($0.date, today) }
+            .sorted(by: sortEntries)
+        guard !todayEntries.isEmpty else { return nil }
+        return todayEntries[min(2, todayEntries.count - 1)]
+    }
+
+    private var visibleOnboardingStep: Int? {
+        isHelpExpanded && !hasCompletedAgendaTutorial ? agendaTutorialStep : nil
     }
 
     private var weeks: [WeekSection] {
@@ -124,6 +149,19 @@ struct AgendaView: View {
             ScrollViewReader { proxy in
                 ScrollView {
                     LazyVStack(spacing: 8) {
+                        if isHelpExpanded {
+                            AgendaHelpCard(
+                                locale: locale,
+                                step: agendaTutorialStep,
+                                isCompleted: hasCompletedAgendaTutorial,
+                                previous: showPreviousAgendaTutorialStep,
+                                next: showNextAgendaTutorialStep,
+                                replay: replayAgendaTutorial,
+                                close: collapseHelp
+                            )
+                            .padding(.bottom, 4)
+                        }
+
                         ForEach(Array(visibleWeeks.enumerated()), id: \.element.id) { index, week in
                             WeekCard(
                                 week: week,
@@ -134,11 +172,24 @@ struct AgendaView: View {
                                 moveEntryToTodo: moveEntryToTodo,
                                 todoGroups: todoGroups,
                                 activeMoveEntryID: $activeMoveEntryID,
-                                activeMoveEntryHasTime: activeMoveEntryHasTime,
                                 moveDraftDate: $moveDraftDate,
                                 toggleMoveControls: toggleMoveControls,
                                 removed: showRemovalUndo,
-                                dayVisibilityChanged: updateDayVisibility
+                                dayVisibilityChanged: updateDayVisibility,
+                                onboardingStep: visibleOnboardingStep,
+                                hasPerformedOnboardingMove: hasPerformedAgendaTutorialMove,
+                                onboardingEntryAdded: {
+                                    completeAgendaTutorialAction(for: 0)
+                                },
+                                onboardingEntryCompleted: {
+                                    completeAgendaTutorialAction(for: 3)
+                                },
+                                onboardingMoveEditingFinished: {
+                                    completeAgendaTutorialAction(for: 2)
+                                },
+                                onboardingMoveCancelled: {
+                                    returnToAgendaTutorialMoveStep()
+                                }
                             )
                             .id(AgendaScrollTarget.week(week.startDate))
                             .onAppear {
@@ -195,43 +246,54 @@ struct AgendaView: View {
             }
             .toolbar(.hidden, for: .navigationBar)
             .safeAreaInset(edge: .top, spacing: 0) {
-                ZStack {
-                    AgendaTopTitle(
-                        presentation: scrollPresentation,
-                        locale: locale
-                    )
+                VStack(spacing: 0) {
+                    ZStack {
+                        AgendaTopTitle(
+                            presentation: scrollPresentation,
+                            locale: locale,
+                            showsInfoHint: !hasOpenedAgendaHelp,
+                            isHelpExpanded: isHelpExpanded,
+                            toggleHelp: toggleHelp
+                        )
 
-                    HStack {
-                        Button {
-                            undoManager?.undo()
-                        } label: {
-                            Image(systemName: "arrow.uturn.backward")
-                                .font(.system(size: 20, weight: .semibold))
-                                .frame(width: 44, height: 44)
+                        HStack {
+                            Button {
+                                undoManager?.undo()
+                            } label: {
+                                Image(systemName: "arrow.uturn.backward")
+                                    .font(.system(size: 20, weight: .semibold))
+                                    .frame(width: 44, height: 44)
+                            }
+                            .glassEffect(.regular.interactive(), in: Circle())
+                            .disabled(!(undoManager?.canUndo ?? false))
+                            .accessibilityLabel("Laatste wijziging terugdraaien")
+
+                            Spacer()
+
+                            Button {
+                                finishAgendaEditing()
+                            } label: {
+                                Image(systemName: "checkmark")
+                                    .font(.system(size: 20, weight: .semibold))
+                                    .frame(width: 44, height: 44)
+                            }
+                            .glassEffect(.regular.interactive(), in: Circle())
+                            .disabled(focusedField == nil && activeMoveEntryID == nil)
+                            .accessibilityLabel("Bewerken afsluiten")
+                            .overlay {
+                                if visibleOnboardingStep == 2 && hasPerformedAgendaTutorialMove {
+                                    Circle()
+                                        .stroke(Color.brandHardBlue, lineWidth: 3)
+                                        .padding(-4)
+                                }
+                            }
                         }
-                        .glassEffect(.regular.interactive(), in: Circle())
-                        .disabled(!(undoManager?.canUndo ?? false))
-                        .accessibilityLabel("Laatste wijziging terugdraaien")
-
-                        Spacer()
-
-                        Button {
-                            scrollTask?.cancel()
-                            focusedField = nil
-                            activeMoveEntryID = nil
-                        } label: {
-                            Image(systemName: "checkmark")
-                                .font(.system(size: 20, weight: .semibold))
-                                .frame(width: 44, height: 44)
-                        }
-                        .glassEffect(.regular.interactive(), in: Circle())
-                        .disabled(focusedField == nil && activeMoveEntryID == nil)
-                        .accessibilityLabel("Bewerken afsluiten")
                     }
+                    .padding(.leading, 22)
+                    .padding(.trailing, 18)
+                    .padding(.vertical, 6)
+
                 }
-                .padding(.leading, 22)
-                .padding(.trailing, 18)
-                .padding(.vertical, 6)
             }
             .safeAreaInset(edge: .bottom, spacing: 8) {
                 if recentlyRemovedEntry != nil {
@@ -243,6 +305,11 @@ struct AgendaView: View {
             .onAppear {
                 modelContext.undoManager = undoManager
                 configureLoadedHorizon()
+                if !hasPresentedAgendaHelp {
+                    insertAgendaOnboardingExamplesIfNeeded()
+                    hasPresentedAgendaHelp = true
+                    isHelpExpanded = true
+                }
             }
             .onChange(of: recurringHorizon) { _, _ in
                 configureLoadedHorizon()
@@ -261,6 +328,138 @@ struct AgendaView: View {
                 visibilityCache.futureLoadTask?.cancel()
             }
         }
+    }
+
+    private func toggleHelp() {
+        hasOpenedAgendaHelp = true
+        if !isHelpExpanded && !hasSeededAgendaExamples && !hasCompletedAgendaTutorial {
+            insertAgendaOnboardingExamplesIfNeeded()
+        }
+        isHelpExpanded.toggle()
+    }
+
+    private func collapseHelp() {
+        isHelpExpanded = false
+    }
+
+    private func insertAgendaOnboardingExamplesIfNeeded(reset: Bool = false) {
+        guard !hasSeededAgendaExamples || reset else { return }
+        hasSeededAgendaExamples = true
+
+        let today = AppCalendar.startOfDay(.now)
+        let examples = ["16u sports (example)", "18u dinner (example)"]
+        let allEntries = (try? modelContext.fetch(FetchDescriptor<DayEntry>())) ?? entries
+        let legacyExamples = [
+            "17u exercising": examples[0],
+            "18u dinnertime": examples[1]
+        ]
+
+        for (legacyText, newText) in legacyExamples {
+            guard !allEntries.contains(where: { $0.rawText == newText }),
+                  let legacyEntry = allEntries.first(where: { $0.rawText == legacyText }) else {
+                continue
+            }
+            legacyEntry.rawText = newText
+            legacyEntry.refreshParsedFields()
+        }
+
+        for (index, text) in examples.enumerated() {
+            if let existing = allEntries.first(where: { $0.rawText == text }) {
+                if reset {
+                    existing.date = today
+                    existing.isDone = false
+                    existing.isRemoved = false
+                    existing.completedAt = nil
+                    existing.manualOrder = Double(index)
+                    existing.refreshParsedFields()
+                }
+            } else {
+                modelContext.insert(
+                    DayEntry(date: today, rawText: text, manualOrder: Double(index))
+                )
+            }
+        }
+        try? modelContext.save()
+    }
+
+    private func showPreviousAgendaTutorialStep() {
+        agendaTutorialStep = max(agendaTutorialStep - 1, 0)
+        hasPerformedAgendaTutorialMove = false
+        if agendaTutorialStep < 2 {
+            activeMoveEntryID = nil
+        }
+    }
+
+    private func showNextAgendaTutorialStep() {
+        if agendaTutorialStep == 1, let entry = onboardingMoveExampleEntry {
+            setMoveMode(entryID: entry.id, date: entry.date)
+            hasPerformedAgendaTutorialMove = false
+            agendaTutorialStep = 2
+            return
+        }
+
+        if agendaTutorialStep == 3 {
+            finishAgendaTutorial()
+            return
+        }
+
+        guard agendaTutorialStep < 2 else { return }
+        agendaTutorialStep += 1
+    }
+
+    private func completeAgendaTutorialAction(for step: Int) {
+        guard isHelpExpanded,
+              !hasCompletedAgendaTutorial,
+              agendaTutorialStep == step else { return }
+
+        if step == 2 {
+            activeMoveEntryID = nil
+            agendaTutorialStep = 3
+            hasPerformedAgendaTutorialMove = false
+            return
+        }
+
+        if step == 3 {
+            finishAgendaTutorial()
+            return
+        }
+
+        agendaTutorialStep += 1
+    }
+
+    private func finishAgendaTutorial() {
+        hasCompletedAgendaTutorial = true
+    }
+
+    private func finishAgendaEditing() {
+        scrollTask?.cancel()
+        focusedField = nil
+        activeMoveEntryID = nil
+        completeAgendaTutorialAction(for: 2)
+    }
+
+    private func recordAgendaTutorialMove() {
+        guard isHelpExpanded,
+              !hasCompletedAgendaTutorial,
+              agendaTutorialStep == 2 else { return }
+        hasPerformedAgendaTutorialMove = true
+    }
+
+    private func returnToAgendaTutorialMoveStep() {
+        guard isHelpExpanded,
+              !hasCompletedAgendaTutorial,
+              agendaTutorialStep == 2 else { return }
+        activeMoveEntryID = nil
+        hasPerformedAgendaTutorialMove = false
+        agendaTutorialStep = 1
+    }
+
+    private func replayAgendaTutorial() {
+        hasCompletedAgendaTutorial = false
+        agendaTutorialStep = 0
+        activeMoveEntryID = nil
+        hasPerformedAgendaTutorialMove = false
+        insertAgendaOnboardingExamplesIfNeeded(reset: true)
     }
 
     private func showRemovalUndo(_ entry: DayEntry, eventIdentifier: String?) {
@@ -338,6 +537,7 @@ struct AgendaView: View {
         if originalDay != day {
             requestScroll(to: day)
         }
+        recordAgendaTutorialMove()
     }
 
     private func loadMoreFutureWeeks(ifCurrentLimitIs expectedLimit: Int) {
@@ -506,11 +706,13 @@ struct AgendaView: View {
         }
         try? modelContext.save()
         requestScroll(to: day)
+        recordAgendaTutorialMove()
     }
 
     private func toggleMoveControls(for entry: DayEntry) {
         if activeMoveEntryID == entry.id {
             setMoveMode(entryID: nil)
+            completeAgendaTutorialAction(for: 2)
             return
         }
 
@@ -519,6 +721,7 @@ struct AgendaView: View {
         AppKeyboard.dismiss()
         try? modelContext.save()
         setMoveMode(entryID: entry.id, date: entryDate)
+        completeAgendaTutorialAction(for: 1)
     }
 
     private func setMoveMode(entryID: UUID?, date: Date? = nil) {
@@ -569,6 +772,7 @@ struct AgendaView: View {
             focusedField = nil
             renumber(entries: movableEntries, inserting: entry, at: targetIndex)
             try? modelContext.save()
+            recordAgendaTutorialMove()
             return
         }
 
@@ -608,6 +812,7 @@ struct AgendaView: View {
         modelContext.delete(entry)
         activeMoveEntryID = nil
         try? modelContext.save()
+        returnToAgendaTutorialMoveStep()
     }
 
     private func requestScroll(to date: Date) {
@@ -666,12 +871,197 @@ struct AgendaView: View {
 private struct AgendaTopTitle: View {
     let presentation: AgendaScrollPresentation
     let locale: Locale
+    let showsInfoHint: Bool
+    let isHelpExpanded: Bool
+    let toggleHelp: () -> Void
 
     var body: some View {
-        Text(AppSection.agenda.title(for: locale))
-            .font(.system(size: 26, weight: .bold))
-            .opacity(presentation.isScrolled ? 0 : 1)
-            .animation(.easeOut(duration: 0.18), value: presentation.isScrolled)
+        Button(action: toggleHelp) {
+            HStack(spacing: 6) {
+                Text(AppSection.agenda.title(for: locale))
+                    .font(.system(size: 26, weight: .bold))
+
+                if showsInfoHint {
+                    Image(systemName: "info.circle.fill")
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundStyle(Color.brandHardBlue)
+                }
+            }
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .opacity(presentation.isScrolled ? 0 : 1)
+        .animation(.easeOut(duration: 0.18), value: presentation.isScrolled)
+        .accessibilityLabel(locale.localized("Uitleg over Agenda", "Agenda help"))
+        .accessibilityValue(isHelpExpanded
+            ? locale.localized("Uitgeklapt", "Expanded")
+            : locale.localized("Ingeklapt", "Collapsed"))
+        .accessibilityHint(locale.localized(
+            "Tik om de uitleg in of uit te klappen",
+            "Tap to expand or collapse help"
+        ))
+    }
+}
+
+private struct AgendaHelpStep: Identifiable {
+    let id: Int
+    let icon: String
+    let dutch: String
+    let english: String
+    let noteDutch: String?
+    let noteEnglish: String?
+
+    func text(for locale: Locale) -> String {
+        locale.localized(dutch, english)
+    }
+
+    func note(for locale: Locale) -> String? {
+        guard let noteDutch, let noteEnglish else { return nil }
+        return locale.localized(noteDutch, noteEnglish)
+    }
+}
+
+private struct AgendaHelpCard: View {
+    static let stepCount = 4
+
+    let locale: Locale
+    let step: Int
+    let isCompleted: Bool
+    let previous: () -> Void
+    let next: () -> Void
+    let replay: () -> Void
+    let close: () -> Void
+
+    private let steps = [
+        AgendaHelpStep(
+            id: 0,
+            icon: "text.cursor",
+            dutch: "Tik achter een dag om iets te schrijven. Klaar? Tik rechtsboven op ✓.",
+            english: "Tap after a day to write something. Done? Tap ✓ at the top right.",
+            noteDutch: nil,
+            noteEnglish: nil
+        ),
+        AgendaHelpStep(
+            id: 1,
+            icon: "arrow.up.arrow.down",
+            dutch: "Tik op de weekdag vóór de lijn om de verplaatsmodus te openen.",
+            english: "Tap the weekday before the line to open move mode.",
+            noteDutch: nil,
+            noteEnglish: nil
+        ),
+        AgendaHelpStep(
+            id: 2,
+            icon: "calendar.badge.clock",
+            dutch: "Gebruik de controls, of tik op een andere weekdag om direct te verplaatsen.",
+            english: "Use the controls, or tap another weekday to move it directly.",
+            noteDutch: "Een geel gearceerde weekdag bevat een tijd en blijft binnen de dag automatisch op tijd gesorteerd.",
+            noteEnglish: "A yellow highlighted weekday contains a time and remains automatically sorted by time within that day."
+        ),
+        AgendaHelpStep(
+            id: 3,
+            icon: "checkmark.circle",
+            dutch: "Iets afgerond? Tik op de cirkel rechts. Het verhuist naar Geschiedenis.",
+            english: "Finished something? Tap the circle on the right. It moves to History.",
+            noteDutch: nil,
+            noteEnglish: nil
+        ),
+    ]
+
+    private var currentStep: AgendaHelpStep {
+        steps[min(max(step, 0), steps.count - 1)]
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            if isCompleted {
+                completedContent
+            } else {
+                stepContent
+            }
+        }
+        .padding(16)
+        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+        .overlay {
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .stroke(Color.brandHardBlue.opacity(0.16), lineWidth: 1)
+        }
+        .shadow(color: .black.opacity(0.08), radius: 12, y: 5)
+    }
+
+    private var stepContent: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            VStack(alignment: .leading, spacing: 7) {
+                HStack(spacing: 7) {
+                    Image(systemName: currentStep.icon)
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundStyle(Color.brandHardBlue)
+                        .frame(width: 16, height: 16)
+
+                    Text(locale.localized(
+                        "Stap \(step + 1)/\(Self.stepCount)",
+                        "Step \(step + 1)/\(Self.stepCount)"
+                    ))
+                    .font(.system(size: 12, weight: .bold))
+                    .foregroundStyle(Color.brandHardBlue)
+                }
+
+                Text(currentStep.text(for: locale))
+                    .font(.system(size: 16, weight: .semibold))
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+
+            if let note = currentStep.note(for: locale) {
+                Text(note)
+                    .font(.system(size: 13, weight: .medium))
+                    .foregroundStyle(.secondary)
+                .padding(10)
+                .background(Color.yellow.opacity(0.28), in: RoundedRectangle(cornerRadius: 10))
+            }
+
+            HStack {
+                Button(action: previous) {
+                    Image(systemName: "arrow.left")
+                        .font(.system(size: 14, weight: .bold))
+                        .foregroundStyle(.secondary)
+                        .frame(width: 34, height: 30)
+                }
+                .buttonStyle(.plain)
+                .disabled(step == 0)
+                .opacity(step == 0 ? 0.25 : 1)
+
+                Spacer()
+
+                Button(action: next) {
+                    Image(systemName: "arrow.right")
+                        .font(.system(size: 14, weight: .bold))
+                        .foregroundStyle(step == 2 ? Color.secondary : Color.brandHardBlue)
+                        .frame(width: 34, height: 30)
+                }
+                .buttonStyle(.plain)
+                .disabled(step == 2)
+            }
+        }
+    }
+
+    private var completedContent: some View {
+        HStack(spacing: 11) {
+            Image(systemName: "checkmark.circle.fill")
+                .font(.system(size: 21))
+                .foregroundStyle(Color.brandHardBlue)
+            Text(locale.localized("Je kent de basis.", "You know the basics."))
+                .font(.system(size: 15, weight: .semibold))
+            Spacer()
+            Button(locale.localized("Opnieuw", "Replay"), action: replay)
+                .font(.system(size: 13, weight: .semibold))
+            Button(action: close) {
+                Image(systemName: "xmark")
+                    .font(.system(size: 12, weight: .bold))
+                    .foregroundStyle(.secondary)
+                    .frame(width: 28, height: 28)
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel(locale.localized("Sluiten", "Close"))
+        }
     }
 }
 
@@ -738,11 +1128,16 @@ struct WeekCard: View {
     let moveEntryToTodo: (UUID, String) -> Void
     let todoGroups: [TodoGroup]
     @Binding var activeMoveEntryID: UUID?
-    let activeMoveEntryHasTime: Bool
     @Binding var moveDraftDate: Date
     let toggleMoveControls: (DayEntry) -> Void
     let removed: (DayEntry, String?) -> Void
     let dayVisibilityChanged: (Date, Bool) -> Void
+    let onboardingStep: Int?
+    let hasPerformedOnboardingMove: Bool
+    let onboardingEntryAdded: () -> Void
+    let onboardingEntryCompleted: () -> Void
+    let onboardingMoveEditingFinished: () -> Void
+    let onboardingMoveCancelled: () -> Void
 
     private var visibleDays: [DayInfo] {
         let today = AppCalendar.startOfDay(.now)
@@ -783,11 +1178,16 @@ struct WeekCard: View {
                         moveEntryToTodo: moveEntryToTodo,
                         todoGroups: todoGroups,
                         activeMoveEntryID: $activeMoveEntryID,
-                        activeMoveEntryHasTime: activeMoveEntryHasTime,
                         moveDraftDate: $moveDraftDate,
                         toggleMoveControls: toggleMoveControls,
                         removed: removed,
-                        dayVisibilityChanged: dayVisibilityChanged
+                        dayVisibilityChanged: dayVisibilityChanged,
+                        onboardingStep: onboardingStep,
+                        hasPerformedOnboardingMove: hasPerformedOnboardingMove,
+                        onboardingEntryAdded: onboardingEntryAdded,
+                        onboardingEntryCompleted: onboardingEntryCompleted,
+                        onboardingMoveEditingFinished: onboardingMoveEditingFinished,
+                        onboardingMoveCancelled: onboardingMoveCancelled
                     )
                 }
             }
@@ -811,11 +1211,16 @@ struct DayBlock: View {
     let moveEntryToTodo: (UUID, String) -> Void
     let todoGroups: [TodoGroup]
     @Binding var activeMoveEntryID: UUID?
-    let activeMoveEntryHasTime: Bool
     @Binding var moveDraftDate: Date
     let toggleMoveControls: (DayEntry) -> Void
     let removed: (DayEntry, String?) -> Void
     let dayVisibilityChanged: (Date, Bool) -> Void
+    let onboardingStep: Int?
+    let hasPerformedOnboardingMove: Bool
+    let onboardingEntryAdded: () -> Void
+    let onboardingEntryCompleted: () -> Void
+    let onboardingMoveEditingFinished: () -> Void
+    let onboardingMoveCancelled: () -> Void
 
     private var sortedEntries: [DayEntry] {
         entries.sorted { first, second in
@@ -838,6 +1243,11 @@ struct DayBlock: View {
         }
     }
 
+    private var onboardingExampleIndex: Int? {
+        guard AppCalendar.isSameDay(day.date, .now), !sortedEntries.isEmpty else { return nil }
+        return min(2, sortedEntries.count - 1)
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 2) {
             ZStack(alignment: .leading) {
@@ -850,9 +1260,12 @@ struct DayBlock: View {
                             nextOrder: 0,
                             focusedField: focusedField,
                             isMoveModeActive: activeMoveEntryID != nil,
-                            isMoveTargetHighlighted: activeMoveEntryHasTime,
+                            isMoveTargetHighlighted: false,
                             moveActiveEntryHere: moveActiveEntryHere,
-                            finishMove: finishMove
+                            finishMove: finishMove,
+                            isOnboardingHighlighted: onboardingStep == 0
+                                && AppCalendar.isSameDay(day.date, .now),
+                            entryAdded: onboardingEntryAdded
                         )
                     } else {
                         ForEach(Array(sortedEntries.enumerated()), id: \.element.id) { index, entry in
@@ -865,7 +1278,7 @@ struct DayBlock: View {
                                 isMoveModeActive: activeMoveEntryID != nil,
                                 isMoveTargetHighlighted: activeMoveEntryID != nil
                                     && activeMoveEntryID != entry.id
-                                    && (activeMoveEntryHasTime || entry.hasTime),
+                                    && entry.hasTime,
                                 moveDraftDate: $moveDraftDate,
                                 handlePrefixTap: {
                                     if activeMoveEntryID == nil || activeMoveEntryID == entry.id {
@@ -889,9 +1302,19 @@ struct DayBlock: View {
                                 },
                                 todoGroups: todoGroups,
                                 removed: removed,
-                                finishMove: {
-                                    activeMoveEntryID = nil
-                                }
+                                finishMove: finishMove,
+                                highlightsMoveHandle: onboardingStep == 1
+                                    && index == onboardingExampleIndex,
+                                highlightsMoveControls: onboardingStep == 2
+                                    && entry.id == activeMoveEntryID
+                                    && !hasPerformedOnboardingMove,
+                                highlightsMoveFinish: onboardingStep == 2
+                                    && entry.id == activeMoveEntryID
+                                    && hasPerformedOnboardingMove,
+                                highlightsCompletion: onboardingStep == 3
+                                    && index == onboardingExampleIndex,
+                                onboardingEntryCompleted: onboardingEntryCompleted,
+                                onboardingMoveCancelled: onboardingMoveCancelled
                             )
                         }
 
@@ -902,9 +1325,12 @@ struct DayBlock: View {
                             nextOrder: Double(sortedEntries.count + 1),
                             focusedField: focusedField,
                             isMoveModeActive: activeMoveEntryID != nil,
-                            isMoveTargetHighlighted: activeMoveEntryHasTime,
+                            isMoveTargetHighlighted: false,
                             moveActiveEntryHere: moveActiveEntryHere,
-                            finishMove: finishMove
+                            finishMove: finishMove,
+                            isOnboardingHighlighted: onboardingStep == 0
+                                && AppCalendar.isSameDay(day.date, .now),
+                            entryAdded: onboardingEntryAdded
                         )
                     }
                 }
@@ -957,6 +1383,7 @@ struct DayBlock: View {
 
     private func finishMove() {
         activeMoveEntryID = nil
+        onboardingMoveEditingFinished()
     }
 
 }
@@ -979,6 +1406,12 @@ struct AgendaEntryLine: View {
     let todoGroups: [TodoGroup]
     let removed: (DayEntry, String?) -> Void
     let finishMove: () -> Void
+    let highlightsMoveHandle: Bool
+    let highlightsMoveControls: Bool
+    let highlightsMoveFinish: Bool
+    let highlightsCompletion: Bool
+    let onboardingEntryCompleted: () -> Void
+    let onboardingMoveCancelled: () -> Void
 
     @Environment(\.modelContext)
     private var modelContext
@@ -997,7 +1430,8 @@ struct AgendaEntryLine: View {
                     dateLabel: dateLabel,
                     weekdayLetter: weekdayLetter,
                     isMoveActive: isMoveActive,
-                    isMoveTargetHighlighted: isMoveTargetHighlighted
+                    isMoveTargetHighlighted: isMoveTargetHighlighted,
+                    isOnboardingHighlighted: highlightsMoveHandle
                 )
                     .contentShape(Rectangle())
                     .onTapGesture {
@@ -1027,6 +1461,13 @@ struct AgendaEntryLine: View {
                         toggleDone()
                     }
                     .accessibilityLabel("Afvinken")
+                    .overlay {
+                        if highlightsCompletion {
+                            Circle()
+                                .stroke(Color.brandHardBlue, lineWidth: 3)
+                                .padding(-5)
+                        }
+                    }
             }
 
             if isMoveActive {
@@ -1036,9 +1477,14 @@ struct AgendaEntryLine: View {
                     moveDown: moveDown,
                     moveToDate: moveToDate,
                     moveToTodo: moveToTodo,
-                    remove: removeEntry,
+                    remove: {
+                        onboardingMoveCancelled()
+                        removeEntry()
+                    },
                     todoGroups: todoGroups,
-                    finishMove: finishMove
+                    finishMove: finishMove,
+                    highlightsControls: highlightsMoveControls,
+                    highlightsFinish: highlightsMoveFinish
                 )
             }
         }
@@ -1214,6 +1660,9 @@ struct AgendaEntryLine: View {
 
     private func toggleDone() {
         entry.toggleDone()
+        if entry.isDone {
+            onboardingEntryCompleted()
+        }
     }
 
     private var entryAccentColor: Color {
@@ -1251,6 +1700,8 @@ struct AgendaInputLine: View {
     let isMoveTargetHighlighted: Bool
     let moveActiveEntryHere: () -> Void
     let finishMove: () -> Void
+    let isOnboardingHighlighted: Bool
+    let entryAdded: () -> Void
 
     @Environment(\.modelContext)
     private var modelContext
@@ -1299,6 +1750,14 @@ struct AgendaInputLine: View {
             .lineLimit(1...)
             .foregroundStyle(.primary)
             .frame(maxWidth: .infinity, alignment: .leading)
+            .overlay {
+                if isOnboardingHighlighted {
+                    RoundedRectangle(cornerRadius: 7)
+                        .stroke(Color.brandHardBlue, lineWidth: 3)
+                        .padding(.horizontal, -4)
+                        .padding(.vertical, -5)
+                }
+            }
 
             Button {
                 addEntry()
@@ -1340,6 +1799,7 @@ struct AgendaInputLine: View {
             modelContext.insert(entry)
             text = ""
         }
+        entryAdded()
 
         if continueEditing {
             // Enter and the plus button continue on a fresh entry for this day.
@@ -1364,6 +1824,8 @@ private struct AgendaMoveControls: View {
     let remove: () -> Void
     let todoGroups: [TodoGroup]
     let finishMove: () -> Void
+    let highlightsControls: Bool
+    let highlightsFinish: Bool
 
     var body: some View {
         HStack(spacing: AgendaLayout.rowSpacing) {
@@ -1451,8 +1913,24 @@ private struct AgendaMoveControls: View {
                 }
                 .buttonStyle(.plain)
                 .accessibilityLabel("Klaar met verplaatsen")
+                .overlay {
+                    if highlightsFinish {
+                        Circle()
+                            .stroke(Color.brandHardBlue, lineWidth: 3)
+                            .padding(-4)
+                    }
+                }
             }
             .frame(maxWidth: .infinity)
+            .overlay {
+                if highlightsControls {
+                    RoundedRectangle(cornerRadius: 9)
+                        .stroke(Color.brandHardBlue, lineWidth: 3)
+                        .padding(.leading, -5)
+                        .padding(.trailing, 25)
+                        .padding(.vertical, -4)
+                }
+            }
         }
         .font(.system(size: 13, weight: .medium))
         .foregroundStyle(.secondary)
@@ -1482,6 +1960,7 @@ private struct AgendaLinePrefix: View {
     let weekdayLetter: String
     var isMoveActive = false
     var isMoveTargetHighlighted = false
+    var isOnboardingHighlighted = false
 
     var body: some View {
         HStack(spacing: AgendaLayout.dateWeekdaySpacing) {
@@ -1502,6 +1981,13 @@ private struct AgendaLinePrefix: View {
                     } else if isMoveTargetHighlighted {
                         RoundedRectangle(cornerRadius: 5)
                             .fill(Color.yellow.opacity(0.28))
+                    }
+                }
+                .overlay {
+                    if isOnboardingHighlighted {
+                        RoundedRectangle(cornerRadius: 6)
+                            .stroke(Color.brandHardBlue, lineWidth: 3)
+                            .padding(-3)
                     }
                 }
         }
