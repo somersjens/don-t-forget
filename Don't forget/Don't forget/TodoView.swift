@@ -19,14 +19,20 @@ struct TodoGroup: Codable, Equatable, Identifiable {
 enum TodoGroupStore {
     static let maxCount = 10
     static let todayID = TodoBucket.today.rawValue
+    static let asSoonAsPossibleID = "asSoonAsPossible"
     static let shortTermID = TodoBucket.shortTerm.rawValue
     static let longTermID = TodoBucket.longTerm.rawValue
+    static let shoppingID = "shopping"
 
     static var defaults: [TodoGroup] {
+        defaults(for: AppCalendar.locale)
+    }
+
+    static func defaults(for locale: Locale) -> [TodoGroup] {
         [
-            TodoGroup(id: todayID, title: "Today", icon: "sun.max", colorRawValue: RecurringThemeColorOption.yellow.rawValue),
-            TodoGroup(id: shortTermID, title: "Short term", icon: "bolt", colorRawValue: RecurringThemeColorOption.blue.rawValue),
-            TodoGroup(id: longTermID, title: "Long term", icon: "mountain.2", colorRawValue: RecurringThemeColorOption.green.rawValue)
+            TodoGroup(id: shortTermID, title: "Short term", icon: "bolt.fill", colorRawValue: RecurringThemeColorOption.orange.rawValue),
+            TodoGroup(id: longTermID, title: "Long term", icon: "mountain.2.fill", colorRawValue: RecurringThemeColorOption.indigo.rawValue),
+            TodoGroup(id: shoppingID, title: locale.localized("Boodschappen", "Groceries"), icon: "cart.fill", colorRawValue: RecurringThemeColorOption.green.rawValue)
         ]
     }
 
@@ -49,6 +55,11 @@ enum TodoGroupStore {
     }
 
     static func normalize(_ groups: [TodoGroup]) -> [TodoGroup] {
+        let localizedDefaults = defaults
+        if isLegacyDefaultConfiguration(groups) {
+            return localizedDefaults
+        }
+
         var result: [TodoGroup] = []
         var seen: Set<String> = []
 
@@ -58,8 +69,16 @@ enum TodoGroupStore {
                 continue
             }
 
-            let fallback = defaults.first { $0.id == id }
-            let title = group.trimmedTitle.isEmpty ? fallback?.title ?? "Nieuw" : group.trimmedTitle
+            let fallback = localizedDefaults.first { $0.id == id }
+            let title: String
+            if group.trimmedTitle.isEmpty {
+                title = fallback?.title ?? AppCalendar.locale.localized("Nieuw", "New")
+            } else if let fallback, isDefaultTitle(group.trimmedTitle, for: id) {
+                // Untouched built-in names follow the selected app language.
+                title = fallback.title
+            } else {
+                title = group.trimmedTitle
+            }
             let icon = group.icon.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
                 ? fallback?.icon ?? "list.bullet"
                 : group.icon
@@ -73,10 +92,47 @@ enum TodoGroupStore {
         }
 
         if result.isEmpty {
-            result = [defaults[0]]
+            result = [localizedDefaults[0]]
         }
 
         return result
+    }
+
+    private static func isDefaultTitle(_ title: String, for id: String) -> Bool {
+        let knownTitles: [String: Set<String>] = [
+            todayID: ["Today", "Vandaag"],
+            asSoonAsPossibleID: ["As soon as possible!", "Zo snel mogelijk!"],
+            shortTermID: ["Short term", "Soon", "Binnenkort"],
+            longTermID: ["Long term", "For later", "Voor later"],
+            shoppingID: ["Boodschappen", "Groceries"]
+        ]
+        return knownTitles[id]?.contains(title) == true
+    }
+
+    private static func isLegacyDefaultConfiguration(_ groups: [TodoGroup]) -> Bool {
+        let legacyThree = [
+            (todayID, "sun.max", RecurringThemeColorOption.yellow.rawValue),
+            (shortTermID, "bolt", RecurringThemeColorOption.blue.rawValue),
+            (longTermID, "mountain.2", RecurringThemeColorOption.green.rawValue)
+        ]
+        let legacyFour = [
+            (todayID, "sun.max", RecurringThemeColorOption.yellow.rawValue),
+            (asSoonAsPossibleID, "bolt", RecurringThemeColorOption.red.rawValue),
+            (shortTermID, "clock", RecurringThemeColorOption.blue.rawValue),
+            (longTermID, "mountain.2", RecurringThemeColorOption.green.rawValue)
+        ]
+
+        func matches(_ expected: [(String, String, String)]) -> Bool {
+            guard groups.count == expected.count else { return false }
+            return zip(groups, expected).allSatisfy { group, expectedGroup in
+                group.id == expectedGroup.0
+                    && isDefaultTitle(group.trimmedTitle, for: expectedGroup.0)
+                    && group.icon == expectedGroup.1
+                    && group.colorRawValue == expectedGroup.2
+            }
+        }
+
+        return matches(legacyThree) || matches(legacyFour)
     }
 }
 
@@ -245,6 +301,7 @@ struct TodoView: View {
             }
             .onAppear {
                 modelContext.undoManager = undoManager
+                moveTodosFromRemovedDefaultGroups()
             }
             .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillShowNotification)) { _ in
                 isKeyboardVisible = true
@@ -301,6 +358,21 @@ struct TodoView: View {
             withTransaction(transaction) {
                 activeReorderHintIDs.removeAll()
             }
+        }
+    }
+
+    private func moveTodosFromRemovedDefaultGroups() {
+        guard let destinationID = groups.first?.id else { return }
+        let validGroupIDs = Set(groups.map(\.id))
+        var changed = false
+
+        for todo in todos where !validGroupIDs.contains(todo.bucketRawValue) {
+            todo.bucketRawValue = destinationID
+            changed = true
+        }
+
+        if changed {
+            try? modelContext.save()
         }
     }
 
@@ -837,6 +909,7 @@ private struct TodoLine: View {
     @State private var showMoveToAgenda = false
     @State private var agendaDate = AppCalendar.startOfDay(.now)
     @State private var isDeleting = false
+    @FocusState private var isTextFieldFocused: Bool
 
     var body: some View {
         HStack(alignment: .top, spacing: 9) {
@@ -845,23 +918,24 @@ private struct TodoLine: View {
             TextField("", text: $todo.text, axis: .vertical)
                 .font(.system(size: 16))
                 .textFieldStyle(.plain)
+                .focused($isTextFieldFocused)
                 .lineLimit(1...)
                 .fixedSize(horizontal: false, vertical: true)
                 .strikethrough(todo.isDone)
                 .foregroundStyle(todo.isDone ? .secondary : .primary)
                 .submitLabel(.done)
                 .onChange(of: todo.text) { _, newValue in
-                    let normalizedText = newValue.replacingOccurrences(of: "\n", with: " ")
+                    let normalizedText = newValue.replacingOccurrences(of: "\n", with: "")
                     if normalizedText != newValue {
                         todo.text = normalizedText
-                        AppKeyboard.dismiss()
+                        dismissKeyboard()
                     }
                     if normalizedText.isEmpty {
                         deleteTodo()
                     }
                 }
                 .onSubmit {
-                    AppKeyboard.dismiss()
+                    dismissKeyboard()
                 }
 
             Spacer(minLength: 2)
@@ -913,6 +987,11 @@ private struct TodoLine: View {
             }
             .presentationDetents([.medium])
         }
+    }
+
+    private func dismissKeyboard() {
+        isTextFieldFocused = false
+        AppKeyboard.dismiss()
     }
 
     private var moveMenu: some View {
@@ -1095,13 +1174,15 @@ private struct NewTodoLine: View {
                 .submitLabel(.done)
                 .onChange(of: text) { _, newValue in
                     guard newValue.contains("\n") else { return }
-                    text = newValue.replacingOccurrences(of: "\n", with: " ")
-                    addTodo()
-                    AppKeyboard.dismiss()
+                    text = newValue.replacingOccurrences(of: "\n", with: "")
+                    addTodoAndDismissKeyboard()
                 }
                 .onSubmit {
+                    addTodoAndDismissKeyboard()
+                }
+                .onChange(of: isTextFieldFocused) { wasFocused, isFocused in
+                    guard wasFocused, !isFocused else { return }
                     addTodo()
-                    AppKeyboard.dismiss()
                 }
 
             Button {
@@ -1129,6 +1210,12 @@ private struct NewTodoLine: View {
         modelContext.insert(todo)
         try? modelContext.save()
         text = ""
+    }
+
+    private func addTodoAndDismissKeyboard() {
+        addTodo()
+        isTextFieldFocused = false
+        AppKeyboard.dismiss()
     }
 
     private func beginEditing() {

@@ -57,7 +57,7 @@ struct HistoryView: View {
     @AppStorage(SettingsKeys.recurringCategories) private var recurringCategoriesData = ""
     @AppStorage(SettingsKeys.recurringBirthdayCategoryDeleted) private var birthdayCategoryDeleted = false
     @AppStorage(SettingsKeys.todoGroups) private var todoGroupsData = ""
-    @AppStorage(SettingsKeys.historyShowsDeletedItems) private var showsDeletedItems = false
+    @AppStorage(SettingsKeys.historyShowsDeletedItems) private var showsDeletedItems = true
 
     @State private var filter: HistoryFilter = .all
     @State private var isScrolled = false
@@ -488,7 +488,7 @@ private struct HistorySummaryCard: View {
                     .font(.system(size: 11, weight: .semibold))
                     .rotationEffect(.degrees(isExpanded ? 180 : 0))
             }
-            .foregroundStyle(.secondary)
+            .foregroundStyle(Color.brandHardBlue)
             .frame(width: 52, height: 42)
             .contentShape(Rectangle())
         }

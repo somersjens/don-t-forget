@@ -36,6 +36,7 @@ enum RecurrenceKind: String, Codable, CaseIterable, Identifiable {
     case monthlyOrdinalWeekday
     case approximateInterval
     case birthday
+    case yearly
     case annualFixed
     case annualOrdinalWeekday
 
@@ -53,23 +54,25 @@ enum RecurrenceUnit: String, Codable, CaseIterable, Identifiable {
 
 @Model
 final class DayEntry {
-    @Attribute(.unique) var id: UUID
+    // CloudKit-backed SwiftData stores do not support unique constraints.
+    // UUIDs still provide stable application-level identity across devices.
+    var id: UUID = UUID()
 
-    var date: Date
-    var rawText: String
+    var date: Date = Date.now
+    var rawText: String = ""
 
     var startMinutes: Int?
     var endMinutes: Int?
 
-    var isUncertain: Bool
-    var isDone: Bool
+    var isUncertain: Bool = false
+    var isDone: Bool = false
     var isRemoved: Bool = false
-    var showOnWidget: Bool
+    var showOnWidget: Bool = true
 
-    var sourceRawValue: String
-    var manualOrder: Double
+    var sourceRawValue: String = EntrySource.manual.rawValue
+    var manualOrder: Double = 0
 
-    var createdAt: Date
+    var createdAt: Date = Date.now
     var completedAt: Date?
     var calendarEventIdentifier: String?
     var recurringItemIdentifier: UUID?
@@ -133,21 +136,21 @@ final class DayEntry {
 
 @Model
 final class TodoItem {
-    @Attribute(.unique) var id: UUID
+    var id: UUID = UUID()
 
-    var text: String
-    var bucketRawValue: String
+    var text: String = ""
+    var bucketRawValue: String = TodoBucket.shortTerm.rawValue
 
-    var isDone: Bool
+    var isDone: Bool = false
     var isRemoved: Bool = false
-    var showOnWidget: Bool
+    var showOnWidget: Bool = true
 
-    var createdAt: Date
+    var createdAt: Date = Date.now
     var completedAt: Date?
 
     init(
         text: String = "",
-        bucket: TodoBucket = .today,
+        bucket: TodoBucket = .shortTerm,
         showOnWidget: Bool = true
     ) {
         self.id = UUID()
@@ -162,7 +165,7 @@ final class TodoItem {
 
     var bucket: TodoBucket {
         get {
-            TodoBucket(rawValue: bucketRawValue) ?? .today
+            TodoBucket(rawValue: bucketRawValue) ?? .shortTerm
         }
         set {
             bucketRawValue = newValue.rawValue
@@ -177,14 +180,14 @@ final class TodoItem {
 
 @Model
 final class RecurringItem {
-    @Attribute(.unique) var id: UUID
+    var id: UUID = UUID()
 
-    var title: String
-    var frequencyText: String
-    var nextDate: Date
+    var title: String = ""
+    var frequencyText: String = ""
+    var nextDate: Date = Date.now
 
     var reminderMinutesBefore: Int?
-    var showOnWidget: Bool
+    var showOnWidget: Bool = true
 
     var themeRawValue: String = "general"
     var recurrenceKindRawValue: String = "interval"
@@ -198,9 +201,10 @@ final class RecurringItem {
     var birthDate: Date?
     var birthdayYearUncertain: Bool = false
     var notes: String = ""
+    var linksData: String = ""
     var recurrenceConfigurationVersion: Int = 0
 
-    var createdAt: Date
+    var createdAt: Date = Date.now
 
     init(
         title: String = "",
@@ -218,7 +222,8 @@ final class RecurringItem {
         annualMonth: Int = 1,
         reminderDaysBefore: Int? = nil,
         birthDate: Date? = nil,
-        notes: String = ""
+        notes: String = "",
+        linksData: String = ""
     ) {
         self.id = UUID()
         self.title = title
@@ -237,6 +242,7 @@ final class RecurringItem {
         self.reminderDaysBefore = reminderDaysBefore
         self.birthDate = birthDate.map { AppCalendar.startOfDay($0) }
         self.notes = notes
+        self.linksData = linksData
         self.recurrenceConfigurationVersion = frequencyText
             .trimmingCharacters(in: .whitespacesAndNewlines)
             .isEmpty ? 1 : 0

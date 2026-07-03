@@ -62,6 +62,13 @@ enum RecurringScheduler {
 
             if item.recurrenceKind == .birthday {
                 occurrenceTitle = age.map { "🎂 \(item.title) · \($0) jaar" } ?? "🎂 \(item.title)"
+            } else if item.recurrenceKind == .yearly {
+                let years = max(0, AppCalendar.calendar.dateComponents(
+                    [.year],
+                    from: AppCalendar.startOfDay(item.nextDate),
+                    to: AppCalendar.startOfDay(date)
+                ).year ?? 0)
+                occurrenceTitle = "\(item.title) · \(years) jaar"
             } else {
                 occurrenceTitle = item.title
             }

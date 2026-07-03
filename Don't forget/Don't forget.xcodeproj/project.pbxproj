@@ -265,6 +265,11 @@
 					};
 					F9D98A952FE86CF600B20CE0 = {
 						CreatedOnToolsVersion = 26.1.1;
+						SystemCapabilities = {
+							com.apple.iCloud = {
+								enabled = 1;
+							};
+						};
 					};
 					F9D98AA62FE86CF700B20CE0 = {
 						CreatedOnToolsVersion = 26.1.1;

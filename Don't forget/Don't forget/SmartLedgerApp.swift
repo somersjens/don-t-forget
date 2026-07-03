@@ -4,11 +4,24 @@ import SwiftData
 @main
 @MainActor
 struct SmartLedgerApp: App {
+    @AppStorage(SettingsKeys.hasCompletedWelcome)
+    private var hasCompletedWelcome = false
+
+    init() {
+        if AppModelStore.isICloudSyncEnabled {
+            CloudSettingsSynchronizer.shared.start()
+        }
+    }
+
     var body: some Scene {
         WindowGroup {
-            UndoLimitedRootView()
+            if hasCompletedWelcome {
+                UndoLimitedRootView()
+                    .modelContainer(AppModelStore.shared)
+            } else {
+                WelcomeView()
+            }
         }
-        .modelContainer(AppModelStore.shared)
     }
 }
 
