@@ -23,6 +23,13 @@ private struct AgendaTodoMoveUndo {
     let accentRawValue: String
 }
 
+private struct AgendaRecurringMoveOffer {
+    let itemID: UUID
+    let effectiveFrom: Date
+    let targetDate: Date
+    var isApplied = false
+}
+
 /// Day visibility changes rapidly during a fling. Keeping this outside
 /// observable SwiftUI state prevents every entering/leaving day from
 /// invalidating and rebuilding the complete agenda hierarchy.
@@ -54,6 +61,9 @@ struct AgendaView: View {
     )
     private var entries: [DayEntry]
 
+    @Query(filter: #Predicate<RecurringItem> { !$0.isRemoved })
+    private var recurringItems: [RecurringItem]
+
     @FocusState private var focusedField: AgendaField?
     @State private var scrollPresentation = AgendaScrollPresentation()
     @State private var activeMoveEntryID: UUID?
@@ -69,6 +79,8 @@ struct AgendaView: View {
     @State private var dismissRemovalUndoTask: Task<Void, Never>?
     @State private var recentlyCompletedEntry: DayEntry?
     @State private var recentlyMovedToTodo: AgendaTodoMoveUndo?
+    @State private var recurringMoveOffer: AgendaRecurringMoveOffer?
+    @State private var dismissRecurringMoveOfferTask: Task<Void, Never>?
     @State private var isHelpExpanded = false
     @State private var hasPerformedAgendaTutorialMove = false
 
@@ -86,6 +98,12 @@ struct AgendaView: View {
 
     @AppStorage(SettingsKeys.hasSeededAgendaExamples)
     private var hasSeededAgendaExamples = false
+
+    @AppStorage(SettingsKeys.agendaSportsExampleID)
+    private var agendaSportsExampleID = ""
+
+    @AppStorage(SettingsKeys.agendaDinnerExampleID)
+    private var agendaDinnerExampleID = ""
 
     @AppStorage(SettingsKeys.weekStart) private var weekStartSetting = WeekStartOption.monday.rawValue
     @AppStorage(SettingsKeys.weekNumberRule) private var weekNumberSetting = WeekNumberRule.iso8601.rawValue
@@ -298,6 +316,12 @@ struct AgendaView: View {
                                     .frame(width: 44, height: 44)
                             }
                             .glassEffect(.regular.interactive(), in: Circle())
+                            .background(
+                                visibleOnboardingStep == 2 && hasPerformedAgendaTutorialMove
+                                    ? Color.brandLightBlue
+                                    : Color.clear,
+                                in: Circle()
+                            )
                             .disabled(focusedField == nil && activeMoveEntryID == nil)
                             .accessibilityLabel("Bewerken afsluiten")
                             .overlay {
@@ -316,28 +340,43 @@ struct AgendaView: View {
                 }
             }
             .safeAreaInset(edge: .bottom, spacing: 8) {
-                if recentlyMovedToTodo != nil {
-                    moveToTodoUndoBar
+                Group {
+                    if recurringMoveOffer == nil, recentlyMovedToTodo != nil {
+                        moveToTodoUndoBar
+                            .padding(.horizontal, 14)
+                            .transition(.move(edge: .bottom).combined(with: .opacity))
+                    } else if recurringMoveOffer == nil, recentlyRemovedEntry != nil {
+                        removalUndoBar
+                            .padding(.horizontal, 14)
+                            .transition(.move(edge: .bottom).combined(with: .opacity))
+                    } else if recurringMoveOffer == nil, recentlyCompletedEntry != nil {
+                        completionUndoBar
+                            .padding(.horizontal, 14)
+                            .transition(.move(edge: .bottom).combined(with: .opacity))
+                    }
+                }
+                .padding(.bottom, 4)
+            }
+            .overlay(alignment: .bottom) {
+                if recurringMoveOffer != nil {
+                    recurringMoveOfferBar
                         .padding(.horizontal, 14)
-                        .transition(.move(edge: .bottom).combined(with: .opacity))
-                } else if recentlyRemovedEntry != nil {
-                    removalUndoBar
-                        .padding(.horizontal, 14)
-                        .transition(.move(edge: .bottom).combined(with: .opacity))
-                } else if recentlyCompletedEntry != nil {
-                    completionUndoBar
-                        .padding(.horizontal, 14)
+                        .padding(.bottom, 12)
                         .transition(.move(edge: .bottom).combined(with: .opacity))
                 }
             }
             .onAppear {
                 modelContext.undoManager = undoManager
                 configureLoadedHorizon()
+                localizeAgendaOnboardingExamplesIfPresent()
                 if !hasPresentedAgendaHelp {
                     insertAgendaOnboardingExamplesIfNeeded()
                     hasPresentedAgendaHelp = true
                     isHelpExpanded = true
                 }
+            }
+            .onChange(of: languageSetting) { _, _ in
+                localizeAgendaOnboardingExamplesIfPresent()
             }
             .onChange(of: recurringHorizon) { _, _ in
                 configureLoadedHorizon()
@@ -354,6 +393,7 @@ struct AgendaView: View {
             .onDisappear {
                 scrollTask?.cancel()
                 visibilityCache.futureLoadTask?.cancel()
+                dismissRecurringMoveOfferTask?.cancel()
             }
         }
     }
@@ -375,11 +415,13 @@ struct AgendaView: View {
         hasSeededAgendaExamples = true
 
         let today = AppCalendar.startOfDay(.now)
-        let examples = ["16u sports (example)", "18u dinner (example)"]
+        let examples = agendaOnboardingExamples
         let allEntries = (try? modelContext.fetch(FetchDescriptor<DayEntry>())) ?? entries
         let legacyExamples = [
             "17u exercising": examples[0],
-            "18u dinnertime": examples[1]
+            "18u dinnertime": examples[1],
+            "16u sports (example)": examples[0],
+            "18u dinner (example)": examples[1]
         ]
 
         for (legacyText, newText) in legacyExamples {
@@ -393,6 +435,7 @@ struct AgendaView: View {
 
         for (index, text) in examples.enumerated() {
             if let existing = allEntries.first(where: { $0.rawText == text }) {
+                setAgendaExampleID(existing.id, at: index)
                 if reset {
                     existing.date = today
                     existing.isDone = false
@@ -402,9 +445,49 @@ struct AgendaView: View {
                     existing.refreshParsedFields()
                 }
             } else {
-                modelContext.insert(
-                    DayEntry(date: today, rawText: text, manualOrder: Double(index))
-                )
+                let entry = DayEntry(date: today, rawText: text, manualOrder: Double(index))
+                modelContext.insert(entry)
+                setAgendaExampleID(entry.id, at: index)
+            }
+        }
+        try? modelContext.save()
+    }
+
+    private var agendaOnboardingExamples: [String] {
+        let selectedLocale = AppLanguage.resolved(from: languageSetting).locale
+        return [
+            selectedLocale.localized("onboarding.agenda.example.sports"),
+            selectedLocale.localized("onboarding.agenda.example.dinner")
+        ]
+    }
+
+    private func setAgendaExampleID(_ id: UUID, at index: Int) {
+        if index == 0 {
+            agendaSportsExampleID = id.uuidString
+        } else {
+            agendaDinnerExampleID = id.uuidString
+        }
+    }
+
+    private func localizeAgendaOnboardingExamplesIfPresent() {
+        guard hasSeededAgendaExamples else { return }
+        let allEntries = (try? modelContext.fetch(FetchDescriptor<DayEntry>())) ?? entries
+        let examples = agendaOnboardingExamples
+        let knownLegacyTexts: [Set<String>] = [
+            ["17u exercising", "16u sports (example)", "16u sporten", "4PM sports"],
+            ["18u dinnertime", "18u dinner (example)", "18u uit eten", "6PM dinner"]
+        ]
+        let storedIDs = [UUID(uuidString: agendaSportsExampleID), UUID(uuidString: agendaDinnerExampleID)]
+
+        for index in examples.indices {
+            let entry = storedIDs[index].flatMap { id in allEntries.first { $0.id == id } }
+                ?? allEntries.first { knownLegacyTexts[index].contains($0.rawText) }
+            guard let entry else { continue }
+
+            setAgendaExampleID(entry.id, at: index)
+            if entry.rawText != examples[index] {
+                entry.rawText = examples[index]
+                entry.refreshParsedFields()
             }
         }
         try? modelContext.save()
@@ -538,20 +621,19 @@ struct AgendaView: View {
         HStack(spacing: 12) {
             Image(systemName: "checkmark.circle.fill")
                 .foregroundStyle(.green)
-            Text(locale.localized(
-                "Item verplaatst\nnaar Afgerond",
-                "Item moved\nto Finished"
-            ))
+            Text(locale.localized("Item verplaatst\nnaar Afgerond"))
                 .font(.system(size: 14, weight: .medium))
                 .lineLimit(2)
                 .fixedSize(horizontal: false, vertical: true)
                 .layoutPriority(1)
             Spacer(minLength: 4)
-            Button(locale.localized("Ongedaan maken", "Undo"), action: undoCompletion)
+            Button(locale.localized("Ongedaan maken"), action: undoCompletion)
                 .font(.system(size: 14, weight: .semibold))
         }
         .padding(.horizontal, 14)
         .frame(minHeight: 50)
+        .contentShape(RoundedRectangle(cornerRadius: 14))
+        .onTapGesture(perform: undoCompletion)
         .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 14))
         .overlay {
             RoundedRectangle(cornerRadius: 14)
@@ -580,18 +662,19 @@ struct AgendaView: View {
         HStack(spacing: 12) {
             Image(systemName: "trash.fill")
                 .foregroundStyle(.red)
-            Text(locale.localized(
-                "‘\(recentlyRemovedEntryTitle)’ verwijderd",
-                "‘\(recentlyRemovedEntryTitle)’ deleted"
-            ))
+            Text(locale.localizedFormat("feedback.deleted", recentlyRemovedEntryTitle))
                 .font(.system(size: 14, weight: .medium))
-                .lineLimit(1)
+                .lineLimit(2)
+                .fixedSize(horizontal: false, vertical: true)
+                .layoutPriority(1)
             Spacer(minLength: 4)
-            Button(locale.localized("Ongedaan maken", "Undo"), action: undoRemoval)
+            Button(locale.localized("Ongedaan maken"), action: undoRemoval)
                 .font(.system(size: 14, weight: .semibold))
         }
         .padding(.horizontal, 14)
         .frame(minHeight: 50)
+        .contentShape(RoundedRectangle(cornerRadius: 14))
+        .onTapGesture(perform: undoRemoval)
         .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 14))
         .overlay {
             RoundedRectangle(cornerRadius: 14)
@@ -620,11 +703,131 @@ struct AgendaView: View {
             entry.refreshParsedFields()
             renumber(entries: targetEntries, inserting: entry, at: targetIndex)
         }
-        try? modelContext.save()
         if originalDay != day {
+            showRecurringMoveOfferIfNeeded(for: entry, from: originalDay, to: day)
             requestScroll(to: day)
         }
+        try? modelContext.save()
         recordAgendaTutorialMove()
+    }
+
+    private func showRecurringMoveOfferIfNeeded(for entry: DayEntry, from originalDate: Date, to targetDate: Date) {
+        guard let itemID = entry.recurringItemIdentifier,
+              recurringItems.contains(where: { $0.id == itemID }),
+              originalDate != targetDate else { return }
+
+        dismissRecurringMoveOfferTask?.cancel()
+        withAnimation(.snappy(duration: 0.25)) {
+            recurringMoveOffer = AgendaRecurringMoveOffer(
+                itemID: itemID,
+                effectiveFrom: originalDate,
+                targetDate: targetDate
+            )
+        }
+        dismissRecurringMoveOfferTask = Task { @MainActor in
+            try? await Task.sleep(for: .seconds(5))
+            guard !Task.isCancelled else { return }
+            withAnimation(.easeOut(duration: 0.2)) {
+                recurringMoveOffer = nil
+            }
+        }
+    }
+
+    private func applyRecurringMoveOffer() {
+        guard var offer = recurringMoveOffer,
+              !offer.isApplied,
+              let item = recurringItems.first(where: { $0.id == offer.itemID }) else { return }
+        let offset = AppCalendar.calendar.dateComponents(
+            [.day],
+            from: AppCalendar.startOfDay(offer.effectiveFrom),
+            to: AppCalendar.startOfDay(offer.targetDate)
+        ).day ?? 0
+        guard offset != 0 else { return }
+
+        finishAgendaEditing()
+        RecurrenceEngine.appendScheduleShift(
+            effectiveFrom: offer.effectiveFrom,
+            dayOffset: offset,
+            to: item
+        )
+        try? modelContext.save()
+
+        dismissRecurringMoveOfferTask?.cancel()
+        offer.isApplied = true
+        withAnimation(.snappy(duration: 0.2)) {
+            recurringMoveOffer = offer
+        }
+        dismissRecurringMoveOfferTask = Task { @MainActor in
+            // Finish the pop animation before recalculating the generated batch.
+            try? await Task.sleep(for: .milliseconds(250))
+            guard !Task.isCancelled else { return }
+            let endDate = AppCalendar.calendar.date(
+                byAdding: .weekOfYear,
+                value: loadedFutureWeeks,
+                to: AppCalendar.startOfDay(.now)
+            ) ?? offer.targetDate
+            RecurringScheduler.syncAll(
+                items: recurringItems,
+                in: modelContext,
+                through: endDate
+            )
+            try? modelContext.save()
+
+            try? await Task.sleep(for: .seconds(2))
+            guard !Task.isCancelled else { return }
+            withAnimation(.easeOut(duration: 0.2)) {
+                recurringMoveOffer = nil
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var recurringMoveOfferBar: some View {
+        if recurringMoveOffer?.isApplied == true {
+            HStack(spacing: 12) {
+                Text(locale.localized("Volgende herhalingen zijn meeverschoven"))
+                    .font(.system(size: 14, weight: .medium))
+                    .layoutPriority(1)
+                Spacer(minLength: 4)
+                Image(systemName: "checkmark.circle.fill")
+                    .foregroundStyle(Color.brandHardBlue)
+            }
+            .padding(.horizontal, 14)
+            .frame(minHeight: 50)
+            .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 14))
+            .overlay {
+                RoundedRectangle(cornerRadius: 14)
+                    .stroke(Color.primary.opacity(0.08), lineWidth: 1)
+            }
+            .shadow(color: .black.opacity(0.12), radius: 12, y: 4)
+            .accessibilityLabel(locale.localized("Volgende herhalingen zijn meeverschoven"))
+        } else {
+            Button(action: applyRecurringMoveOffer) {
+                HStack(spacing: 12) {
+                    Image(systemName: "questionmark.circle.fill")
+                        .foregroundStyle(Color.brandHardBlue)
+                    Text(locale.localized("Volgende herhalingen meeverschuiven?"))
+                        .font(.system(size: 14, weight: .semibold))
+                        .multilineTextAlignment(.leading)
+                        .layoutPriority(1)
+                    Spacer(minLength: 4)
+                    Text(locale.localized("Ja graag"))
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundStyle(Color.brandHardBlue)
+                        .fixedSize(horizontal: true, vertical: false)
+                }
+                .padding(.horizontal, 14)
+                .frame(maxWidth: .infinity, minHeight: 50, alignment: .leading)
+                .contentShape(RoundedRectangle(cornerRadius: 14))
+                .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 14))
+                .overlay {
+                    RoundedRectangle(cornerRadius: 14)
+                        .stroke(Color.primary.opacity(0.08), lineWidth: 1)
+                }
+                .shadow(color: .black.opacity(0.12), radius: 12, y: 4)
+            }
+            .buttonStyle(.plain)
+        }
     }
 
     private func loadMoreFutureWeeks(ifCurrentLimitIs expectedLimit: Int) {
@@ -771,6 +974,7 @@ struct AgendaView: View {
     private func moveEntryToStartOfUntimedEntries(_ entryID: UUID, on targetDate: Date) {
         guard let entry = entries.first(where: { $0.id == entryID }) else { return }
 
+        let originalDay = AppCalendar.startOfDay(entry.date)
         let day = AppCalendar.startOfDay(targetDate)
         let targetEntries = entries
             .filter {
@@ -790,6 +994,9 @@ struct AgendaView: View {
             }
             entry.refreshParsedFields()
             entry.manualOrder = (targetEntries.map(\.manualOrder).min() ?? 0) - 1
+        }
+        if originalDay != day {
+            showRecurringMoveOfferIfNeeded(for: entry, from: originalDay, to: day)
         }
         try? modelContext.save()
         requestScroll(to: day)
@@ -975,18 +1182,25 @@ struct AgendaView: View {
         HStack(spacing: 12) {
             Image(systemName: "arrow.left.arrow.right")
                 .foregroundStyle(.blue)
-            Text(locale.localized(
-                "Item verplaatst naar \(recentlyMovedToTodo?.destinationTitle ?? "Taken")",
-                "Item moved to \(recentlyMovedToTodo?.destinationTitle ?? "Tasks")"
+            Text(locale.localizedFormat(
+                "feedback.movedTo",
+                recentlyMovedToTodo?.rawText ?? "",
+                recentlyMovedToTodo?.destinationTitle ?? AppSection.todo.title(for: locale)
             ))
                 .font(.system(size: 14, weight: .medium))
                 .lineLimit(2)
+                .truncationMode(.tail)
+                .frame(maxWidth: .infinity, alignment: .leading)
             Spacer(minLength: 4)
-            Button(locale.localized("Ongedaan maken", "Undo"), action: undoMoveToTodo)
+            Button(locale.localized("Ongedaan maken"), action: undoMoveToTodo)
                 .font(.system(size: 14, weight: .semibold))
+                .fixedSize(horizontal: true, vertical: false)
+                .layoutPriority(1)
         }
         .padding(.horizontal, 14)
         .frame(minHeight: 50)
+        .contentShape(RoundedRectangle(cornerRadius: 14))
+        .onTapGesture(perform: undoMoveToTodo)
         .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 14))
         .overlay {
             RoundedRectangle(cornerRadius: 14)
@@ -1072,32 +1286,26 @@ private struct AgendaTopTitle: View {
         .buttonStyle(.plain)
         .opacity(presentation.isScrolled ? 0 : 1)
         .animation(.easeOut(duration: 0.18), value: presentation.isScrolled)
-        .accessibilityLabel(locale.localized("Uitleg over Agenda", "Agenda help"))
+        .accessibilityLabel(locale.localized("Uitleg over Agenda"))
         .accessibilityValue(isHelpExpanded
-            ? locale.localized("Uitgeklapt", "Expanded")
-            : locale.localized("Ingeklapt", "Collapsed"))
-        .accessibilityHint(locale.localized(
-            "Tik om de uitleg in of uit te klappen",
-            "Tap to expand or collapse help"
-        ))
+            ? locale.localized("Uitgeklapt")
+            : locale.localized("Ingeklapt"))
+        .accessibilityHint(locale.localized("Tik om de uitleg in of uit te klappen"))
     }
 }
 
 private struct AgendaHelpStep: Identifiable {
     let id: Int
     let icon: String
-    let dutch: String
-    let english: String
-    let noteDutch: String?
-    let noteEnglish: String?
+    let key: String
+    let noteKey: String?
 
     func text(for locale: Locale) -> String {
-        locale.localized(dutch, english)
+        locale.localized(key)
     }
 
     func note(for locale: Locale) -> String? {
-        guard let noteDutch, let noteEnglish else { return nil }
-        return locale.localized(noteDutch, noteEnglish)
+        noteKey.map(locale.localized)
     }
 }
 
@@ -1116,34 +1324,26 @@ private struct AgendaHelpCard: View {
         AgendaHelpStep(
             id: 0,
             icon: "text.cursor",
-            dutch: "Tik achter een dag om iets te schrijven. Klaar? Tik rechtsboven op ✓.",
-            english: "Tap after a day to write something. Done? Tap ✓ at the top right.",
-            noteDutch: nil,
-            noteEnglish: nil
+            key: "Tik achter een dag om iets te schrijven. Klaar? Tik rechtsboven op ✓.",
+            noteKey: nil,
         ),
         AgendaHelpStep(
             id: 1,
             icon: "arrow.up.arrow.down",
-            dutch: "Tik op de weekdag vóór de lijn om de verplaatsmodus te openen.",
-            english: "Tap the weekday before the line to open move mode.",
-            noteDutch: nil,
-            noteEnglish: nil
+            key: "Tik op de weekdag vóór de lijn om de verplaatsmodus te openen.",
+            noteKey: nil,
         ),
         AgendaHelpStep(
             id: 2,
             icon: "calendar.badge.clock",
-            dutch: "Gebruik de controls, of tik op een andere weekdag om direct te verplaatsen.",
-            english: "Use the controls, or tap another weekday to move it directly.",
-            noteDutch: "Een geel gearceerde weekdag bevat een tijd en blijft binnen de dag automatisch op tijd gesorteerd.",
-            noteEnglish: "A yellow highlighted weekday contains a time and remains automatically sorted by time within that day."
+            key: "Gebruik de controls, of tik op een andere weekdag om direct te verplaatsen.",
+            noteKey: "Een geel gearceerde weekdag bevat een tijd en blijft binnen de dag automatisch op tijd gesorteerd.",
         ),
         AgendaHelpStep(
             id: 3,
             icon: "checkmark.circle",
-            dutch: "Iets afgerond? Tik op de cirkel rechts. Het verhuist naar Afgerond.",
-            english: "Finished something? Tap the circle on the right. It moves to Finished.",
-            noteDutch: nil,
-            noteEnglish: nil
+            key: "Iets afgerond? Tik op de cirkel rechts. Het verhuist naar Afgerond.",
+            noteKey: nil,
         ),
     ]
 
@@ -1159,13 +1359,7 @@ private struct AgendaHelpCard: View {
                 stepContent
             }
         }
-        .padding(16)
-        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
-        .overlay {
-            RoundedRectangle(cornerRadius: 18, style: .continuous)
-                .stroke(Color.brandHardBlue.opacity(0.16), lineWidth: 1)
-        }
-        .shadow(color: .black.opacity(0.08), radius: 12, y: 5)
+        .tutorialCardStyle(isCompleted: isCompleted, close: close)
     }
 
     private var stepContent: some View {
@@ -1189,10 +1383,7 @@ private struct AgendaHelpCard: View {
                         .foregroundStyle(Color.brandHardBlue)
                         .frame(width: 16, height: 16)
 
-                    Text(locale.localized(
-                        "Stap \(step + 1)/\(Self.stepCount)",
-                        "Step \(step + 1)/\(Self.stepCount)"
-                    ))
+                    Text(locale.localizedFormat("tutorial.step", step + 1, Self.stepCount))
                     .font(.system(size: 12, weight: .bold))
                     .foregroundStyle(Color.brandHardBlue)
                 }
@@ -1215,7 +1406,7 @@ private struct AgendaHelpCard: View {
     private var navigationControls: some View {
         HStack {
             Button(action: previous) {
-                Image(systemName: "arrow.left")
+                Image(systemName: "arrow.backward")
                     .font(.system(size: 14, weight: .bold))
                     .foregroundStyle(.secondary)
                     .frame(width: 34, height: 30)
@@ -1223,40 +1414,29 @@ private struct AgendaHelpCard: View {
             .buttonStyle(.plain)
             .disabled(step == 0)
             .opacity(step == 0 ? 0.25 : 1)
-            .accessibilityLabel(locale.localized("Vorige stap", "Previous step"))
+            .accessibilityLabel(locale.localized("Vorige stap"))
 
             Spacer()
 
             Button(action: next) {
-                Image(systemName: "arrow.right")
+                Image(systemName: "arrow.forward")
                     .font(.system(size: 14, weight: .bold))
                     .foregroundStyle(Color.brandHardBlue)
                     .frame(width: 34, height: 30)
             }
             .buttonStyle(.plain)
-            .accessibilityLabel(locale.localized("Volgende stap", "Next step"))
+            .accessibilityLabel(locale.localized("Volgende stap"))
         }
     }
 
     private var completedContent: some View {
-        HStack(spacing: 11) {
-            Image(systemName: "checkmark.circle.fill")
-                .font(.system(size: 21))
-                .foregroundStyle(Color.brandHardBlue)
-            Text(locale.localized("Je kent de basis.", "You know the basics."))
-                .font(.system(size: 15, weight: .semibold))
-            Spacer()
-            Button(locale.localized("Opnieuw", "Replay"), action: replay)
-                .font(.system(size: 13, weight: .semibold))
-            Button(action: close) {
-                Image(systemName: "xmark")
-                    .font(.system(size: 12, weight: .bold))
-                    .foregroundStyle(.secondary)
-                    .frame(width: 28, height: 28)
-            }
-            .buttonStyle(.plain)
-            .accessibilityLabel(locale.localized("Sluiten", "Close"))
-        }
+        TutorialCompletionContent(
+            message: locale.localized("Je agenda staat klaar voor alles wat komt."),
+            replayTitle: locale.localized("Opnieuw"),
+            closeAccessibilityLabel: locale.localized("Sluiten"),
+            replay: replay,
+            close: close
+        )
     }
 }
 
@@ -1266,10 +1446,7 @@ private struct AgendaFutureLoadingFooter: View {
     var body: some View {
         HStack(spacing: 10) {
             ProgressView()
-            Text(locale.localized(
-                "Volgende 3 maanden laden…",
-                "Loading the Next 3 Months…"
-            ))
+            Text(locale.localized("Volgende 3 maanden laden…"))
             .font(.system(size: 16, weight: .medium))
             .foregroundStyle(.secondary)
         }
@@ -1387,7 +1564,7 @@ struct WeekCard: View {
                 }
             }
             .padding(.leading, 14)
-            .padding(.trailing, 16)
+            .padding(.trailing, 8)
             .padding(.vertical, 13)
             .background {
                 RoundedRectangle(cornerRadius: 8)

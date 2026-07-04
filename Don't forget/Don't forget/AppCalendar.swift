@@ -63,12 +63,6 @@ enum AppCalendar {
     }
 
     static var monthSymbols: [String] {
-        if language == .dutch {
-            return [
-                "januari", "februari", "maart", "april", "mei", "juni",
-                "juli", "augustus", "september", "oktober", "november", "december"
-            ]
-        }
         return cachedFormatter(template: "MMMM").monthSymbols
     }
 
@@ -82,12 +76,6 @@ enum AppCalendar {
     }
 
     static func localizedLongDate(_ date: Date, includeYear: Bool) -> String {
-        if language == .dutch {
-            let components = calendar.dateComponents([.day, .month, .year], from: date)
-            let base = "\(components.day ?? 0) \(monthName(components.month ?? 1))"
-            return includeYear ? "\(base) \(components.year ?? 0)" : base
-        }
-
         return localizedDate(date, template: includeYear ? "dMMMMyyyy" : "dMMMM")
     }
 
@@ -152,32 +140,9 @@ enum AppCalendar {
     private static func weekdayLetter(for date: Date, calendar: Calendar) -> String {
         let weekday = calendar.component(.weekday, from: date)
 
-        let language = AppLanguage.effective(
-            from: UserDefaults.standard.string(forKey: SettingsKeys.language),
-            holidayCountryCode: UserDefaults.standard.string(forKey: SettingsKeys.recurringHolidayCountry)
-        )
-
-        if language == .english {
-            switch weekday {
-            case 2: return "M"
-            case 3: return "T"
-            case 4: return "W"
-            case 5: return "T"
-            case 6: return "F"
-            case 7: return "S"
-            default: return "S"
-            }
-        }
-
-        switch weekday {
-        case 2: return "M"
-        case 3: return "D"
-        case 4: return "W"
-        case 5: return "D"
-        case 6: return "V"
-        case 7: return "Z"
-        default: return "Z"
-        }
+        let symbols = cachedFormatter(template: "EEEEE").veryShortWeekdaySymbols ?? []
+        let index = max(0, min(symbols.count - 1, weekday - 1))
+        return symbols.indices.contains(index) ? symbols[index] : ""
     }
 
     private static func cachedFormatter(template: String) -> DateFormatter {

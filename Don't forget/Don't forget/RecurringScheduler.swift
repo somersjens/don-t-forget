@@ -12,7 +12,9 @@ enum RecurringScheduler {
     ) throws {
         let batchContext = ModelContext(modelContainer)
         batchContext.autosaveEnabled = false
-        let items = try batchContext.fetch(FetchDescriptor<RecurringItem>())
+        let items = try batchContext.fetch(FetchDescriptor<RecurringItem>(
+            predicate: #Predicate { !$0.isRemoved }
+        ))
         syncAll(items: items, in: batchContext, through: endDate)
         if batchContext.hasChanges {
             try batchContext.save()
@@ -29,7 +31,9 @@ enum RecurringScheduler {
     ) throws {
         let batchContext = ModelContext(modelContainer)
         batchContext.autosaveEnabled = false
-        let items = try batchContext.fetch(FetchDescriptor<RecurringItem>())
+        let items = try batchContext.fetch(FetchDescriptor<RecurringItem>(
+            predicate: #Predicate { !$0.isRemoved }
+        ))
         let largestReminderOffset = items.compactMap(\.reminderDaysBefore).max() ?? 0
         let generationStart = AppCalendar.calendar.date(
             byAdding: .day,

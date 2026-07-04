@@ -1,10 +1,18 @@
 import SwiftUI
 import SwiftData
 import Charts
+import StoreKit
 
 private struct HistoryRecurringCategoryAppearance: Decodable {
     let id: String
+    let title: String?
     let colorRawValue: String
+
+    init(id: String, title: String? = nil, colorRawValue: String) {
+        self.id = id
+        self.title = title
+        self.colorRawValue = colorRawValue
+    }
 }
 
 enum HistoryFilter: String, CaseIterable, Identifiable {
@@ -17,10 +25,10 @@ enum HistoryFilter: String, CaseIterable, Identifiable {
 
     func title(for locale: Locale) -> String {
         switch self {
-        case .all: locale.localized("Alles", "All")
-        case .agenda: locale.localized("Agenda", "Calendar")
-        case .recurring: locale.localized("Herhalingen", "Recurring")
-        case .todo: locale.localized("Taken", "Tasks")
+        case .all: locale.localized("Alles")
+        case .agenda: locale.localized("Agenda")
+        case .recurring: locale.localized("Herhalingen")
+        case .todo: locale.localized("Taken")
         }
     }
 
@@ -77,14 +85,28 @@ struct HistoryView: View {
     )
     private var todos: [TodoItem]
 
+    @Query(
+        filter: #Predicate<RecurringItem> { item in
+            item.isRemoved
+        },
+        sort: \RecurringItem.completedAt,
+        order: .reverse
+    )
+    private var removedRecurringItems: [RecurringItem]
+
     @AppStorage(SettingsKeys.recurringCategories) private var recurringCategoriesData = ""
     @AppStorage(SettingsKeys.recurringBirthdayCategoryDeleted) private var birthdayCategoryDeleted = false
     @AppStorage(SettingsKeys.todoGroups) private var todoGroupsData = ""
     @AppStorage(SettingsKeys.historyShowsDeletedItems) private var showsDeletedItems = true
+    @AppStorage(SettingsKeys.hasOpenedHistoryHelp) private var hasOpenedHistoryHelp = false
+    @AppStorage(SettingsKeys.historyTutorialStep) private var historyTutorialStep = 0
+    @AppStorage(SettingsKeys.hasCompletedHistoryTutorial) private var hasCompletedHistoryTutorial = false
+    @AppStorage(SettingsKeys.historyTutorialExampleID) private var historyTutorialExampleID = ""
 
     @State private var filter: HistoryFilter = .all
     @State private var searchText = ""
     @State private var isScrolled = false
+    @State private var isHelpExpanded = false
     @State private var isShowingSettings = false
     @State private var recentlyRestoredRow: HistoryRow?
     @State private var dismissRestoreTask: Task<Void, Never>?
@@ -92,12 +114,32 @@ struct HistoryView: View {
     @State private var pendingPermanentDeletion: HistoryRow?
     @State private var permanentDeletionTask: Task<Void, Never>?
     @State private var visibleHistoryLimit = Self.pageSize
+    @State private var didConfigureUITestOnboarding = false
+    @FocusState private var isSearchFocused: Bool
+
+    private var visibleOnboardingStep: Int? {
+        isHelpExpanded && !hasCompletedHistoryTutorial ? historyTutorialStep : nil
+    }
+
+    private var tutorialExampleID: UUID? {
+        UUID(uuidString: historyTutorialExampleID)
+    }
+
+    private var historyTutorialExampleText: String {
+        locale.localized("onboarding.history.example")
+    }
+
+    private var historyTutorialSearchTerm: String {
+        locale.localized("onboarding.history.searchTerm")
+    }
 
     private var allRows: [HistoryRow] {
         let recurringColors = recurringCategoryColors
         let recurringBackgroundColors = recurringCategoryBackgroundColors
+        let recurringTitles = recurringCategoryTitles
         let todoColors = todoCategoryColors
         let todoBackgroundColors = todoCategoryBackgroundColors
+        let todoTitles = todoCategoryTitles
         let agendaRows = entries
             .filter { $0.source != .recurring }
             .map {
@@ -117,22 +159,35 @@ struct HistoryView: View {
                 return HistoryRow(
                     entry: entry,
                     source: .recurring,
+                    categoryTitle: recurringTitles[categoryID]
+                        ?? HistoryCSVDocument.fallbackRecurringCategoryName(for: categoryID, locale: locale),
                     color: recurringColors[categoryID] ?? RecurringThemeColorOption.gray.color,
                     backgroundColor: recurringBackgroundColors[categoryID]
                         ?? RecurringThemeColorOption.gray.backgroundColor
                 )
             }
+        let removedRecurringRows = removedRecurringItems.map { item in
+            HistoryRow(
+                recurringItem: item,
+                categoryTitle: recurringTitles[item.themeRawValue]
+                    ?? HistoryCSVDocument.fallbackRecurringCategoryName(for: item.themeRawValue, locale: locale),
+                color: recurringColors[item.themeRawValue] ?? RecurringThemeColorOption.gray.color,
+                backgroundColor: recurringBackgroundColors[item.themeRawValue]
+                    ?? RecurringThemeColorOption.gray.backgroundColor
+            )
+        }
         let todoRows = todos
             .map { todo in
                 HistoryRow(
                     todo: todo,
+                    categoryTitle: todoTitles[todo.bucketRawValue] ?? todo.bucketRawValue,
                     color: todoColors[todo.bucketRawValue] ?? RecurringThemeColorOption.gray.color,
                     backgroundColor: todoBackgroundColors[todo.bucketRawValue]
                         ?? RecurringThemeColorOption.gray.backgroundColor
                 )
             }
 
-        return (agendaRows + recurringRows + todoRows).sorted {
+        return (agendaRows + recurringRows + removedRecurringRows + todoRows).sorted {
             $0.completedAt > $1.completedAt
         }
     }
@@ -171,6 +226,20 @@ struct HistoryView: View {
     private var todoCategoryColors: [String: Color] {
         Dictionary(uniqueKeysWithValues: TodoGroupStore.decode(todoGroupsData).map {
             ($0.id, $0.color)
+        })
+    }
+
+    private var recurringCategoryTitles: [String: String] {
+        Dictionary(uniqueKeysWithValues: recurringCategoryAppearances.compactMap { appearance in
+            guard let title = appearance.title?.trimmingCharacters(in: .whitespacesAndNewlines),
+                  !title.isEmpty else { return nil }
+            return (appearance.id, title)
+        })
+    }
+
+    private var todoCategoryTitles: [String: String] {
+        Dictionary(uniqueKeysWithValues: TodoGroupStore.decode(todoGroupsData).map {
+            ($0.id, $0.title)
         })
     }
 
@@ -243,9 +312,28 @@ struct HistoryView: View {
         NavigationStack {
             ScrollView {
                 LazyVStack(spacing: 12) {
+                    if isHelpExpanded {
+                        HistoryHelpCard(
+                            locale: locale,
+                            step: historyTutorialStep,
+                            isDeleteRevealed: selectedDeletionRowID == tutorialExampleID,
+                            isCompleted: hasCompletedHistoryTutorial,
+                            previous: showPreviousHistoryTutorialStep,
+                            next: showNextHistoryTutorialStep,
+                            replay: replayHistoryTutorial,
+                            close: { isHelpExpanded = false }
+                        )
+                        .padding(.bottom, 2)
+                    }
+
                     HistoryFilterBar(
                         selection: $filter,
-                        count: { count(for: $0, among: historyRows) }
+                        count: { count(for: $0, among: historyRows) },
+                        isOnboardingHighlighted: visibleOnboardingStep == 0,
+                        selected: {
+                            dismissPermanentDeleteMode()
+                            completeHistoryTutorialAction(for: 0)
+                        }
                     )
 
                     HistorySummaryCard(
@@ -256,8 +344,14 @@ struct HistoryView: View {
                         activateDemoData: activateHistoryDemoData,
                         deactivateDemoData: deactivateHistoryDemoData
                     )
+                    .simultaneousGesture(TapGesture().onEnded(dismissPermanentDeleteMode))
 
-                    HistorySearchBar(text: $searchText)
+                    HistorySearchBar(
+                        text: $searchText,
+                        isFocused: $isSearchFocused,
+                        isOnboardingHighlighted: visibleOnboardingStep == 1,
+                        tapped: dismissPermanentDeleteMode
+                    )
 
                     if sections.isEmpty {
                         HistoryEmptyState(
@@ -272,8 +366,12 @@ struct HistoryView: View {
                                 section: section,
                                 searchText: searchText,
                                 selectedDeletionRowID: selectedDeletionRowID,
+                                tutorialExampleID: tutorialExampleID,
+                                onboardingStep: visibleOnboardingStep,
+                                hasActivePermanentDeleteMode: selectedDeletionRowID != nil,
                                 revealPermanentDelete: revealPermanentDelete,
                                 permanentlyDelete: beginPermanentDeletion,
+                                dismissPermanentDelete: dismissPermanentDeleteMode,
                                 restore: restore
                             )
                         }
@@ -282,9 +380,9 @@ struct HistoryView: View {
                                 visibleHistoryLimit += Self.pageSize
                             } label: {
                                 Label(
-                                    locale.localized(
-                                        "Laad oudere items (\(min(Self.pageSize, remainingRowCount)))",
-                                        "Load Older Items (\(min(Self.pageSize, remainingRowCount)))"
+                                    locale.localizedFormat(
+                                        "history.loadOlder",
+                                        min(Self.pageSize, remainingRowCount)
                                     ),
                                     systemImage: "arrow.down.circle"
                                 )
@@ -307,8 +405,12 @@ struct HistoryView: View {
             .toolbar(.hidden, for: .navigationBar)
             .safeAreaInset(edge: .top, spacing: 0) {
                 ZStack {
-                    Text(AppSection.history.title(for: locale))
-                        .font(.system(size: 26, weight: .bold))
+                    HistoryTopTitle(
+                        locale: locale,
+                        showsInfoHint: !hasOpenedHistoryHelp,
+                        isHelpExpanded: isHelpExpanded,
+                        toggleHelp: toggleHelp
+                    )
                         .opacity(isScrolled ? 0 : 1)
                         .animation(.easeOut(duration: 0.18), value: isScrolled)
 
@@ -316,6 +418,10 @@ struct HistoryView: View {
                         Spacer()
 
                         Button {
+                            dismissPermanentDeleteMode()
+                            if visibleOnboardingStep == 5 {
+                                finishHistoryTutorial()
+                            }
                             isShowingSettings = true
                         } label: {
                             Image(systemName: "gearshape")
@@ -323,37 +429,77 @@ struct HistoryView: View {
                                 .frame(width: 44, height: 44)
                         }
                         .glassEffect(.regular.interactive(), in: Circle())
+                        .background(
+                            visibleOnboardingStep == 5 ? Color.brandLightBlue : Color.clear,
+                            in: Circle()
+                        )
                         .accessibilityLabel("Instellingen")
+                        .overlay {
+                            if visibleOnboardingStep == 5 {
+                                Circle()
+                                    .stroke(Color.brandHardBlue, lineWidth: 3)
+                                    .padding(-4)
+                                    .allowsHitTesting(false)
+                            }
+                        }
                     }
                 }
                 .padding(.horizontal, 18)
                 .padding(.vertical, 6)
             }
             .safeAreaInset(edge: .bottom, spacing: 8) {
-                if let pendingPermanentDeletion {
-                    permanentDeletionBar(title: pendingPermanentDeletion.title)
-                        .padding(.horizontal, 14)
-                        .transition(.move(edge: .bottom).combined(with: .opacity))
-                } else if let recentlyRestoredRow {
-                    restoreBar(title: recentlyRestoredRow.title)
-                        .padding(.horizontal, 14)
-                        .transition(.move(edge: .bottom).combined(with: .opacity))
+                Group {
+                    if let pendingPermanentDeletion {
+                        permanentDeletionBar(title: pendingPermanentDeletion.title)
+                            .padding(.horizontal, 14)
+                            .transition(.move(edge: .bottom).combined(with: .opacity))
+                    } else if let recentlyRestoredRow {
+                        restoreBar(title: recentlyRestoredRow.title)
+                            .padding(.horizontal, 14)
+                            .overlay {
+                                if visibleOnboardingStep == 3 {
+                                    RoundedRectangle(cornerRadius: 18)
+                                        .stroke(Color.brandHardBlue, lineWidth: 3)
+                                        .padding(.horizontal, 10)
+                                        .padding(.vertical, -4)
+                                        .allowsHitTesting(false)
+                                }
+                            }
+                            .transition(.move(edge: .bottom).combined(with: .opacity))
+                    }
                 }
+                .padding(.bottom, 4)
             }
             .sheet(isPresented: $isShowingSettings) {
                 SettingsView()
             }
             .onAppear {
                 modelContext.undoManager = undoManager
+                configureUITestOnboardingIfNeeded()
+                localizeHistoryTutorialExampleIfPresent()
+                ensureHistoryTutorialExampleExists()
+            }
+            .onChange(of: locale.identifier) { _, _ in
+                localizeHistoryTutorialExampleIfPresent()
             }
             .onChange(of: filter) { _, _ in
+                dismissPermanentDeleteMode()
                 visibleHistoryLimit = Self.pageSize
             }
             .onChange(of: showsDeletedItems) { _, _ in
                 visibleHistoryLimit = Self.pageSize
             }
             .onChange(of: searchText) { _, _ in
+                dismissPermanentDeleteMode()
                 visibleHistoryLimit = Self.pageSize
+                if visibleOnboardingStep == 1,
+                   searchText.localizedStandardContains(historyTutorialSearchTerm) {
+                    isSearchFocused = false
+                    completeHistoryTutorialAction(for: 1)
+                }
+            }
+            .onDisappear {
+                dismissPermanentDeleteMode()
             }
         }
     }
@@ -367,6 +513,184 @@ struct HistoryView: View {
     private func activateHistoryDemoData() {
         DemoData.insertHistoryData(in: modelContext)
         try? modelContext.save()
+    }
+
+    private func toggleHelp() {
+        dismissPermanentDeleteMode()
+        hasOpenedHistoryHelp = true
+        if !isHelpExpanded && !hasCompletedHistoryTutorial {
+            ensureHistoryTutorialExampleExists()
+        }
+        isHelpExpanded.toggle()
+    }
+
+    private func configureUITestOnboardingIfNeeded() {
+#if DEBUG
+        guard !didConfigureUITestOnboarding,
+              ProcessInfo.processInfo.environment["UI_TEST_RESET_HISTORY_ONBOARDING"] == "1" else {
+            return
+        }
+        didConfigureUITestOnboarding = true
+        hasOpenedHistoryHelp = false
+        historyTutorialStep = 0
+        hasCompletedHistoryTutorial = false
+        historyTutorialExampleID = ""
+#endif
+    }
+
+    private func ensureHistoryTutorialExampleExists(reset: Bool = false) {
+        guard !hasCompletedHistoryTutorial || reset else { return }
+
+        if let entry = tutorialExampleEntry() {
+            if entry.rawText != historyTutorialExampleText {
+                entry.rawText = historyTutorialExampleText
+                entry.refreshParsedFields()
+                try? modelContext.save()
+            }
+            if reset {
+                normalizeTutorialExampleToHistory(entry)
+            }
+            return
+        }
+
+        let entry = DayEntry(date: .now, rawText: historyTutorialExampleText)
+        entry.isDone = true
+        entry.completedAt = .now
+        modelContext.insert(entry)
+        historyTutorialExampleID = entry.id.uuidString
+        try? modelContext.save()
+    }
+
+    private func localizeHistoryTutorialExampleIfPresent() {
+        guard let entry = tutorialExampleEntry(), entry.rawText != historyTutorialExampleText else {
+            return
+        }
+        entry.rawText = historyTutorialExampleText
+        entry.refreshParsedFields()
+        try? modelContext.save()
+    }
+
+    private func tutorialExampleEntry() -> DayEntry? {
+        guard let id = tutorialExampleID else { return nil }
+        let allEntries = (try? modelContext.fetch(FetchDescriptor<DayEntry>())) ?? []
+        return allEntries.first { $0.id == id }
+    }
+
+    private func tutorialExampleRow() -> HistoryRow? {
+        guard let entry = tutorialExampleEntry() else { return nil }
+        return HistoryRow(
+            entry: entry,
+            source: .agenda,
+            color: RecurringThemeColorOption.gray.color,
+            backgroundColor: RecurringThemeColorOption.gray.backgroundColor
+        )
+    }
+
+    private func normalizeTutorialExampleToHistory(_ entry: DayEntry) {
+        permanentDeletionTask?.cancel()
+        permanentDeletionTask = nil
+        dismissRestoreTask?.cancel()
+        dismissRestoreTask = nil
+        pendingPermanentDeletion = nil
+        recentlyRestoredRow = nil
+        selectedDeletionRowID = nil
+        entry.isDone = true
+        entry.isRemoved = false
+        entry.completedAt = .now
+        try? modelContext.save()
+    }
+
+    private func showPreviousHistoryTutorialStep() {
+        guard historyTutorialStep > 0 else { return }
+        showHistoryTutorialStep(historyTutorialStep - 1)
+    }
+
+    private func showNextHistoryTutorialStep() {
+        switch historyTutorialStep {
+        case 1:
+            searchText = historyTutorialSearchTerm
+            showHistoryTutorialStep(2)
+        case 2:
+            if let row = tutorialExampleRow() {
+                restore(row)
+            } else {
+                ensureHistoryTutorialExampleExists(reset: true)
+                showHistoryTutorialStep(3)
+            }
+        case 3:
+            undoRestore()
+        case 4:
+            guard let row = tutorialExampleRow() else {
+                ensureHistoryTutorialExampleExists(reset: true)
+                return
+            }
+            if selectedDeletionRowID == row.id {
+                beginPermanentDeletion(row)
+            } else {
+                revealPermanentDelete(row)
+            }
+        case HistoryHelpCard.stepCount - 1:
+            finishHistoryTutorial()
+        default:
+            showHistoryTutorialStep(historyTutorialStep + 1)
+        }
+    }
+
+    private func showHistoryTutorialStep(_ requestedStep: Int) {
+        let target = min(max(requestedStep, 0), HistoryHelpCard.stepCount - 1)
+        ensureHistoryTutorialExampleExists()
+
+        if target <= 2 || target == 4 {
+            if let entry = tutorialExampleEntry() {
+                normalizeTutorialExampleToHistory(entry)
+            }
+        }
+
+        switch target {
+        case 0:
+            filter = .all
+            searchText = ""
+        case 1:
+            searchText = ""
+        case 2, 4:
+            filter = .all
+            searchText = historyTutorialSearchTerm
+        case 3:
+            filter = .all
+            searchText = historyTutorialSearchTerm
+            if let row = tutorialExampleRow() {
+                restore(row)
+                dismissRestoreTask?.cancel()
+                dismissRestoreTask = nil
+            }
+        default:
+            break
+        }
+
+        historyTutorialStep = target
+    }
+
+    private func completeHistoryTutorialAction(for step: Int) {
+        guard visibleOnboardingStep == step else { return }
+        if step == HistoryHelpCard.stepCount - 1 {
+            finishHistoryTutorial()
+        } else {
+            showHistoryTutorialStep(step + 1)
+        }
+    }
+
+    private func finishHistoryTutorial() {
+        hasCompletedHistoryTutorial = true
+        dismissRestoreTask?.cancel()
+        recentlyRestoredRow = nil
+    }
+
+    private func replayHistoryTutorial() {
+        hasCompletedHistoryTutorial = false
+        historyTutorialStep = 0
+        filter = .all
+        searchText = ""
+        ensureHistoryTutorialExampleExists(reset: true)
     }
 
     private func deactivateHistoryDemoData() {
@@ -383,16 +707,31 @@ struct HistoryView: View {
         }
         try? modelContext.save()
 
-        dismissRestoreTask = Task { @MainActor in
-            try? await Task.sleep(for: .seconds(5))
-            guard !Task.isCancelled else { return }
-            hideRestoreBar()
+        if visibleOnboardingStep == 2, row.id == tutorialExampleID {
+            historyTutorialStep = 3
+        } else {
+            dismissRestoreTask = Task { @MainActor in
+                try? await Task.sleep(for: .seconds(5))
+                guard !Task.isCancelled else { return }
+                hideRestoreBar()
+            }
         }
     }
 
     private func revealPermanentDelete(_ row: HistoryRow) {
         withAnimation(.snappy(duration: 0.2, extraBounce: 0)) {
-            selectedDeletionRowID = selectedDeletionRowID == row.id ? nil : row.id
+            if let selectedDeletionRowID, selectedDeletionRowID != row.id {
+                self.selectedDeletionRowID = nil
+            } else {
+                selectedDeletionRowID = selectedDeletionRowID == row.id ? nil : row.id
+            }
+        }
+    }
+
+    private func dismissPermanentDeleteMode() {
+        guard selectedDeletionRowID != nil else { return }
+        withAnimation(.snappy(duration: 0.2, extraBounce: 0)) {
+            selectedDeletionRowID = nil
         }
     }
 
@@ -413,6 +752,12 @@ struct HistoryView: View {
             try? await Task.sleep(for: .seconds(6))
             guard !Task.isCancelled else { return }
             commitPermanentDeletion(row)
+        }
+
+        if visibleOnboardingStep == 4, row.id == tutorialExampleID {
+            historyTutorialStep = 5
+            searchText = ""
+            isSearchFocused = false
         }
     }
 
@@ -440,18 +785,21 @@ struct HistoryView: View {
         HStack(spacing: 12) {
             Image(systemName: "trash.fill")
                 .foregroundStyle(.red)
-            Text(locale.localized(
-                "‘\(title)’ definitief verwijderd",
-                "‘\(title)’ permanently deleted"
-            ))
+            Text(locale.localizedFormat("feedback.permanentlyDeleted", title))
                 .font(.system(size: 14, weight: .medium))
-                .lineLimit(1)
+                .lineLimit(2)
+                .fixedSize(horizontal: false, vertical: true)
+                .layoutPriority(1)
             Spacer(minLength: 4)
-            Button(locale.localized("Ongedaan maken", "Undo"), action: undoPermanentDeletion)
+            Button(locale.localized("Ongedaan maken"), action: undoPermanentDeletion)
                 .font(.system(size: 14, weight: .semibold))
+                .fixedSize(horizontal: true, vertical: false)
+                .layoutPriority(2)
         }
         .padding(.horizontal, 14)
         .frame(minHeight: 50)
+        .contentShape(RoundedRectangle(cornerRadius: 14))
+        .onTapGesture(perform: undoPermanentDeletion)
         .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 14))
         .overlay {
             RoundedRectangle(cornerRadius: 14)
@@ -472,20 +820,21 @@ struct HistoryView: View {
         HStack(spacing: 12) {
             Image(systemName: "arrow.uturn.backward.circle.fill")
                 .foregroundStyle(.blue)
-            Text(locale.localized(
-                "‘\(title)’ teruggezet",
-                "‘\(title)’ restored"
-            ))
+            Text(locale.localizedFormat("feedback.restored", title))
                 .font(.system(size: 14, weight: .medium))
-                .lineLimit(1)
+                .lineLimit(2)
+                .fixedSize(horizontal: false, vertical: true)
+                .layoutPriority(1)
             Spacer(minLength: 4)
-            Button(locale.localized("Ongedaan maken", "Undo")) {
+            Button(locale.localized("Ongedaan maken")) {
                 undoRestore()
             }
             .font(.system(size: 14, weight: .semibold))
         }
         .padding(.horizontal, 14)
         .frame(minHeight: 50)
+        .contentShape(RoundedRectangle(cornerRadius: 14))
+        .onTapGesture(perform: undoRestore)
         .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 14))
         .overlay {
             RoundedRectangle(cornerRadius: 14)
@@ -499,11 +848,250 @@ struct HistoryView: View {
         row.undoRestore()
         try? modelContext.save()
         hideRestoreBar()
+        if visibleOnboardingStep == 3, row.id == tutorialExampleID {
+            historyTutorialStep = 4
+        }
+    }
+}
+
+private struct HistoryTopTitle: View {
+    let locale: Locale
+    let showsInfoHint: Bool
+    let isHelpExpanded: Bool
+    let toggleHelp: () -> Void
+
+    var body: some View {
+        Button(action: toggleHelp) {
+            HStack(spacing: 6) {
+                Text(AppSection.history.title(for: locale))
+                    .font(.system(size: 26, weight: .bold))
+
+                if showsInfoHint {
+                    Image(systemName: "info.circle.fill")
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundStyle(Color.brandHardBlue)
+                }
+            }
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(locale.localized("Uitleg over Afgerond"))
+        .accessibilityValue(isHelpExpanded
+            ? locale.localized("Uitgeklapt")
+            : locale.localized("Ingeklapt"))
+        .accessibilityHint(locale.localized("Tik om de uitleg in of uit te klappen"))
+    }
+}
+
+private struct HistoryHelpStep: Identifiable {
+    let id: Int
+    let icon: String
+    let key: String
+
+    func text(for locale: Locale) -> String {
+        locale.localized(key)
+    }
+}
+
+private struct HistoryHelpCard: View {
+    static let stepCount = 6
+
+    @Environment(\.openURL) private var openURL
+    @Environment(\.requestReview) private var requestReview
+
+    let locale: Locale
+    let step: Int
+    let isDeleteRevealed: Bool
+    let isCompleted: Bool
+    let previous: () -> Void
+    let next: () -> Void
+    let replay: () -> Void
+    let close: () -> Void
+
+    private let steps = [
+        HistoryHelpStep(
+            id: 0,
+            icon: "line.3.horizontal.decrease.circle",
+            key: "Gebruik de filterknoppen om alleen afgeronde items van een bepaalde tab te zien.",
+        ),
+        HistoryHelpStep(
+            id: 1,
+            icon: "magnifyingglass",
+            key: "onboarding.history.searchInstruction",
+        ),
+        HistoryHelpStep(
+            id: 2,
+            icon: "arrow.uturn.backward",
+            key: "Zet een item terug naar waar het vandaan kwam met de terugzetknop.",
+        ),
+        HistoryHelpStep(
+            id: 3,
+            icon: "arrow.counterclockwise",
+            key: "Toch niet? Tik onderin op Ongedaan maken. Normaal heb je hiervoor 5 seconden; tijdens deze uitleg blijft de melding staan.",
+        ),
+        HistoryHelpStep(
+            id: 4,
+            icon: "trash",
+            key: "Tik eerst op het icoon van het item. Tik daarna op het prullenbakje om het definitief te verwijderen.",
+        ),
+        HistoryHelpStep(
+            id: 5,
+            icon: "gearshape",
+            key: "Nog veel meer handige instellingen vind je achter het menu rechtsbovenin.",
+        )
+    ]
+
+    private var currentStep: HistoryHelpStep {
+        steps[min(max(step, 0), steps.count - 1)]
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            if isCompleted {
+                completedContent
+            } else {
+                VStack(alignment: .leading, spacing: 14) {
+                    VStack(alignment: .leading, spacing: 7) {
+                        HStack(spacing: 7) {
+                            Image(systemName: currentStep.icon)
+                                .font(.system(size: 13, weight: .semibold))
+                                .foregroundStyle(Color.brandHardBlue)
+                                .frame(width: 16, height: 16)
+
+                            Text(locale.localizedFormat("tutorial.step", step + 1, Self.stepCount))
+                            .font(.system(size: 12, weight: .bold))
+                            .foregroundStyle(Color.brandHardBlue)
+                        }
+
+                        Text(step == 4 && isDeleteRevealed
+                            ? locale.localized("Tik nu op het prullenbakje om het item definitief te verwijderen.")
+                            : currentStep.text(for: locale))
+                            .font(.system(size: 16, weight: .semibold))
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                    .frame(minHeight: step == 5 ? 0 : 84, alignment: .topLeading)
+
+                    if step == 5 {
+                        supportButtons
+                    }
+
+                    navigationControls
+                        .id("\(step)-\(isDeleteRevealed)")
+                        .transaction { transaction in
+                            transaction.animation = nil
+                        }
+                }
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .tutorialCardStyle(isCompleted: isCompleted, close: close)
+    }
+
+    private var navigationControls: some View {
+        HStack {
+            Button(action: previous) {
+                Image(systemName: "arrow.backward")
+                    .font(.system(size: 14, weight: .bold))
+                    .foregroundStyle(.secondary)
+                    .frame(width: 34, height: 30)
+            }
+            .buttonStyle(.plain)
+            .disabled(step == 0)
+            .opacity(step == 0 ? 0.25 : 1)
+            .accessibilityLabel(locale.localized("Vorige stap"))
+
+            Spacer()
+
+            Button(action: next) {
+                Image(systemName: "arrow.forward")
+                    .font(.system(size: 14, weight: .bold))
+                    .foregroundStyle(Color.brandHardBlue)
+                    .frame(width: 34, height: 30)
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel(locale.localized("Volgende stap"))
+        }
+    }
+
+    private var supportButtons: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Button {
+                if let url = URL(string: "mailto:hak@hakketjak.nl") {
+                    openURL(url)
+                }
+            } label: {
+                HStack(spacing: 7) {
+                    Image(systemName: "envelope")
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundStyle(.secondary)
+                        .frame(width: 16)
+
+                    supportLinkText(
+                        leading: locale.localized("Hulp nodig? Stuur ons een "),
+                        accent: "email"
+                    )
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel(locale.localized("Hulp nodig? Stuur ons een email"))
+
+            Button {
+                if let appStoreID = Bundle.main.object(forInfoDictionaryKey: "AppStoreID") as? String,
+                   !appStoreID.isEmpty,
+                   let url = URL(string: "itms-apps://itunes.apple.com/app/id\(appStoreID)?action=write-review") {
+                    openURL(url)
+                } else {
+                    requestReview()
+                }
+            } label: {
+                let reviewLink = supportLinkText(
+                    leading: locale.localized("Schrijf een "),
+                    accent: "review"
+                )
+                let reviewSuffix = Text(locale.localized(" over de app"))
+                    .foregroundStyle(.primary)
+
+                HStack(spacing: 7) {
+                    Image(systemName: "star")
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundStyle(.secondary)
+                        .frame(width: 16)
+
+                    Text("\(reviewLink)\(reviewSuffix)")
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .contentShape(Rectangle())
+            .buttonStyle(.plain)
+            .accessibilityLabel(locale.localized("Schrijf een review over de app"))
+        }
+        .font(.system(size: 14, weight: .medium))
+    }
+
+    private func supportLinkText(leading: String, accent: String) -> Text {
+        let leadingText = Text(leading).foregroundStyle(.primary)
+        let accentText = Text(accent)
+            .fontWeight(.semibold)
+            .foregroundStyle(Color.brandHardBlue)
+        return Text("\(leadingText)\(accentText)")
+    }
+
+    private var completedContent: some View {
+        TutorialCompletionContent(
+            message: locale.localized("Je weet nu precies hoe Afgerond werkt."),
+            replayTitle: locale.localized("Opnieuw"),
+            closeAccessibilityLabel: locale.localized("Sluiten"),
+            replay: replay,
+            close: close
+        )
     }
 }
 
 private struct HistorySummaryCard: View {
     @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.locale) private var locale
     let total: Int
     let lastSevenDays: Int
     let completionDates: [Date]
@@ -511,6 +1099,7 @@ private struct HistorySummaryCard: View {
     let activateDemoData: () -> Void
     let deactivateDemoData: () -> Void
     @State private var isExpanded = false
+    @State private var isPressingDemoActivation = false
 
     private var chartsHeight: CGFloat {
         let count = HistoryChartPeriod.available(for: completionDates).count
@@ -528,27 +1117,29 @@ private struct HistorySummaryCard: View {
                         .foregroundStyle(Color.brandHardBlue)
                 }
                 .frame(width: 42, height: 42)
+                .scaleEffect(isPressingDemoActivation ? 0.92 : 1)
+                .animation(.easeInOut(duration: 0.18), value: isPressingDemoActivation)
                 .contentShape(RoundedRectangle(cornerRadius: 11))
-                .onTapGesture(count: isDemoActive ? 1 : 5) {
-                    if isDemoActive {
-                        deactivateDemoData()
-                    } else {
-                        activateDemoData()
-                        withAnimation(.snappy(duration: 0.38, extraBounce: 0)) {
-                            isExpanded = true
-                        }
-                    }
+                .onTapGesture {
+                    guard isDemoActive else { return }
+                    deactivateDemoData()
+                }
+                .onLongPressGesture(minimumDuration: 3, maximumDistance: 30) {
+                    guard !isDemoActive else { return }
+                    activateDemoAndExpand()
+                } onPressingChanged: { isPressing in
+                    isPressingDemoActivation = !isDemoActive && isPressing
                 }
                 .accessibilityAction(named: isDemoActive ? "Demodata verwijderen" : "Demodata activeren") {
                     if isDemoActive {
                         deactivateDemoData()
                     } else {
-                        activateDemoData()
-                        withAnimation(.snappy(duration: 0.38, extraBounce: 0)) {
-                            isExpanded = true
-                        }
+                        activateDemoAndExpand()
                     }
                 }
+                .accessibilityHint(isDemoActive
+                    ? locale.localized("Tik om demodata te verwijderen.")
+                    : locale.localized("Houd 3 seconden ingedrukt om demodata te activeren."))
 
                 VStack(alignment: .leading, spacing: 3) {
                     Text("\(total) afgerond")
@@ -602,6 +1193,13 @@ private struct HistorySummaryCard: View {
         }
         .buttonStyle(.plain)
         .accessibilityLabel(isExpanded ? "Grafieken inklappen" : "Grafieken uitklappen")
+    }
+
+    private func activateDemoAndExpand() {
+        activateDemoData()
+        withAnimation(.snappy(duration: 0.38, extraBounce: 0)) {
+            isExpanded = true
+        }
     }
 }
 
@@ -711,9 +1309,9 @@ private enum HistoryChartPeriod: String, Identifiable {
 
     func title(for locale: Locale) -> String {
         switch self {
-        case .days: locale.localized("Afgelopen 7 dagen", "Last 7 Days")
-        case .weeks: locale.localized("Afgelopen 10 weken", "Last 10 Weeks")
-        case .months: locale.localized("Afgelopen 12 maanden", "Last 12 Months")
+        case .days: locale.localized("Afgelopen 7 dagen")
+        case .weeks: locale.localized("Afgelopen 10 weken")
+        case .months: locale.localized("Afgelopen 12 maanden")
         }
     }
 
@@ -787,6 +1385,8 @@ private enum HistoryChartPeriod: String, Identifiable {
 private struct HistoryFilterBar: View {
     @Binding var selection: HistoryFilter
     let count: (HistoryFilter) -> Int
+    let isOnboardingHighlighted: Bool
+    let selected: () -> Void
 
     var body: some View {
         HStack(spacing: 8) {
@@ -798,10 +1398,19 @@ private struct HistoryFilterBar: View {
                     showsTitle: filter == .all
                 ) {
                     selection = filter
+                    selected()
                 }
             }
         }
         .frame(maxWidth: .infinity)
+        .padding(4)
+        .overlay {
+            if isOnboardingHighlighted {
+                RoundedRectangle(cornerRadius: 24)
+                    .stroke(Color.brandHardBlue, lineWidth: 3)
+                    .allowsHitTesting(false)
+            }
+        }
     }
 }
 
@@ -829,6 +1438,7 @@ private struct HistoryFilterChip: View {
             label
         }
         .buttonStyle(.plain)
+        .accessibilityIdentifier("history.filter.\(filter.rawValue)")
         .accessibilityLabel("\(filter.title(for: locale)), \(itemCount) items")
         .accessibilityAddTraits(isSelected ? .isSelected : [])
     }
@@ -865,6 +1475,9 @@ private struct HistoryFilterChip: View {
 private struct HistorySearchBar: View {
     @Environment(\.locale) private var locale
     @Binding var text: String
+    @FocusState.Binding var isFocused: Bool
+    let isOnboardingHighlighted: Bool
+    let tapped: () -> Void
 
     var body: some View {
         HStack(spacing: 10) {
@@ -873,13 +1486,14 @@ private struct HistorySearchBar: View {
                 .foregroundStyle(.secondary)
 
             TextField(
-                locale.localized("Zoek in Afgerond", "Search Finished"),
+                locale.localized("Zoek in Afgerond"),
                 text: $text
             )
             .font(.system(size: 15))
             .textInputAutocapitalization(.never)
             .autocorrectionDisabled()
             .submitLabel(.search)
+            .focused($isFocused)
 
             if !text.isEmpty {
                 Button {
@@ -890,7 +1504,7 @@ private struct HistorySearchBar: View {
                         .foregroundStyle(.secondary)
                 }
                 .buttonStyle(.plain)
-                .accessibilityLabel(locale.localized("Zoekopdracht wissen", "Clear search"))
+                .accessibilityLabel(locale.localized("Zoekopdracht wissen"))
             }
         }
         .padding(.horizontal, 13)
@@ -898,8 +1512,12 @@ private struct HistorySearchBar: View {
         .background(Color(.secondarySystemBackground), in: RoundedRectangle(cornerRadius: 14))
         .overlay {
             RoundedRectangle(cornerRadius: 14)
-                .stroke(Color.primary.opacity(0.045), lineWidth: 1)
+                .stroke(
+                    isOnboardingHighlighted ? Color.brandHardBlue : Color.primary.opacity(0.045),
+                    lineWidth: isOnboardingHighlighted ? 3 : 1
+                )
         }
+        .simultaneousGesture(TapGesture().onEnded(tapped))
     }
 }
 
@@ -909,8 +1527,12 @@ private struct HistoryDayCard: View {
     let section: HistoryDaySection
     let searchText: String
     let selectedDeletionRowID: UUID?
+    let tutorialExampleID: UUID?
+    let onboardingStep: Int?
+    let hasActivePermanentDeleteMode: Bool
     let revealPermanentDelete: (HistoryRow) -> Void
     let permanentlyDelete: (HistoryRow) -> Void
+    let dismissPermanentDelete: () -> Void
     let restore: (HistoryRow) -> Void
 
     var body: some View {
@@ -925,8 +1547,17 @@ private struct HistoryDayCard: View {
                         row: row,
                         searchText: searchText,
                         showsPermanentDelete: selectedDeletionRowID == row.id,
+                        highlightsRestore: onboardingStep == 2 && tutorialExampleID == row.id,
+                        highlightsSourceIcon: onboardingStep == 4
+                            && tutorialExampleID == row.id
+                            && selectedDeletionRowID != row.id,
+                        highlightsPermanentDelete: onboardingStep == 4
+                            && tutorialExampleID == row.id
+                            && selectedDeletionRowID == row.id,
+                        hasActivePermanentDeleteMode: hasActivePermanentDeleteMode,
                         revealPermanentDelete: { revealPermanentDelete(row) },
                         permanentlyDelete: { permanentlyDelete(row) },
+                        dismissPermanentDelete: dismissPermanentDelete,
                         restore: { restore(row) }
                     )
                     .padding(.leading, 14)
@@ -955,8 +1586,13 @@ private struct HistoryItemRow: View {
     let row: HistoryRow
     let searchText: String
     let showsPermanentDelete: Bool
+    let highlightsRestore: Bool
+    let highlightsSourceIcon: Bool
+    let highlightsPermanentDelete: Bool
+    let hasActivePermanentDeleteMode: Bool
     let revealPermanentDelete: () -> Void
     let permanentlyDelete: () -> Void
+    let dismissPermanentDelete: () -> Void
     let restore: () -> Void
 
     var body: some View {
@@ -973,6 +1609,14 @@ private struct HistoryItemRow: View {
             }
             .buttonStyle(.plain)
             .accessibilityLabel("Acties voor \(row.title)")
+            .overlay {
+                if highlightsSourceIcon {
+                    RoundedRectangle(cornerRadius: 14)
+                        .stroke(Color.brandHardBlue, lineWidth: 3)
+                        .padding(-4)
+                        .allowsHitTesting(false)
+                }
+            }
 
             VStack(alignment: .leading, spacing: 4) {
                 Text(highlightedTitle)
@@ -982,7 +1626,7 @@ private struct HistoryItemRow: View {
                     .strikethrough(row.isRemoved)
 
                 HStack(spacing: 5) {
-                    Text(row.source.title(for: locale))
+                    Text(row.categoryTitle)
                     Text("·")
                     Text(row.completedAt.formatted(date: .omitted, time: .shortened))
                 }
@@ -996,12 +1640,21 @@ private struct HistoryItemRow: View {
                 Button(role: .destructive, action: permanentlyDelete) {
                     Image(systemName: "trash")
                         .font(.system(size: 14, weight: .semibold))
+                        .foregroundStyle(.red)
                         .frame(width: 36, height: 36)
                         .background(RecurringThemeColorOption.red.backgroundColor, in: Circle())
                 }
                 .buttonStyle(.plain)
                 .transition(.opacity.combined(with: .scale))
                 .accessibilityLabel("Definitief verwijderen")
+                .overlay {
+                    if highlightsPermanentDelete {
+                        Circle()
+                            .stroke(Color.brandHardBlue, lineWidth: 3)
+                            .padding(-4)
+                            .allowsHitTesting(false)
+                    }
+                }
             } else {
                 Button(action: restore) {
                     Image(systemName: "arrow.uturn.backward")
@@ -1012,13 +1665,26 @@ private struct HistoryItemRow: View {
                 }
                 .buttonStyle(.plain)
                 .transition(.opacity.combined(with: .scale))
-                .accessibilityLabel(locale.localized(
-                    "Zet terug naar \(row.source.title(for: locale))",
-                    "Restore to \(row.source.title(for: locale))"
+                .accessibilityLabel(locale.localizedFormat(
+                    "history.restoreTo",
+                    row.source.title(for: locale)
                 ))
+                .overlay {
+                    if highlightsRestore {
+                        Circle()
+                            .stroke(Color.brandHardBlue, lineWidth: 3)
+                            .padding(-4)
+                            .allowsHitTesting(false)
+                    }
+                }
             }
         }
         .contentShape(Rectangle())
+        .onTapGesture {
+            if hasActivePermanentDeleteMode {
+                dismissPermanentDelete()
+            }
+        }
         .contextMenu {
             Button("Terugzetten", systemImage: "arrow.uturn.backward", action: restore)
             Button("Definitief verwijderen", systemImage: "trash", role: .destructive, action: permanentlyDelete)
@@ -1060,27 +1726,21 @@ private struct HistoryEmptyState: View {
 
     private var title: String {
         if hasSearchQuery {
-            return locale.localized("Geen zoekresultaten", "No search results")
+            return locale.localized("Geen zoekresultaten")
         }
         if filter == .all {
-            return locale.localized("Nog niets afgerond", "Nothing finished yet")
+            return locale.localized("Nog niets afgerond")
         }
-        return locale.localized(
-            "Geen afgeronde \(filter.title(for: locale).lowercased())-items",
-            "No completed \(filter.title(for: locale).lowercased()) items"
+        return locale.localizedFormat(
+            "history.noCompletedFilter",
+            filter.title(for: locale).lowercased()
         )
     }
 
     private var subtitle: String {
         hasSearchQuery
-            ? locale.localized(
-                "Probeer een andere zoekopdracht of wis de zoekbalk.",
-                "Try another search or clear the search bar."
-            )
-            : locale.localized(
-                "Afgeronde items verschijnen hier automatisch en kun je altijd weer terugzetten.",
-                "Completed items appear here automatically and can always be restored."
-            )
+            ? locale.localized("Probeer een andere zoekopdracht of wis de zoekbalk.")
+            : locale.localized("Afgeronde items verschijnen hier automatisch en kun je altijd weer terugzetten.")
     }
 
     var body: some View {
@@ -1117,8 +1777,8 @@ private struct HistoryDaySection: Identifiable {
     var id: Date { date }
 
     func title(for locale: Locale) -> String {
-        if AppCalendar.calendar.isDateInToday(date) { return locale.localized("Vandaag", "Today") }
-        if AppCalendar.calendar.isDateInYesterday(date) { return locale.localized("Gisteren", "Yesterday") }
+        if AppCalendar.calendar.isDateInToday(date) { return locale.localized("Vandaag") }
+        if AppCalendar.calendar.isDateInYesterday(date) { return locale.localized("Gisteren") }
         return AppCalendar.localizedDate(date, template: "EEEEdMMMM")
     }
 
@@ -1131,9 +1791,9 @@ private enum HistorySource {
 
     func title(for locale: Locale) -> String {
         switch self {
-        case .agenda: locale.localized("Agenda", "Calendar")
-        case .recurring: locale.localized("Herhalingen", "Recurring")
-        case .todo: locale.localized("Taken", "Tasks")
+        case .agenda: locale.localized("Agenda")
+        case .recurring: locale.localized("Herhalingen")
+        case .todo: locale.localized("Taken")
         }
     }
 
@@ -1158,6 +1818,7 @@ private struct HistoryRow: Identifiable {
     let id: UUID
     let title: String
     let source: HistorySource
+    let categoryTitle: String
     let completedAt: Date
     let color: Color
     let backgroundColor: Color
@@ -1166,11 +1827,19 @@ private struct HistoryRow: Identifiable {
     private let originalCompletedAt: Date?
     private let entry: DayEntry?
     private let todo: TodoItem?
+    private let recurringItem: RecurringItem?
 
-    init(entry: DayEntry, source: HistorySource, color: Color, backgroundColor: Color) {
+    init(
+        entry: DayEntry,
+        source: HistorySource,
+        categoryTitle: String? = nil,
+        color: Color,
+        backgroundColor: Color
+    ) {
         id = entry.id
         title = entry.rawText
         self.source = source
+        self.categoryTitle = categoryTitle ?? source.title(for: AppCalendar.locale)
         completedAt = entry.completedAt ?? entry.date
         self.color = color
         self.backgroundColor = backgroundColor
@@ -1179,12 +1848,14 @@ private struct HistoryRow: Identifiable {
         originalCompletedAt = entry.completedAt
         self.entry = entry
         todo = nil
+        recurringItem = nil
     }
 
-    init(todo: TodoItem, color: Color, backgroundColor: Color) {
+    init(todo: TodoItem, categoryTitle: String, color: Color, backgroundColor: Color) {
         id = todo.id
         title = todo.text
         source = .todo
+        self.categoryTitle = categoryTitle
         completedAt = todo.completedAt ?? todo.createdAt
         self.color = color
         self.backgroundColor = backgroundColor
@@ -1193,6 +1864,23 @@ private struct HistoryRow: Identifiable {
         originalCompletedAt = todo.completedAt
         entry = nil
         self.todo = todo
+        recurringItem = nil
+    }
+
+    init(recurringItem: RecurringItem, categoryTitle: String, color: Color, backgroundColor: Color) {
+        id = recurringItem.id
+        title = recurringItem.title
+        source = .recurring
+        self.categoryTitle = categoryTitle
+        completedAt = recurringItem.completedAt ?? recurringItem.createdAt
+        self.color = color
+        self.backgroundColor = backgroundColor
+        isDone = false
+        isRemoved = recurringItem.isRemoved
+        originalCompletedAt = recurringItem.completedAt
+        entry = nil
+        todo = nil
+        self.recurringItem = recurringItem
     }
 
     func restore() {
@@ -1202,6 +1890,8 @@ private struct HistoryRow: Identifiable {
         todo?.isDone = false
         todo?.isRemoved = false
         todo?.completedAt = nil
+        recurringItem?.isRemoved = false
+        recurringItem?.completedAt = nil
     }
 
     func undoRestore() {
@@ -1211,6 +1901,8 @@ private struct HistoryRow: Identifiable {
         todo?.isDone = isDone
         todo?.isRemoved = isRemoved
         todo?.completedAt = originalCompletedAt
+        recurringItem?.isRemoved = isRemoved
+        recurringItem?.completedAt = originalCompletedAt
     }
 
     func permanentlyDelete(in modelContext: ModelContext) {
@@ -1221,6 +1913,9 @@ private struct HistoryRow: Identifiable {
         }
         if let todo {
             modelContext.delete(todo)
+        }
+        if let recurringItem {
+            modelContext.delete(recurringItem)
         }
     }
 }

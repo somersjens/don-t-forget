@@ -22,9 +22,9 @@ enum RecurringTheme: String, Codable, CaseIterable, Identifiable {
 
     var title: String {
         switch self {
-        case .birthday: "Verjaardagen"
-        case .general: "Algemeen"
-        case .personal: "Persoonlijk"
+        case .birthday: AppCalendar.locale.localized("category.recurring.birthdays")
+        case .general: AppCalendar.locale.localized("category.recurring.general")
+        case .personal: AppCalendar.locale.localized("Persoonlijk")
         }
     }
 }
@@ -202,9 +202,14 @@ final class RecurringItem {
     var birthdayYearUncertain: Bool = false
     var notes: String = ""
     var linksData: String = ""
+    /// Ordered schedule changes applied from a particular generated occurrence onward.
+    /// Keeping these separate from the recurrence anchor preserves earlier occurrences.
+    var scheduleShiftsData: String = ""
     var recurrenceConfigurationVersion: Int = 0
 
     var createdAt: Date = Date.now
+    var isRemoved: Bool = false
+    var completedAt: Date?
 
     init(
         title: String = "",
@@ -243,10 +248,13 @@ final class RecurringItem {
         self.birthDate = birthDate.map { AppCalendar.startOfDay($0) }
         self.notes = notes
         self.linksData = linksData
+        self.scheduleShiftsData = ""
         self.recurrenceConfigurationVersion = frequencyText
             .trimmingCharacters(in: .whitespacesAndNewlines)
             .isEmpty ? 1 : 0
         self.createdAt = .now
+        self.isRemoved = false
+        self.completedAt = nil
     }
 
 

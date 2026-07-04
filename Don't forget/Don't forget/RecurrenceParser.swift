@@ -83,10 +83,10 @@ enum RecurrenceParser {
     static func statusText(for frequencyText: String) -> String {
         guard let parsed = parse(frequencyText) else {
             if frequencyText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                return "Voeg frequentie toe"
+                return AppCalendar.locale.localized("recurrence.frequency.add")
             }
 
-            return "Frequentie nog niet herkend"
+            return AppCalendar.locale.localized("recurrence.frequency.unrecognized")
         }
 
         return parsed.displayText

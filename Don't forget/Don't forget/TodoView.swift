@@ -91,7 +91,7 @@ enum TodoGroupStore {
             let fallback = localizedDefaults.first { $0.id == id }
             let title: String
             if group.trimmedTitle.isEmpty {
-                title = fallback?.title ?? AppCalendar.locale.localized("Nieuw", "New")
+                title = fallback?.title ?? AppCalendar.locale.localized("Nieuw")
             } else if let fallback, isDefaultTitle(group.trimmedTitle, for: id) {
                 // Untouched built-in names follow the selected app language.
                 title = fallback.title
@@ -306,6 +306,10 @@ struct TodoView: View {
                                 .frame(width: 44, height: 44)
                         }
                         .glassEffect(.regular.interactive(), in: Circle())
+                        .background(
+                            visibleOnboardingStep == 3 ? Color.brandLightBlue : Color.clear,
+                            in: Circle()
+                        )
                         .disabled(!(undoManager?.canUndo ?? false))
                         .accessibilityLabel("Laatste wijziging terugdraaien")
                         .overlay {
@@ -328,6 +332,10 @@ struct TodoView: View {
                                 .frame(width: 44, height: 44)
                         }
                         .glassEffect(.regular.interactive(), in: Circle())
+                        .background(
+                            visibleOnboardingStep == 2 ? Color.brandLightBlue : Color.clear,
+                            in: Circle()
+                        )
                         .disabled(!isKeyboardVisible)
                         .accessibilityLabel("Toetsenbord sluiten")
                         .overlay {
@@ -345,19 +353,22 @@ struct TodoView: View {
                 .padding(.vertical, 6)
             }
             .safeAreaInset(edge: .bottom, spacing: 8) {
-                if recentlyMovedToAgenda != nil {
-                    moveToAgendaUndoBar
-                        .padding(.horizontal, 14)
-                        .transition(.move(edge: .bottom).combined(with: .opacity))
-                } else if recentlyRemovedTodo != nil {
-                    removalUndoBar
-                        .padding(.horizontal, 14)
-                        .transition(.move(edge: .bottom).combined(with: .opacity))
-                } else if recentlyCompletedTodo != nil {
-                    completionUndoBar
-                        .padding(.horizontal, 14)
-                        .transition(.move(edge: .bottom).combined(with: .opacity))
+                Group {
+                    if recentlyMovedToAgenda != nil {
+                        moveToAgendaUndoBar
+                            .padding(.horizontal, 14)
+                            .transition(.move(edge: .bottom).combined(with: .opacity))
+                    } else if recentlyRemovedTodo != nil {
+                        removalUndoBar
+                            .padding(.horizontal, 14)
+                            .transition(.move(edge: .bottom).combined(with: .opacity))
+                    } else if recentlyCompletedTodo != nil {
+                        completionUndoBar
+                            .padding(.horizontal, 14)
+                            .transition(.move(edge: .bottom).combined(with: .opacity))
+                    }
                 }
+                .padding(.bottom, 4)
             }
             .onAppear {
                 modelContext.undoManager = undoManager
@@ -765,18 +776,19 @@ struct TodoView: View {
         HStack(spacing: 12) {
             Image(systemName: "trash.fill")
                 .foregroundStyle(.red)
-            Text(locale.localized(
-                "‘\(recentlyRemovedTodoTitle)’ verwijderd",
-                "‘\(recentlyRemovedTodoTitle)’ deleted"
-            ))
+            Text(locale.localizedFormat("feedback.deleted", recentlyRemovedTodoTitle))
                 .font(.system(size: 14, weight: .medium))
-                .lineLimit(1)
+                .lineLimit(2)
+                .fixedSize(horizontal: false, vertical: true)
+                .layoutPriority(1)
             Spacer(minLength: 4)
-            Button(locale.localized("Ongedaan maken", "Undo"), action: undoRemoval)
+            Button(locale.localized("Ongedaan maken"), action: undoRemoval)
                 .font(.system(size: 14, weight: .semibold))
         }
         .padding(.horizontal, 14)
         .frame(minHeight: 50)
+        .contentShape(RoundedRectangle(cornerRadius: 14))
+        .onTapGesture(perform: undoRemoval)
         .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 14))
         .overlay {
             RoundedRectangle(cornerRadius: 14)
@@ -827,12 +839,18 @@ struct TodoView: View {
             Text(moveToAgendaUndoText)
                 .font(.system(size: 14, weight: .medium))
                 .lineLimit(2)
+                .truncationMode(.tail)
+                .frame(maxWidth: .infinity, alignment: .leading)
             Spacer(minLength: 4)
-            Button(locale.localized("Ongedaan maken", "Undo"), action: undoMoveToAgenda)
+            Button(locale.localized("Ongedaan maken"), action: undoMoveToAgenda)
                 .font(.system(size: 14, weight: .semibold))
+                .fixedSize(horizontal: true, vertical: false)
+                .layoutPriority(1)
         }
         .padding(.horizontal, 14)
         .frame(minHeight: 50)
+        .contentShape(RoundedRectangle(cornerRadius: 14))
+        .onTapGesture(perform: undoMoveToAgenda)
         .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 14))
         .overlay {
             RoundedRectangle(cornerRadius: 14)
@@ -844,10 +862,7 @@ struct TodoView: View {
     private var moveToAgendaUndoText: String {
         guard let move = recentlyMovedToAgenda else { return "" }
         let date = AppCalendar.localizedDate(move.destinationDate, template: "dMMM")
-        return locale.localized(
-            "‘\(move.text)’ verplaatst naar \(date)",
-            "‘\(move.text)’ moved to \(date)"
-        )
+        return locale.localizedFormat("todo.movedToDate", move.text, date)
     }
 
     private func undoCompletion() {
@@ -865,20 +880,19 @@ struct TodoView: View {
         HStack(spacing: 12) {
             Image(systemName: "checkmark.circle.fill")
                 .foregroundStyle(.green)
-            Text(locale.localized(
-                "Taak verplaatst\nnaar Afgerond",
-                "Task moved\nto Finished"
-            ))
+            Text(locale.localized("Taak verplaatst\nnaar Afgerond"))
                 .font(.system(size: 14, weight: .medium))
                 .lineLimit(2)
                 .fixedSize(horizontal: false, vertical: true)
                 .layoutPriority(1)
             Spacer(minLength: 4)
-            Button(locale.localized("Ongedaan maken", "Undo"), action: undoCompletion)
+            Button(locale.localized("Ongedaan maken"), action: undoCompletion)
                 .font(.system(size: 14, weight: .semibold))
         }
         .padding(.horizontal, 14)
         .frame(minHeight: 50)
+        .contentShape(RoundedRectangle(cornerRadius: 14))
+        .onTapGesture(perform: undoCompletion)
         .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 14))
         .overlay {
             RoundedRectangle(cornerRadius: 14)
@@ -909,25 +923,21 @@ private struct TodoTopTitle: View {
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-        .accessibilityLabel(locale.localized("Uitleg over Taken", "Tasks help"))
+        .accessibilityLabel(locale.localized("Uitleg over Taken"))
         .accessibilityValue(isHelpExpanded
-            ? locale.localized("Uitgeklapt", "Expanded")
-            : locale.localized("Ingeklapt", "Collapsed"))
-        .accessibilityHint(locale.localized(
-            "Tik om de uitleg in of uit te klappen",
-            "Tap to expand or collapse help"
-        ))
+            ? locale.localized("Uitgeklapt")
+            : locale.localized("Ingeklapt"))
+        .accessibilityHint(locale.localized("Tik om de uitleg in of uit te klappen"))
     }
 }
 
 private struct TodoHelpStep: Identifiable {
     let id: Int
     let icon: String
-    let dutch: String
-    let english: String
+    let key: String
 
     func text(for locale: Locale) -> String {
-        locale.localized(dutch, english)
+        locale.localized(key)
     }
 }
 
@@ -946,38 +956,32 @@ private struct TodoHelpCard: View {
         TodoHelpStep(
             id: 0,
             icon: "text.cursor",
-            dutch: "Maak een taak in een categorie door in het invoerveld iets te schrijven.",
-            english: "Create a task in a category by typing something in its input field."
+            key: "Maak een taak in een categorie door in het invoerveld iets te schrijven.",
         ),
         TodoHelpStep(
             id: 1,
             icon: "plus",
-            dutch: "Tik op het plusje om direct nog een taak aan te maken.",
-            english: "Tap the plus to immediately create another task."
+            key: "Tik op het plusje om direct nog een taak aan te maken.",
         ),
         TodoHelpStep(
             id: 2,
             icon: "checkmark",
-            dutch: "Beschrijf nog een taak, of tik rechtsboven op het vinkje om de invoer af te ronden.",
-            english: "Describe another task, or tap the checkmark at the top right to finish entering tasks."
+            key: "Beschrijf nog een taak, of tik rechtsboven op het vinkje om de invoer af te ronden.",
         ),
         TodoHelpStep(
             id: 3,
             icon: "arrow.uturn.backward",
-            dutch: "Tik op de pijl linksboven om je laatste invoer ongedaan te maken. Dit kan voor maximaal drie invoeren.",
-            english: "Tap the arrow at the top left to undo your latest entry. You can do this for up to three entries."
+            key: "Tik op de pijl linksboven om je laatste invoer ongedaan te maken. Dit kan voor maximaal drie invoeren.",
         ),
         TodoHelpStep(
             id: 4,
             icon: "arrow.left.arrow.right",
-            dutch: "Voor elke taak staat hoe lang die openstaat. Tik hierop om de taak naar een andere categorie of de kalender te verplaatsen.",
-            english: "Each task shows how long it has been open. Tap this time indicator to move the task to another category or the calendar."
+            key: "Voor elke taak staat hoe lang die openstaat. Tik hierop om de taak naar een andere categorie of de kalender te verplaatsen.",
         ),
         TodoHelpStep(
             id: 5,
             icon: "chevron.up.chevron.down",
-            dutch: "Pas de volgorde van categorieën aan via de chevrons.",
-            english: "Change the category order using the chevrons."
+            key: "Pas de volgorde van categorieën aan via de chevrons.",
         )
     ]
 
@@ -994,13 +998,7 @@ private struct TodoHelpCard: View {
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(16)
-        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
-        .overlay {
-            RoundedRectangle(cornerRadius: 18, style: .continuous)
-                .stroke(Color.brandHardBlue.opacity(0.16), lineWidth: 1)
-        }
-        .shadow(color: .black.opacity(0.08), radius: 12, y: 5)
+        .tutorialCardStyle(isCompleted: isCompleted, close: close)
     }
 
     private var stepContent: some View {
@@ -1012,10 +1010,7 @@ private struct TodoHelpCard: View {
                         .foregroundStyle(Color.brandHardBlue)
                         .frame(width: 16, height: 16)
 
-                    Text(locale.localized(
-                        "Stap \(step + 1)/\(Self.stepCount)",
-                        "Step \(step + 1)/\(Self.stepCount)"
-                    ))
+                    Text(locale.localizedFormat("tutorial.step", step + 1, Self.stepCount))
                     .font(.system(size: 12, weight: .bold))
                     .foregroundStyle(Color.brandHardBlue)
                 }
@@ -1027,7 +1022,7 @@ private struct TodoHelpCard: View {
 
             HStack {
                 Button(action: previous) {
-                    Image(systemName: "arrow.left")
+                    Image(systemName: "arrow.backward")
                         .font(.system(size: 14, weight: .bold))
                         .foregroundStyle(.secondary)
                         .frame(width: 34, height: 30)
@@ -1035,18 +1030,18 @@ private struct TodoHelpCard: View {
                 .buttonStyle(.plain)
                 .disabled(step == 0)
                 .opacity(step == 0 ? 0.25 : 1)
-                .accessibilityLabel(locale.localized("Vorige stap", "Previous step"))
+                .accessibilityLabel(locale.localized("Vorige stap"))
 
                 Spacer()
 
                 Button(action: next) {
-                    Image(systemName: "arrow.right")
+                    Image(systemName: "arrow.forward")
                         .font(.system(size: 14, weight: .bold))
                         .foregroundStyle(Color.brandHardBlue)
                         .frame(width: 34, height: 30)
                 }
                 .buttonStyle(.plain)
-                .accessibilityLabel(locale.localized("Volgende stap", "Next step"))
+                .accessibilityLabel(locale.localized("Volgende stap"))
             }
             .id(step)
             .transaction { transaction in
@@ -1056,24 +1051,13 @@ private struct TodoHelpCard: View {
     }
 
     private var completedContent: some View {
-        HStack(spacing: 11) {
-            Image(systemName: "checkmark.circle.fill")
-                .font(.system(size: 21))
-                .foregroundStyle(Color.brandHardBlue)
-            Text(locale.localized("Je kent de basis.", "You know the basics."))
-                .font(.system(size: 15, weight: .semibold))
-            Spacer()
-            Button(locale.localized("Opnieuw", "Replay"), action: replay)
-                .font(.system(size: 13, weight: .semibold))
-            Button(action: close) {
-                Image(systemName: "xmark")
-                    .font(.system(size: 12, weight: .bold))
-                    .foregroundStyle(.secondary)
-                    .frame(width: 28, height: 28)
-            }
-            .buttonStyle(.plain)
-            .accessibilityLabel(locale.localized("Sluiten", "Close"))
-        }
+        TutorialCompletionContent(
+            message: locale.localized("Je hebt je taken helemaal in de hand."),
+            replayTitle: locale.localized("Opnieuw"),
+            closeAccessibilityLabel: locale.localized("Sluiten"),
+            replay: replay,
+            close: close
+        )
     }
 }
 
@@ -1465,7 +1449,8 @@ private struct TodoLine: View {
                     .font(.system(size: 18))
                     .symbolRenderingMode(.hierarchical)
                     .foregroundStyle(todo.isDone ? .secondary : .primary)
-                    .frame(width: 36, height: 24)
+                    .frame(width: 24, height: 24)
+                    .contentShape(Rectangle().inset(by: -6))
             }
             .buttonStyle(.plain)
         }
@@ -1601,23 +1586,21 @@ private struct TodoLine: View {
 
     private var ageBadgeText: String {
         let days = TodoAge.daysOpen(since: todo.createdAt)
-        if days == 0 { return "nu" }
-        if days < 14 { return "\(days)d" }
-        if days < 70 { return "\(days / 7)w" }
-        return "\(days / 30)m"
+        if days == 0 { return AppCalendar.locale.localized("todo.age.now") }
+        if days < 14 { return AppCalendar.locale.localizedFormat("todo.age.daysShort", days) }
+        if days < 70 { return AppCalendar.locale.localizedFormat("todo.age.weeksShort", days / 7) }
+        return AppCalendar.locale.localizedFormat("todo.age.monthsShort", days / 30)
     }
 
     private var accessibleAgeText: String {
         let days = TodoAge.daysOpen(since: todo.createdAt)
-        return days == 0 ? "Vandaag aangemaakt" : "\(days) dagen open"
+        return days == 0
+            ? AppCalendar.locale.localized("todo.age.createdToday")
+            : AppCalendar.locale.localizedFormat("todo.age.daysOpen", days)
     }
 
     private var todayDateText: String {
-        let formatter = DateFormatter()
-        formatter.calendar = AppCalendar.calendar
-        formatter.locale = Locale(identifier: "nl_NL")
-        formatter.dateFormat = "dd/MM"
-        return formatter.string(from: .now)
+        AppCalendar.localizedDate(.now, template: "Md")
     }
 
     private func deleteTodo() {
@@ -1702,6 +1685,7 @@ private struct NewTodoLine: View {
                 .focused($isTextFieldFocused)
                 .lineLimit(1...)
                 .fixedSize(horizontal: false, vertical: true)
+                .frame(height: text.isEmpty ? 24 : nil, alignment: .top)
                 .foregroundStyle(.primary)
                 .submitLabel(.done)
                 .onChange(of: text) { _, newValue in
