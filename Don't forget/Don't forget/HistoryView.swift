@@ -1028,7 +1028,7 @@ private struct HistoryHelpCard: View {
 
                     supportLinkText(
                         leading: locale.localized("Hulp nodig? Stuur ons een "),
-                        accent: "email"
+                        accent: locale.localized("onboarding.history.emailAccent")
                     )
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
