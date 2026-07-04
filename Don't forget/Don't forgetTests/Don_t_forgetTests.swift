@@ -79,7 +79,7 @@ final class Don_t_forgetTests: XCTestCase {
         let data = try Data(contentsOf: catalogURL)
         let json = try XCTUnwrap(JSONSerialization.jsonObject(with: data) as? [String: Any])
         let strings = try XCTUnwrap(json["strings"] as? [String: Any])
-        let key = "Taak verplaatst\nnaar History"
+        let key = "Taak verplaatst\nnaar Afgerond"
         let entry = try XCTUnwrap(strings[key] as? [String: Any])
         let localizations = try XCTUnwrap(entry["localizations"] as? [String: Any])
 
@@ -89,8 +89,8 @@ final class Don_t_forgetTests: XCTestCase {
             return try XCTUnwrap(unit["value"] as? String)
         }
 
-        XCTAssertEqual(try value("nl"), "Taak verplaatst\nnaar geschiedenis")
-        XCTAssertEqual(try value("en"), "Task Moved\nto History")
+        XCTAssertEqual(try value("nl"), "Taak verplaatst\nnaar Afgerond")
+        XCTAssertEqual(try value("en"), "Task Moved\nto Finished")
     }
 
     override func setUpWithError() throws {

@@ -179,6 +179,13 @@ private struct TodoAgendaMoveUndo {
     let createdAt: Date
 }
 
+private struct TodoTutorialInputCommand: Equatable {
+    let id: Int
+    let text: String?
+    let submitsCurrentText: Bool
+    let focusesField: Bool
+}
+
 struct TodoView: View {
     @Environment(\.modelContext)
     private var modelContext
@@ -207,12 +214,30 @@ struct TodoView: View {
     @State private var recentlyRemovedTodoTitle = ""
     @State private var recentlyMovedToAgenda: TodoAgendaMoveUndo?
     @State private var activeReorderHintIDs: Set<UUID> = []
+    @State private var isHelpExpanded = false
+    @State private var onboardingTodoID: UUID?
+    @State private var todoTutorialDraftText = ""
+    @State private var todoTutorialInputCommand: TodoTutorialInputCommand?
+    @State private var todoTutorialInputCommandID = 0
 
     @AppStorage(SettingsKeys.todoGroups) private var todoGroupsData = ""
+
+    @AppStorage(SettingsKeys.hasOpenedTodoHelp)
+    private var hasOpenedTodoHelp = false
+
+    @AppStorage(SettingsKeys.todoTutorialStep)
+    private var todoTutorialStep = 0
+
+    @AppStorage(SettingsKeys.hasCompletedTodoTutorial)
+    private var hasCompletedTodoTutorial = false
 
     private var groups: [TodoGroup] {
         get { TodoGroupStore.decode(todoGroupsData) }
         nonmutating set { todoGroupsData = TodoGroupStore.encode(newValue) }
+    }
+
+    private var visibleOnboardingStep: Int? {
+        isHelpExpanded && !hasCompletedTodoTutorial ? todoTutorialStep : nil
     }
 
     var body: some View {
@@ -223,30 +248,24 @@ struct TodoView: View {
         let hintSequence = groups.flatMap { activeTodosByGroup[$0.id] ?? [] }
 
         NavigationStack {
-            ScrollView {
+            ScrollView(.vertical, showsIndicators: true) {
                 LazyVStack(spacing: 12) {
+                    if isHelpExpanded {
+                        TodoHelpCard(
+                            locale: locale,
+                            step: todoTutorialStep,
+                            isCompleted: hasCompletedTodoTutorial,
+                            previous: showPreviousTodoTutorialStep,
+                            next: showNextTodoTutorialStep,
+                            replay: replayTodoTutorial,
+                            close: { isHelpExpanded = false }
+                        )
+                        .padding(.bottom, 2)
+                    }
+
                     ForEach(Array(groups.enumerated()), id: \.element.id) { index, group in
                         let groupTodos = activeTodosByGroup[group.id] ?? []
-                        TodoBucketCard(
-                            group: group,
-                            groups: groups,
-                            todos: groupTodos,
-                            canMoveUp: index > 0,
-                            canMoveDown: index < groups.count - 1,
-                            canDeleteGroup: groups.count > 1 && !todos.contains(where: {
-                                $0.bucketRawValue == group.id
-                            }),
-                            rename: { renameGroup(group.id, to: $0) },
-                            changeColor: { changeGroupColor(group.id, to: $0) },
-                            changeIcon: { changeGroupIcon(group.id, to: $0) },
-                            delete: { deleteGroup(group.id) },
-                            moveUp: { moveGroup(from: index, direction: -1) },
-                            moveDown: { moveGroup(from: index, direction: 1) },
-                            activeReorderHintIDs: activeReorderHintIDs,
-                            completed: showCompletionUndo,
-                            removed: showRemovalUndo,
-                            movedToAgenda: showMoveToAgendaUndo
-                        )
+                        todoBucketCard(group: group, index: index, groupTodos: groupTodos)
                     }
 
                     if groups.count < TodoGroupStore.maxCount {
@@ -268,14 +287,19 @@ struct TodoView: View {
             .toolbar(.hidden, for: .navigationBar)
             .safeAreaInset(edge: .top, spacing: 0) {
                 ZStack {
-                    Text(AppSection.todo.title(for: locale))
-                        .font(.system(size: 26, weight: .bold))
-                        .opacity(isScrolled ? 0 : 1)
-                        .animation(.easeOut(duration: 0.18), value: isScrolled)
+                    TodoTopTitle(
+                        locale: locale,
+                        showsInfoHint: !hasOpenedTodoHelp,
+                        isHelpExpanded: isHelpExpanded,
+                        toggleHelp: toggleHelp
+                    )
+                    .opacity(isScrolled ? 0 : 1)
+                    .animation(.easeOut(duration: 0.18), value: isScrolled)
 
                     HStack {
                         Button {
                             undoManager?.undo()
+                            completeTodoTutorialAction(for: 3)
                         } label: {
                             Image(systemName: "arrow.uturn.backward")
                                 .font(.system(size: 20, weight: .semibold))
@@ -284,10 +308,19 @@ struct TodoView: View {
                         .glassEffect(.regular.interactive(), in: Circle())
                         .disabled(!(undoManager?.canUndo ?? false))
                         .accessibilityLabel("Laatste wijziging terugdraaien")
+                        .overlay {
+                            if visibleOnboardingStep == 3 {
+                                Circle()
+                                    .stroke(Color.brandHardBlue, lineWidth: 3)
+                                    .padding(-4)
+                                    .allowsHitTesting(false)
+                            }
+                        }
 
                         Spacer()
 
                         Button {
+                            completeTodoTutorialAction(for: 2)
                             AppKeyboard.dismiss()
                         } label: {
                             Image(systemName: "checkmark")
@@ -297,6 +330,14 @@ struct TodoView: View {
                         .glassEffect(.regular.interactive(), in: Circle())
                         .disabled(!isKeyboardVisible)
                         .accessibilityLabel("Toetsenbord sluiten")
+                        .overlay {
+                            if visibleOnboardingStep == 2 {
+                                Circle()
+                                    .stroke(Color.brandHardBlue, lineWidth: 3)
+                                    .padding(-4)
+                                    .allowsHitTesting(false)
+                            }
+                        }
                     }
                 }
                 .padding(.leading, 22)
@@ -332,6 +373,230 @@ struct TodoView: View {
                 await runReorderHintWave(itemIDs: hintSequence.map(\.id))
             }
         }
+    }
+
+    private func todoBucketCard(
+        group: TodoGroup,
+        index: Int,
+        groupTodos: [TodoItem]
+    ) -> some View {
+        let isFirstGroup = index == 0
+        let step = visibleOnboardingStep
+        let highlightsInput = isFirstGroup && (step == 0 || step == 2)
+        let usesFourCharacterMinimum = isFirstGroup && (step == 0 || step == 1)
+
+        return TodoBucketCard(
+            group: group,
+            groups: groups,
+            todos: groupTodos,
+            canMoveUp: index > 0,
+            canMoveDown: index < groups.count - 1,
+            canDeleteGroup: groups.count > 1 && !todos.contains { $0.bucketRawValue == group.id },
+            rename: { renameGroup(group.id, to: $0) },
+            changeColor: { changeGroupColor(group.id, to: $0) },
+            changeIcon: { changeGroupIcon(group.id, to: $0) },
+            delete: { deleteGroup(group.id) },
+            moveUp: { moveGroup(from: index, direction: -1) },
+            moveDown: { moveGroup(from: index, direction: 1) },
+            highlightsNewTodoField: highlightsInput,
+            highlightsNewTodoPlus: isFirstGroup && step == 1,
+            highlightedTodoID: step == 4 ? onboardingTargetTodoID : nil,
+            highlightsCategoryReorder: isFirstGroup && step == 5,
+            newTodoTextChanged: { text in
+                if isFirstGroup {
+                    handleOnboardingTodoTextChanged(text)
+                }
+            },
+            newTodoAdded: handleOnboardingTodoAdded,
+            todoMovePerformed: handleOnboardingTodoMove,
+            categoryReordered: handleOnboardingCategoryReorder,
+            tutorialInputCommand: isFirstGroup ? todoTutorialInputCommand : nil,
+            minimumTodoLength: usesFourCharacterMinimum ? 4 : 1,
+            requiresPlusToSubmit: isFirstGroup && step == 1,
+            activeReorderHintIDs: activeReorderHintIDs,
+            completed: showCompletionUndo,
+            removed: showRemovalUndo,
+            movedToAgenda: showMoveToAgendaUndo
+        )
+    }
+
+    private var onboardingTargetTodoID: UUID? {
+        if let onboardingTodoID, todos.contains(where: { $0.id == onboardingTodoID }) {
+            return onboardingTodoID
+        }
+        return todos.first?.id
+    }
+
+    private func toggleHelp() {
+        hasOpenedTodoHelp = true
+        isHelpExpanded.toggle()
+    }
+
+    private func showPreviousTodoTutorialStep() {
+        if todoTutorialStep == 2 {
+            restoreOnboardingTodoToInput()
+        } else if todoTutorialStep == 3 {
+            showTodoTutorialStep(2)
+            sendTodoTutorialInputCommand(
+                text: nil,
+                submitsCurrentText: false,
+                focusesField: true
+            )
+        } else {
+            showTodoTutorialStep(todoTutorialStep - 1)
+        }
+    }
+
+    private func showNextTodoTutorialStep() {
+        switch todoTutorialStep {
+        case 0:
+            if todoTutorialDraftText.trimmingCharacters(in: .whitespacesAndNewlines).count < 4 {
+                sendTodoTutorialInputCommand(text: "Example", submitsCurrentText: false)
+            }
+            showTodoTutorialStep(1)
+        case 1:
+            let draft = todoTutorialDraftText.trimmingCharacters(in: .whitespacesAndNewlines)
+            sendTodoTutorialInputCommand(
+                text: draft.count >= 4 ? nil : "Example",
+                submitsCurrentText: true
+            )
+        case 2:
+            showTodoTutorialStep(3)
+            sendTodoTutorialInputCommand(
+                text: nil,
+                submitsCurrentText: false,
+                focusesField: false
+            )
+        case 3:
+            undoManager?.undo()
+            try? modelContext.save()
+            showTodoTutorialStep(4)
+        case TodoHelpCard.stepCount - 1:
+            if groups.count > 1 {
+                moveGroup(from: 0, direction: 1)
+            }
+            finishTodoTutorial()
+        default:
+            showTodoTutorialStep(todoTutorialStep + 1)
+        }
+    }
+
+    private func showTodoTutorialStep(_ requestedStep: Int) {
+        let targetStep = min(max(requestedStep, 0), TodoHelpCard.stepCount - 1)
+        if targetStep == 4 {
+            ensureOnboardingTodoExists()
+        }
+        todoTutorialStep = targetStep
+    }
+
+    private func completeTodoTutorialAction(for step: Int) {
+        guard isHelpExpanded,
+              !hasCompletedTodoTutorial,
+              todoTutorialStep == step else { return }
+
+        if step == TodoHelpCard.stepCount - 1 {
+            finishTodoTutorial()
+        } else {
+            showTodoTutorialStep(todoTutorialStep + 1)
+        }
+    }
+
+    private func handleOnboardingTodoTextChanged(_ text: String) {
+        todoTutorialDraftText = text
+        guard text.trimmingCharacters(in: .whitespacesAndNewlines).count >= 4 else { return }
+        completeTodoTutorialAction(for: 0)
+    }
+
+    private func handleOnboardingTodoAdded(_ id: UUID) {
+        onboardingTodoID = id
+        if todoTutorialStep == 1 {
+            completeTodoTutorialAction(for: 1)
+        } else {
+            completeTodoTutorialAction(for: 2)
+        }
+    }
+
+    private func handleOnboardingTodoMove(_ id: UUID) {
+        onboardingTodoID = id
+        completeTodoTutorialAction(for: 4)
+    }
+
+    private func handleOnboardingCategoryReorder() {
+        completeTodoTutorialAction(for: 5)
+    }
+
+    private func finishTodoTutorial() {
+        hasCompletedTodoTutorial = true
+    }
+
+    private func replayTodoTutorial() {
+        hasCompletedTodoTutorial = false
+        todoTutorialStep = 0
+        onboardingTodoID = nil
+        todoTutorialDraftText = ""
+    }
+
+    private func sendTodoTutorialInputCommand(
+        text: String?,
+        submitsCurrentText: Bool,
+        focusesField: Bool = true
+    ) {
+        todoTutorialInputCommandID += 1
+        if let text {
+            todoTutorialDraftText = text
+        }
+        todoTutorialInputCommand = TodoTutorialInputCommand(
+            id: todoTutorialInputCommandID,
+            text: text,
+            submitsCurrentText: submitsCurrentText,
+            focusesField: focusesField
+        )
+    }
+
+    private func ensureOnboardingTodoExists() {
+        let fetchedTodos = (try? modelContext.fetch(FetchDescriptor<TodoItem>())) ?? todos
+        let activeTodos = fetchedTodos.filter { !$0.isDone && !$0.isRemoved }
+
+        if let onboardingTodoID,
+           activeTodos.contains(where: { $0.id == onboardingTodoID }) {
+            return
+        }
+
+        if let existing = activeTodos.first {
+            onboardingTodoID = existing.id
+            return
+        }
+
+        guard let groupID = groups.first?.id else { return }
+        let todo = TodoItem(text: "Example")
+        todo.bucketRawValue = groupID
+        modelContext.insert(todo)
+        try? modelContext.save()
+        onboardingTodoID = todo.id
+    }
+
+    private func restoreOnboardingTodoToInput() {
+        let fetchedTodos = (try? modelContext.fetch(FetchDescriptor<TodoItem>())) ?? todos
+        let activeTodos = fetchedTodos.filter { !$0.isDone && !$0.isRemoved }
+        let candidate = onboardingTodoID.flatMap { id in
+            activeTodos.first(where: { $0.id == id })
+        } ?? activeTodos.last
+        let restoredText = candidate?.text.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        let inputText = restoredText.count >= 4 ? restoredText : "Example"
+
+        if let candidate {
+            modelContext.delete(candidate)
+            try? modelContext.save()
+        }
+
+        onboardingTodoID = nil
+        todoTutorialDraftText = inputText
+        showTodoTutorialStep(1)
+        sendTodoTutorialInputCommand(
+            text: inputText,
+            submitsCurrentText: false,
+            focusesField: true
+        )
     }
 
     private func runReorderHintWave(itemIDs: [UUID]) async {
@@ -500,11 +765,14 @@ struct TodoView: View {
         HStack(spacing: 12) {
             Image(systemName: "trash.fill")
                 .foregroundStyle(.red)
-            Text("‘\(recentlyRemovedTodoTitle)’ verwijderd")
+            Text(locale.localized(
+                "‘\(recentlyRemovedTodoTitle)’ verwijderd",
+                "‘\(recentlyRemovedTodoTitle)’ deleted"
+            ))
                 .font(.system(size: 14, weight: .medium))
                 .lineLimit(1)
             Spacer(minLength: 4)
-            Button("Ongedaan maken", action: undoRemoval)
+            Button(locale.localized("Ongedaan maken", "Undo"), action: undoRemoval)
                 .font(.system(size: 14, weight: .semibold))
         }
         .padding(.horizontal, 14)
@@ -560,7 +828,7 @@ struct TodoView: View {
                 .font(.system(size: 14, weight: .medium))
                 .lineLimit(2)
             Spacer(minLength: 4)
-            Button("Ongedaan maken", action: undoMoveToAgenda)
+            Button(locale.localized("Ongedaan maken", "Undo"), action: undoMoveToAgenda)
                 .font(.system(size: 14, weight: .semibold))
         }
         .padding(.horizontal, 14)
@@ -576,7 +844,10 @@ struct TodoView: View {
     private var moveToAgendaUndoText: String {
         guard let move = recentlyMovedToAgenda else { return "" }
         let date = AppCalendar.localizedDate(move.destinationDate, template: "dMMM")
-        return "‘\(move.text)’ verplaatst naar \(date)"
+        return locale.localized(
+            "‘\(move.text)’ verplaatst naar \(date)",
+            "‘\(move.text)’ moved to \(date)"
+        )
     }
 
     private func undoCompletion() {
@@ -594,13 +865,16 @@ struct TodoView: View {
         HStack(spacing: 12) {
             Image(systemName: "checkmark.circle.fill")
                 .foregroundStyle(.green)
-            Text("Taak verplaatst\nnaar History")
+            Text(locale.localized(
+                "Taak verplaatst\nnaar Afgerond",
+                "Task moved\nto Finished"
+            ))
                 .font(.system(size: 14, weight: .medium))
                 .lineLimit(2)
                 .fixedSize(horizontal: false, vertical: true)
                 .layoutPriority(1)
             Spacer(minLength: 4)
-            Button("Ongedaan maken", action: undoCompletion)
+            Button(locale.localized("Ongedaan maken", "Undo"), action: undoCompletion)
                 .font(.system(size: 14, weight: .semibold))
         }
         .padding(.horizontal, 14)
@@ -611,6 +885,195 @@ struct TodoView: View {
                 .stroke(Color.primary.opacity(0.08), lineWidth: 1)
         }
         .shadow(color: .black.opacity(0.12), radius: 12, y: 4)
+    }
+}
+
+private struct TodoTopTitle: View {
+    let locale: Locale
+    let showsInfoHint: Bool
+    let isHelpExpanded: Bool
+    let toggleHelp: () -> Void
+
+    var body: some View {
+        Button(action: toggleHelp) {
+            HStack(spacing: 6) {
+                Text(AppSection.todo.title(for: locale))
+                    .font(.system(size: 26, weight: .bold))
+
+                if showsInfoHint {
+                    Image(systemName: "info.circle.fill")
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundStyle(Color.brandHardBlue)
+                }
+            }
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(locale.localized("Uitleg over Taken", "Tasks help"))
+        .accessibilityValue(isHelpExpanded
+            ? locale.localized("Uitgeklapt", "Expanded")
+            : locale.localized("Ingeklapt", "Collapsed"))
+        .accessibilityHint(locale.localized(
+            "Tik om de uitleg in of uit te klappen",
+            "Tap to expand or collapse help"
+        ))
+    }
+}
+
+private struct TodoHelpStep: Identifiable {
+    let id: Int
+    let icon: String
+    let dutch: String
+    let english: String
+
+    func text(for locale: Locale) -> String {
+        locale.localized(dutch, english)
+    }
+}
+
+private struct TodoHelpCard: View {
+    static let stepCount = 6
+
+    let locale: Locale
+    let step: Int
+    let isCompleted: Bool
+    let previous: () -> Void
+    let next: () -> Void
+    let replay: () -> Void
+    let close: () -> Void
+
+    private let steps = [
+        TodoHelpStep(
+            id: 0,
+            icon: "text.cursor",
+            dutch: "Maak een taak in een categorie door in het invoerveld iets te schrijven.",
+            english: "Create a task in a category by typing something in its input field."
+        ),
+        TodoHelpStep(
+            id: 1,
+            icon: "plus",
+            dutch: "Tik op het plusje om direct nog een taak aan te maken.",
+            english: "Tap the plus to immediately create another task."
+        ),
+        TodoHelpStep(
+            id: 2,
+            icon: "checkmark",
+            dutch: "Beschrijf nog een taak, of tik rechtsboven op het vinkje om de invoer af te ronden.",
+            english: "Describe another task, or tap the checkmark at the top right to finish entering tasks."
+        ),
+        TodoHelpStep(
+            id: 3,
+            icon: "arrow.uturn.backward",
+            dutch: "Tik op de pijl linksboven om je laatste invoer ongedaan te maken. Dit kan voor maximaal drie invoeren.",
+            english: "Tap the arrow at the top left to undo your latest entry. You can do this for up to three entries."
+        ),
+        TodoHelpStep(
+            id: 4,
+            icon: "arrow.left.arrow.right",
+            dutch: "Voor elke taak staat hoe lang die openstaat. Tik hierop om de taak naar een andere categorie of de kalender te verplaatsen.",
+            english: "Each task shows how long it has been open. Tap this time indicator to move the task to another category or the calendar."
+        ),
+        TodoHelpStep(
+            id: 5,
+            icon: "chevron.up.chevron.down",
+            dutch: "Pas de volgorde van categorieën aan via de chevrons.",
+            english: "Change the category order using the chevrons."
+        )
+    ]
+
+    private var currentStep: TodoHelpStep {
+        steps[min(max(step, 0), steps.count - 1)]
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            if isCompleted {
+                completedContent
+            } else {
+                stepContent
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(16)
+        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+        .overlay {
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .stroke(Color.brandHardBlue.opacity(0.16), lineWidth: 1)
+        }
+        .shadow(color: .black.opacity(0.08), radius: 12, y: 5)
+    }
+
+    private var stepContent: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            VStack(alignment: .leading, spacing: 7) {
+                HStack(spacing: 7) {
+                    Image(systemName: currentStep.icon)
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundStyle(Color.brandHardBlue)
+                        .frame(width: 16, height: 16)
+
+                    Text(locale.localized(
+                        "Stap \(step + 1)/\(Self.stepCount)",
+                        "Step \(step + 1)/\(Self.stepCount)"
+                    ))
+                    .font(.system(size: 12, weight: .bold))
+                    .foregroundStyle(Color.brandHardBlue)
+                }
+
+                Text(currentStep.text(for: locale))
+                    .font(.system(size: 16, weight: .semibold))
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+
+            HStack {
+                Button(action: previous) {
+                    Image(systemName: "arrow.left")
+                        .font(.system(size: 14, weight: .bold))
+                        .foregroundStyle(.secondary)
+                        .frame(width: 34, height: 30)
+                }
+                .buttonStyle(.plain)
+                .disabled(step == 0)
+                .opacity(step == 0 ? 0.25 : 1)
+                .accessibilityLabel(locale.localized("Vorige stap", "Previous step"))
+
+                Spacer()
+
+                Button(action: next) {
+                    Image(systemName: "arrow.right")
+                        .font(.system(size: 14, weight: .bold))
+                        .foregroundStyle(Color.brandHardBlue)
+                        .frame(width: 34, height: 30)
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel(locale.localized("Volgende stap", "Next step"))
+            }
+            .id(step)
+            .transaction { transaction in
+                transaction.animation = nil
+            }
+        }
+    }
+
+    private var completedContent: some View {
+        HStack(spacing: 11) {
+            Image(systemName: "checkmark.circle.fill")
+                .font(.system(size: 21))
+                .foregroundStyle(Color.brandHardBlue)
+            Text(locale.localized("Je kent de basis.", "You know the basics."))
+                .font(.system(size: 15, weight: .semibold))
+            Spacer()
+            Button(locale.localized("Opnieuw", "Replay"), action: replay)
+                .font(.system(size: 13, weight: .semibold))
+            Button(action: close) {
+                Image(systemName: "xmark")
+                    .font(.system(size: 12, weight: .bold))
+                    .foregroundStyle(.secondary)
+                    .frame(width: 28, height: 28)
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel(locale.localized("Sluiten", "Close"))
+        }
     }
 }
 
@@ -627,6 +1090,17 @@ private struct TodoBucketCard: View {
     let delete: () -> Void
     let moveUp: () -> Void
     let moveDown: () -> Void
+    let highlightsNewTodoField: Bool
+    let highlightsNewTodoPlus: Bool
+    let highlightedTodoID: UUID?
+    let highlightsCategoryReorder: Bool
+    let newTodoTextChanged: (String) -> Void
+    let newTodoAdded: (UUID) -> Void
+    let todoMovePerformed: (UUID) -> Void
+    let categoryReordered: () -> Void
+    let tutorialInputCommand: TodoTutorialInputCommand?
+    let minimumTodoLength: Int
+    let requiresPlusToSubmit: Bool
     let activeReorderHintIDs: Set<UUID>
     let completed: (TodoItem) -> Void
     let removed: (TodoItem) -> Void
@@ -692,13 +1166,24 @@ private struct TodoBucketCard: View {
                         color: group.color,
                         backgroundColor: group.backgroundColor,
                         isReorderHintActive: activeReorderHintIDs.contains(todo.id),
+                        isOnboardingHighlighted: highlightedTodoID == todo.id,
+                        movePerformed: todoMovePerformed,
                         completed: completed,
                         removed: removed,
                         movedToAgenda: movedToAgenda
                     )
                 }
 
-                NewTodoLine(groupID: group.id)
+                NewTodoLine(
+                    groupID: group.id,
+                    highlightsField: highlightsNewTodoField,
+                    highlightsPlus: highlightsNewTodoPlus,
+                    tutorialInputCommand: tutorialInputCommand,
+                    minimumCharacterCount: minimumTodoLength,
+                    requiresPlusToSubmit: requiresPlusToSubmit,
+                    textChanged: newTodoTextChanged,
+                    todoAdded: newTodoAdded
+                )
             }
             .padding(.leading, 12)
             .padding(.trailing, 8)
@@ -732,6 +1217,14 @@ private struct TodoBucketCard: View {
         .buttonStyle(.plain)
         .foregroundStyle(group.color)
         .accessibilityLabel("Volgorde van \(group.title) aanpassen")
+        .overlay {
+            if highlightsCategoryReorder {
+                RoundedRectangle(cornerRadius: 9)
+                    .stroke(Color.brandHardBlue, lineWidth: 3)
+                    .padding(-3)
+                    .allowsHitTesting(false)
+            }
+        }
         .popover(
             isPresented: $showingCategoryActions,
             attachmentAnchor: .rect(.bounds),
@@ -744,8 +1237,14 @@ private struct TodoBucketCard: View {
 
     private var categoryActionsPopover: some View {
         VStack(alignment: .leading, spacing: 0) {
-            categoryActionButton("Omhoog verplaatsen", systemImage: "arrow.up", enabled: canMoveUp, action: moveUp)
-            categoryActionButton("Omlaag verplaatsen", systemImage: "arrow.down", enabled: canMoveDown, action: moveDown)
+            categoryActionButton("Omhoog verplaatsen", systemImage: "arrow.up", enabled: canMoveUp) {
+                moveUp()
+                categoryReordered()
+            }
+            categoryActionButton("Omlaag verplaatsen", systemImage: "arrow.down", enabled: canMoveDown) {
+                moveDown()
+                categoryReordered()
+            }
 
             if canDelete {
                 Divider()
@@ -912,6 +1411,8 @@ private struct TodoLine: View {
     let color: Color
     let backgroundColor: Color
     let isReorderHintActive: Bool
+    let isOnboardingHighlighted: Bool
+    let movePerformed: (UUID) -> Void
     let completed: (TodoItem) -> Void
     let removed: (TodoItem) -> Void
     let movedToAgenda: (TodoAgendaMoveUndo) -> Void
@@ -1012,6 +1513,8 @@ private struct TodoLine: View {
             ForEach(groups) { group in
                 Button {
                     todo.bucketRawValue = group.id
+                    try? modelContext.save()
+                    movePerformed(todo.id)
                 } label: {
                     Label(group.title, systemImage: group.icon)
                 }
@@ -1084,6 +1587,14 @@ private struct TodoLine: View {
             }
             .foregroundStyle(color)
             .frame(width: 36, height: 24, alignment: .center)
+            .overlay {
+                if isOnboardingHighlighted {
+                    RoundedRectangle(cornerRadius: 7)
+                        .stroke(Color.brandHardBlue, lineWidth: 3)
+                        .padding(-3)
+                        .allowsHitTesting(false)
+                }
+            }
         }
         .accessibilityLabel("\(accessibleAgeText), taak verplaatsen")
     }
@@ -1148,6 +1659,7 @@ private struct TodoLine: View {
         )
 
         modelContext.insert(agendaEntry)
+        movePerformed(todo.id)
         modelContext.delete(todo)
         try? modelContext.save()
         movedToAgenda(undo)
@@ -1157,6 +1669,13 @@ private struct TodoLine: View {
 
 private struct NewTodoLine: View {
     let groupID: String
+    let highlightsField: Bool
+    let highlightsPlus: Bool
+    let tutorialInputCommand: TodoTutorialInputCommand?
+    let minimumCharacterCount: Int
+    let requiresPlusToSubmit: Bool
+    let textChanged: (String) -> Void
+    let todoAdded: (UUID) -> Void
 
     @Environment(\.modelContext)
     private var modelContext
@@ -1186,16 +1705,34 @@ private struct NewTodoLine: View {
                 .foregroundStyle(.primary)
                 .submitLabel(.done)
                 .onChange(of: text) { _, newValue in
+                    textChanged(newValue)
                     guard newValue.contains("\n") else { return }
                     text = newValue.replacingOccurrences(of: "\n", with: "")
+                    guard !requiresPlusToSubmit else { return }
                     addTodoAndDismissKeyboard()
                 }
                 .onSubmit {
+                    guard !requiresPlusToSubmit else { return }
                     addTodoAndDismissKeyboard()
                 }
                 .onChange(of: isTextFieldFocused) { wasFocused, isFocused in
-                    guard wasFocused, !isFocused else { return }
+                    guard wasFocused, !isFocused, !requiresPlusToSubmit else { return }
                     addTodo()
+                }
+                .onChange(of: tutorialInputCommand) { _, command in
+                    guard let command else { return }
+                    if let commandText = command.text {
+                        text = commandText
+                    }
+                    if command.submitsCurrentText {
+                        addTodo()
+                    }
+                    if command.focusesField {
+                        beginEditing()
+                    } else {
+                        isTextFieldFocused = false
+                        AppKeyboard.dismiss()
+                    }
                 }
 
             Button {
@@ -1206,23 +1743,44 @@ private struct NewTodoLine: View {
                     .frame(width: 36, height: 24)
             }
             .buttonStyle(.plain)
-            .opacity(text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? 0 : 1)
+            .opacity(cleanText.count >= minimumCharacterCount ? 1 : 0)
+            .overlay {
+                if highlightsPlus {
+                    RoundedRectangle(cornerRadius: 7)
+                        .stroke(Color.brandHardBlue, lineWidth: 3)
+                        .padding(-3)
+                        .allowsHitTesting(false)
+                }
+            }
+        }
+        .overlay {
+            if highlightsField {
+                RoundedRectangle(cornerRadius: 8)
+                    .stroke(Color.brandHardBlue, lineWidth: 3)
+                    .padding(-4)
+                    .allowsHitTesting(false)
+            }
         }
     }
 
     private func addTodo() {
-        let cleanText = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        let normalizedText = cleanText
 
-        guard !cleanText.isEmpty else {
+        guard normalizedText.count >= minimumCharacterCount else {
             return
         }
 
-        let todo = TodoItem(text: cleanText)
+        let todo = TodoItem(text: normalizedText)
         todo.bucketRawValue = groupID
 
         modelContext.insert(todo)
         try? modelContext.save()
+        todoAdded(todo.id)
         text = ""
+    }
+
+    private var cleanText: String {
+        text.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
     private func addTodoAndDismissKeyboard() {

@@ -225,8 +225,8 @@ struct HistoryView: View {
     }
 
     private var isHistoryDemoActive: Bool {
-        entries.contains { $0.rawText.hasPrefix(DemoData.historyMarker) }
-            || todos.contains { $0.text.hasPrefix(DemoData.historyMarker) }
+        entries.contains { DemoData.isHistoryDemoText($0.rawText) }
+            || todos.contains { DemoData.isHistoryDemoText($0.text) }
     }
 
     var body: some View {
@@ -270,6 +270,7 @@ struct HistoryView: View {
                         ForEach(sections) { section in
                             HistoryDayCard(
                                 section: section,
+                                searchText: searchText,
                                 selectedDeletionRowID: selectedDeletionRowID,
                                 revealPermanentDelete: revealPermanentDelete,
                                 permanentlyDelete: beginPermanentDeletion,
@@ -439,11 +440,14 @@ struct HistoryView: View {
         HStack(spacing: 12) {
             Image(systemName: "trash.fill")
                 .foregroundStyle(.red)
-            Text("‘\(title)’ definitief verwijderd")
+            Text(locale.localized(
+                "‘\(title)’ definitief verwijderd",
+                "‘\(title)’ permanently deleted"
+            ))
                 .font(.system(size: 14, weight: .medium))
                 .lineLimit(1)
             Spacer(minLength: 4)
-            Button("Ongedaan maken", action: undoPermanentDeletion)
+            Button(locale.localized("Ongedaan maken", "Undo"), action: undoPermanentDeletion)
                 .font(.system(size: 14, weight: .semibold))
         }
         .padding(.horizontal, 14)
@@ -468,11 +472,14 @@ struct HistoryView: View {
         HStack(spacing: 12) {
             Image(systemName: "arrow.uturn.backward.circle.fill")
                 .foregroundStyle(.blue)
-            Text("‘\(title)’ teruggezet")
+            Text(locale.localized(
+                "‘\(title)’ teruggezet",
+                "‘\(title)’ restored"
+            ))
                 .font(.system(size: 14, weight: .medium))
                 .lineLimit(1)
             Spacer(minLength: 4)
-            Button("Ongedaan maken") {
+            Button(locale.localized("Ongedaan maken", "Undo")) {
                 undoRestore()
             }
             .font(.system(size: 14, weight: .semibold))
@@ -866,7 +873,7 @@ private struct HistorySearchBar: View {
                 .foregroundStyle(.secondary)
 
             TextField(
-                locale.localized("Zoek in geschiedenis", "Search history"),
+                locale.localized("Zoek in Afgerond", "Search Finished"),
                 text: $text
             )
             .font(.system(size: 15))
@@ -900,6 +907,7 @@ private struct HistoryDayCard: View {
     @Environment(\.locale) private var locale
 
     let section: HistoryDaySection
+    let searchText: String
     let selectedDeletionRowID: UUID?
     let revealPermanentDelete: (HistoryRow) -> Void
     let permanentlyDelete: (HistoryRow) -> Void
@@ -915,6 +923,7 @@ private struct HistoryDayCard: View {
                 ForEach(Array(section.rows.enumerated()), id: \.element.id) { index, row in
                     HistoryItemRow(
                         row: row,
+                        searchText: searchText,
                         showsPermanentDelete: selectedDeletionRowID == row.id,
                         revealPermanentDelete: { revealPermanentDelete(row) },
                         permanentlyDelete: { permanentlyDelete(row) },
@@ -944,6 +953,7 @@ private struct HistoryItemRow: View {
     @Environment(\.locale) private var locale
 
     let row: HistoryRow
+    let searchText: String
     let showsPermanentDelete: Bool
     let revealPermanentDelete: () -> Void
     let permanentlyDelete: () -> Void
@@ -965,7 +975,7 @@ private struct HistoryItemRow: View {
             .accessibilityLabel("Acties voor \(row.title)")
 
             VStack(alignment: .leading, spacing: 4) {
-                Text(row.title)
+                Text(highlightedTitle)
                     .font(.system(size: 15, weight: .medium))
                     .foregroundStyle(.primary)
                     .lineLimit(2)
@@ -1014,6 +1024,32 @@ private struct HistoryItemRow: View {
             Button("Definitief verwijderen", systemImage: "trash", role: .destructive, action: permanentlyDelete)
         }
     }
+
+    private var highlightedTitle: AttributedString {
+        var title = AttributedString(row.title)
+        let query = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
+
+        guard !query.isEmpty else {
+            return title
+        }
+
+        var searchRange = row.title.startIndex..<row.title.endIndex
+        while let match = row.title.range(
+            of: query,
+            options: [.caseInsensitive, .diacriticInsensitive, .widthInsensitive],
+            range: searchRange,
+            locale: locale
+        ) {
+            if let attributedMatch = Range(match, in: title) {
+                title[attributedMatch].backgroundColor = Color.brandLightBlue
+                title[attributedMatch].foregroundColor = Color.brandHardBlue
+                title[attributedMatch].font = .system(size: 15, weight: .semibold)
+            }
+            searchRange = match.upperBound..<row.title.endIndex
+        }
+
+        return title
+    }
 }
 
 private struct HistoryEmptyState: View {
@@ -1027,7 +1063,7 @@ private struct HistoryEmptyState: View {
             return locale.localized("Geen zoekresultaten", "No search results")
         }
         if filter == .all {
-            return locale.localized("Nog geen geschiedenis", "No history yet")
+            return locale.localized("Nog niets afgerond", "Nothing finished yet")
         }
         return locale.localized(
             "Geen afgeronde \(filter.title(for: locale).lowercased())-items",

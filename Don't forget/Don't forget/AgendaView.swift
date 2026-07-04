@@ -6,6 +6,23 @@ private struct AgendaRecurringCategoryAppearance: Decodable {
     let colorRawValue: String
 }
 
+private struct AgendaTodoMoveUndo {
+    let todoID: UUID
+    let entryID: UUID
+    let destinationTitle: String
+    let date: Date
+    let rawText: String
+    let sourceRawValue: String
+    let manualOrder: Double
+    let showOnWidget: Bool
+    let createdAt: Date
+    let calendarEventIdentifier: String?
+    let recurringItemIdentifier: UUID?
+    let recurringOccurrenceKey: String?
+    let recurringDateOverride: Date?
+    let accentRawValue: String
+}
+
 /// Day visibility changes rapidly during a fling. Keeping this outside
 /// observable SwiftUI state prevents every entering/leaving day from
 /// invalidating and rebuilding the complete agenda hierarchy.
@@ -50,6 +67,8 @@ struct AgendaView: View {
     @State private var recentlyRemovedEntryTitle = ""
     @State private var recentlyRemovedEventIdentifier: String?
     @State private var dismissRemovalUndoTask: Task<Void, Never>?
+    @State private var recentlyCompletedEntry: DayEntry?
+    @State private var recentlyMovedToTodo: AgendaTodoMoveUndo?
     @State private var isHelpExpanded = false
     @State private var hasPerformedAgendaTutorialMove = false
 
@@ -181,7 +200,8 @@ struct AgendaView: View {
                                 onboardingEntryAdded: {
                                     completeAgendaTutorialAction(for: 0)
                                 },
-                                onboardingEntryCompleted: {
+                                completed: { entry in
+                                    showCompletionUndo(entry)
                                     completeAgendaTutorialAction(for: 3)
                                 },
                                 onboardingMoveEditingFinished: {
@@ -296,8 +316,16 @@ struct AgendaView: View {
                 }
             }
             .safeAreaInset(edge: .bottom, spacing: 8) {
-                if recentlyRemovedEntry != nil {
+                if recentlyMovedToTodo != nil {
+                    moveToTodoUndoBar
+                        .padding(.horizontal, 14)
+                        .transition(.move(edge: .bottom).combined(with: .opacity))
+                } else if recentlyRemovedEntry != nil {
                     removalUndoBar
+                        .padding(.horizontal, 14)
+                        .transition(.move(edge: .bottom).combined(with: .opacity))
+                } else if recentlyCompletedEntry != nil {
+                    completionUndoBar
                         .padding(.horizontal, 14)
                         .transition(.move(edge: .bottom).combined(with: .opacity))
                 }
@@ -465,6 +493,8 @@ struct AgendaView: View {
 
     private func showRemovalUndo(_ entry: DayEntry, eventIdentifier: String?) {
         dismissRemovalUndoTask?.cancel()
+        recentlyCompletedEntry = nil
+        recentlyMovedToTodo = nil
         recentlyRemovedEntry = entry
         recentlyRemovedEntryTitle = entry.rawText
         recentlyRemovedEventIdentifier = eventIdentifier
@@ -475,6 +505,59 @@ struct AgendaView: View {
                 recentlyRemovedEntry = nil
             }
         }
+    }
+
+    private func showCompletionUndo(_ entry: DayEntry) {
+        dismissRemovalUndoTask?.cancel()
+        recentlyRemovedEntry = nil
+        recentlyMovedToTodo = nil
+        withAnimation(.snappy(duration: 0.25)) {
+            recentlyCompletedEntry = entry
+        }
+        dismissRemovalUndoTask = Task { @MainActor in
+            try? await Task.sleep(for: .seconds(6))
+            guard !Task.isCancelled else { return }
+            withAnimation(.easeOut(duration: 0.2)) {
+                recentlyCompletedEntry = nil
+            }
+        }
+    }
+
+    private func undoCompletion() {
+        guard let entry = recentlyCompletedEntry else { return }
+        entry.isDone = false
+        entry.completedAt = nil
+        try? modelContext.save()
+        dismissRemovalUndoTask?.cancel()
+        withAnimation(.easeOut(duration: 0.2)) {
+            recentlyCompletedEntry = nil
+        }
+    }
+
+    private var completionUndoBar: some View {
+        HStack(spacing: 12) {
+            Image(systemName: "checkmark.circle.fill")
+                .foregroundStyle(.green)
+            Text(locale.localized(
+                "Item verplaatst\nnaar Afgerond",
+                "Item moved\nto Finished"
+            ))
+                .font(.system(size: 14, weight: .medium))
+                .lineLimit(2)
+                .fixedSize(horizontal: false, vertical: true)
+                .layoutPriority(1)
+            Spacer(minLength: 4)
+            Button(locale.localized("Ongedaan maken", "Undo"), action: undoCompletion)
+                .font(.system(size: 14, weight: .semibold))
+        }
+        .padding(.horizontal, 14)
+        .frame(minHeight: 50)
+        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 14))
+        .overlay {
+            RoundedRectangle(cornerRadius: 14)
+                .stroke(Color.primary.opacity(0.08), lineWidth: 1)
+        }
+        .shadow(color: .black.opacity(0.12), radius: 12, y: 4)
     }
 
     private func undoRemoval() {
@@ -497,11 +580,14 @@ struct AgendaView: View {
         HStack(spacing: 12) {
             Image(systemName: "trash.fill")
                 .foregroundStyle(.red)
-            Text("‘\(recentlyRemovedEntryTitle)’ verwijderd")
+            Text(locale.localized(
+                "‘\(recentlyRemovedEntryTitle)’ verwijderd",
+                "‘\(recentlyRemovedEntryTitle)’ deleted"
+            ))
                 .font(.system(size: 14, weight: .medium))
                 .lineLimit(1)
             Spacer(minLength: 4)
-            Button("Ongedaan maken", action: undoRemoval)
+            Button(locale.localized("Ongedaan maken", "Undo"), action: undoRemoval)
                 .font(.system(size: 14, weight: .semibold))
         }
         .padding(.horizontal, 14)
@@ -803,17 +889,110 @@ struct AgendaView: View {
             return
         }
 
+        let eventIdentifier = entry.calendarEventIdentifier
         let allEntries = ((try? modelContext.fetch(FetchDescriptor<DayEntry>())) ?? entries)
             .filter { !$0.isRemoved }
         CalendarSyncService.deleteEventIfUnshared(for: entry, among: allEntries)
 
         let todo = TodoItem(text: cleanText, bucket: .today)
         todo.bucketRawValue = groupID
+        todo.showOnWidget = entry.showOnWidget
+        let undo = AgendaTodoMoveUndo(
+            todoID: todo.id,
+            entryID: entry.id,
+            destinationTitle: todoGroups.first(where: { $0.id == groupID })?.title ?? "Taken",
+            date: entry.date,
+            rawText: entry.rawText,
+            sourceRawValue: entry.sourceRawValue,
+            manualOrder: entry.manualOrder,
+            showOnWidget: entry.showOnWidget,
+            createdAt: entry.createdAt,
+            calendarEventIdentifier: eventIdentifier,
+            recurringItemIdentifier: entry.recurringItemIdentifier,
+            recurringOccurrenceKey: entry.recurringOccurrenceKey,
+            recurringDateOverride: entry.recurringDateOverride,
+            accentRawValue: entry.accentRawValue
+        )
         modelContext.insert(todo)
         modelContext.delete(entry)
         activeMoveEntryID = nil
         try? modelContext.save()
+        showMoveToTodoUndo(undo)
         returnToAgendaTutorialMoveStep()
+    }
+
+    private func showMoveToTodoUndo(_ move: AgendaTodoMoveUndo) {
+        dismissRemovalUndoTask?.cancel()
+        recentlyCompletedEntry = nil
+        recentlyRemovedEntry = nil
+        withAnimation(.snappy(duration: 0.25)) {
+            recentlyMovedToTodo = move
+        }
+        dismissRemovalUndoTask = Task { @MainActor in
+            try? await Task.sleep(for: .seconds(6))
+            guard !Task.isCancelled else { return }
+            withAnimation(.easeOut(duration: 0.2)) {
+                recentlyMovedToTodo = nil
+            }
+        }
+    }
+
+    private func undoMoveToTodo() {
+        guard let move = recentlyMovedToTodo else { return }
+
+        let todos = (try? modelContext.fetch(FetchDescriptor<TodoItem>())) ?? []
+        if let todo = todos.first(where: { $0.id == move.todoID }) {
+            modelContext.delete(todo)
+        }
+
+        let entry = DayEntry(
+            date: move.date,
+            rawText: move.rawText,
+            source: EntrySource(rawValue: move.sourceRawValue) ?? .manual,
+            manualOrder: move.manualOrder
+        )
+        entry.id = move.entryID
+        entry.showOnWidget = move.showOnWidget
+        entry.createdAt = move.createdAt
+        entry.calendarEventIdentifier = move.calendarEventIdentifier
+        entry.recurringItemIdentifier = move.recurringItemIdentifier
+        entry.recurringOccurrenceKey = move.recurringOccurrenceKey
+        entry.recurringDateOverride = move.recurringDateOverride
+        entry.accentRawValue = move.accentRawValue
+        modelContext.insert(entry)
+
+        if let identifier = move.calendarEventIdentifier {
+            CalendarSyncService.cancelEventDeletion(withIdentifier: identifier)
+        }
+        try? modelContext.save()
+        dismissRemovalUndoTask?.cancel()
+        withAnimation(.easeOut(duration: 0.2)) {
+            recentlyMovedToTodo = nil
+        }
+    }
+
+    private var moveToTodoUndoBar: some View {
+        HStack(spacing: 12) {
+            Image(systemName: "arrow.left.arrow.right")
+                .foregroundStyle(.blue)
+            Text(locale.localized(
+                "Item verplaatst naar \(recentlyMovedToTodo?.destinationTitle ?? "Taken")",
+                "Item moved to \(recentlyMovedToTodo?.destinationTitle ?? "Tasks")"
+            ))
+                .font(.system(size: 14, weight: .medium))
+                .lineLimit(2)
+            Spacer(minLength: 4)
+            Button(locale.localized("Ongedaan maken", "Undo"), action: undoMoveToTodo)
+                .font(.system(size: 14, weight: .semibold))
+        }
+        .padding(.horizontal, 14)
+        .frame(minHeight: 50)
+        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 14))
+        .overlay {
+            RoundedRectangle(cornerRadius: 14)
+                .stroke(Color.primary.opacity(0.08), lineWidth: 1)
+        }
+        .shadow(color: .black.opacity(0.12), radius: 12, y: 4)
     }
 
     private func requestScroll(to date: Date) {
@@ -961,8 +1140,8 @@ private struct AgendaHelpCard: View {
         AgendaHelpStep(
             id: 3,
             icon: "checkmark.circle",
-            dutch: "Iets afgerond? Tik op de cirkel rechts. Het verhuist naar Geschiedenis.",
-            english: "Finished something? Tap the circle on the right. It moves to History.",
+            dutch: "Iets afgerond? Tik op de cirkel rechts. Het verhuist naar Afgerond.",
+            english: "Finished something? Tap the circle on the right. It moves to Finished.",
             noteDutch: nil,
             noteEnglish: nil
         ),
@@ -1151,7 +1330,7 @@ struct WeekCard: View {
     let onboardingStep: Int?
     let hasPerformedOnboardingMove: Bool
     let onboardingEntryAdded: () -> Void
-    let onboardingEntryCompleted: () -> Void
+    let completed: (DayEntry) -> Void
     let onboardingMoveEditingFinished: () -> Void
     let onboardingMoveCancelled: () -> Void
 
@@ -1201,7 +1380,7 @@ struct WeekCard: View {
                         onboardingStep: onboardingStep,
                         hasPerformedOnboardingMove: hasPerformedOnboardingMove,
                         onboardingEntryAdded: onboardingEntryAdded,
-                        onboardingEntryCompleted: onboardingEntryCompleted,
+                        completed: completed,
                         onboardingMoveEditingFinished: onboardingMoveEditingFinished,
                         onboardingMoveCancelled: onboardingMoveCancelled
                     )
@@ -1234,7 +1413,7 @@ struct DayBlock: View {
     let onboardingStep: Int?
     let hasPerformedOnboardingMove: Bool
     let onboardingEntryAdded: () -> Void
-    let onboardingEntryCompleted: () -> Void
+    let completed: (DayEntry) -> Void
     let onboardingMoveEditingFinished: () -> Void
     let onboardingMoveCancelled: () -> Void
 
@@ -1329,7 +1508,7 @@ struct DayBlock: View {
                                     && hasPerformedOnboardingMove,
                                 highlightsCompletion: onboardingStep == 3
                                     && index == onboardingExampleIndex,
-                                onboardingEntryCompleted: onboardingEntryCompleted,
+                                completed: completed,
                                 onboardingMoveCancelled: onboardingMoveCancelled
                             )
                         }
@@ -1426,7 +1605,7 @@ struct AgendaEntryLine: View {
     let highlightsMoveControls: Bool
     let highlightsMoveFinish: Bool
     let highlightsCompletion: Bool
-    let onboardingEntryCompleted: () -> Void
+    let completed: (DayEntry) -> Void
     let onboardingMoveCancelled: () -> Void
 
     @Environment(\.modelContext)
@@ -1676,8 +1855,9 @@ struct AgendaEntryLine: View {
 
     private func toggleDone() {
         entry.toggleDone()
+        try? modelContext.save()
         if entry.isDone {
-            onboardingEntryCompleted()
+            completed(entry)
         }
     }
 
