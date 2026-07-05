@@ -16,6 +16,23 @@ struct SmartLedgerApp: App {
     }
 
     var body: some Scene {
+#if os(macOS)
+        WindowGroup {
+            StoreRootView()
+        }
+        .commands {
+            CommandGroup(replacing: .newItem) {
+                Button("Nieuw item") {
+                    NotificationCenter.default.post(name: .macCreateItem, object: nil)
+                }
+                .keyboardShortcut("n", modifiers: .command)
+            }
+        }
+
+        Settings {
+            MacCloudSettingsView()
+        }
+#else
         WindowGroup {
             if hasCompletedWelcome {
                 StoreRootView()
@@ -23,6 +40,7 @@ struct SmartLedgerApp: App {
                 WelcomeView()
             }
         }
+#endif
     }
 }
 
@@ -36,8 +54,13 @@ private struct StoreRootView: View {
         Group {
             switch loadResult {
             case .success(let container):
+#if os(macOS)
+                MacRootView()
+                    .modelContainer(container)
+#else
                 UndoLimitedRootView()
                     .modelContainer(container)
+#endif
             case .failure(let error):
                 ContentUnavailableView {
                     Label("Gegevens niet geopend", systemImage: "externaldrive.badge.exclamationmark")
@@ -96,6 +119,7 @@ private struct StoreRootView: View {
     }
 }
 
+#if !os(macOS)
 private struct UndoLimitedRootView: View {
     @Environment(\.undoManager) private var undoManager
     @State private var persistenceError: String?
@@ -122,3 +146,4 @@ private struct UndoLimitedRootView: View {
             }
     }
 }
+#endif

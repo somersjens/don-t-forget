@@ -7,7 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		A1000000000000000000000C /* Don't forgetWidget.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = A10000000000000000000001 /* Don't forgetWidget.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		A1000000000000000000000C /* Don't forgetWidget.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = A10000000000000000000001 /* Don't forgetWidget.appex */; platformFilter = ios; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -369,6 +369,7 @@
 /* Begin PBXTargetDependency section */
 		A1000000000000000000000E /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
+			platformFilter = ios;
 			target = A10000000000000000000004 /* Don't forgetWidget */;
 			targetProxy = A1000000000000000000000D /* PBXContainerItemProxy */;
 		};
@@ -458,6 +459,21 @@
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
 				ENABLE_USER_SELECTED_FILES = readonly;
+				"EXCLUDED_SOURCE_FILE_NAMES[sdk=macosx*]" = (
+					AgendaView.swift,
+					AppleAccountView.swift,
+					BackupSettingsView.swift,
+					CalendarWidgetSnapshot.swift,
+					ContentView.swift,
+					DeferredCommitTextField.swift,
+					HistoryView.swift,
+					Item.swift,
+					QuickTodoCapture.swift,
+					RecurringView.swift,
+					RootTabView.swift,
+					SettingsView.swift,
+					TodoView.swift,
+				);
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = "Don't forget/Info.plist";
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
@@ -473,7 +489,7 @@
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
-				MACOSX_DEPLOYMENT_TARGET = 26.1;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = "Hakketjak.Don-t-forget";
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -504,6 +520,21 @@
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
 				ENABLE_USER_SELECTED_FILES = readonly;
+				"EXCLUDED_SOURCE_FILE_NAMES[sdk=macosx*]" = (
+					AgendaView.swift,
+					AppleAccountView.swift,
+					BackupSettingsView.swift,
+					CalendarWidgetSnapshot.swift,
+					ContentView.swift,
+					DeferredCommitTextField.swift,
+					HistoryView.swift,
+					Item.swift,
+					QuickTodoCapture.swift,
+					RecurringView.swift,
+					RootTabView.swift,
+					SettingsView.swift,
+					TodoView.swift,
+				);
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = "Don't forget/Info.plist";
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
@@ -519,7 +550,7 @@
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
-				MACOSX_DEPLOYMENT_TARGET = 26.1;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = "Hakketjak.Don-t-forget";
 				PRODUCT_NAME = "$(TARGET_NAME)";
