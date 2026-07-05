@@ -20,6 +20,37 @@ struct TodoGroup: Codable, Equatable, Identifiable {
     }
 }
 
+private extension View {
+    @ViewBuilder
+    func todoScrollCompatibility(isScrolled: Binding<Bool>) -> some View {
+        if #available(iOS 26.0, *) {
+            scrollEdgeEffectStyle(.soft, for: .top)
+                .onScrollGeometryChange(for: Bool.self) { geometry in
+                    geometry.contentOffset.y + geometry.contentInsets.top > 12
+                } action: { _, newValue in
+                    isScrolled.wrappedValue = newValue
+                }
+        } else if #available(iOS 18.0, *) {
+            onScrollGeometryChange(for: Bool.self) { geometry in
+                geometry.contentOffset.y + geometry.contentInsets.top > 12
+            } action: { _, newValue in
+                isScrolled.wrappedValue = newValue
+            }
+        } else {
+            self
+        }
+    }
+
+    @ViewBuilder
+    func compatibleCircularGlassEffect() -> some View {
+        if #available(iOS 26.0, *) {
+            glassEffect(.regular.interactive(), in: Circle())
+        } else {
+            background(.regularMaterial, in: Circle())
+        }
+    }
+}
+
 enum TodoGroupStore {
     static let maxCount = 10
     static let todayID = TodoBucket.today.rawValue
@@ -277,13 +308,9 @@ struct TodoView: View {
                 }
                 .padding(.horizontal, 14)
                 .padding(.vertical, 12)
+                .adaptiveReadableWidth()
             }
-            .scrollEdgeEffectStyle(.soft, for: .top)
-            .onScrollGeometryChange(for: Bool.self) { geometry in
-                geometry.contentOffset.y + geometry.contentInsets.top > 12
-            } action: { _, newValue in
-                isScrolled = newValue
-            }
+            .todoScrollCompatibility(isScrolled: $isScrolled)
             .toolbar(.hidden, for: .navigationBar)
             .safeAreaInset(edge: .top, spacing: 0) {
                 ZStack {
@@ -305,7 +332,7 @@ struct TodoView: View {
                                 .font(.system(size: 20, weight: .semibold))
                                 .frame(width: 44, height: 44)
                         }
-                        .glassEffect(.regular.interactive(), in: Circle())
+                        .compatibleCircularGlassEffect()
                         .background(
                             visibleOnboardingStep == 3 ? Color.brandLightBlue : Color.clear,
                             in: Circle()
@@ -331,7 +358,7 @@ struct TodoView: View {
                                 .font(.system(size: 20, weight: .semibold))
                                 .frame(width: 44, height: 44)
                         }
-                        .glassEffect(.regular.interactive(), in: Circle())
+                        .compatibleCircularGlassEffect()
                         .background(
                             visibleOnboardingStep == 2 ? Color.brandLightBlue : Color.clear,
                             in: Circle()
@@ -351,6 +378,7 @@ struct TodoView: View {
                 .padding(.leading, 22)
                 .padding(.trailing, 18)
                 .padding(.vertical, 6)
+                .adaptiveReadableWidth()
             }
             .safeAreaInset(edge: .bottom, spacing: 8) {
                 Group {
@@ -368,6 +396,7 @@ struct TodoView: View {
                             .transition(.move(edge: .bottom).combined(with: .opacity))
                     }
                 }
+                .adaptiveReadableWidth()
                 .padding(.bottom, 4)
             }
             .onAppear {
@@ -444,6 +473,11 @@ struct TodoView: View {
     }
 
     private func showPreviousTodoTutorialStep() {
+        if hasCompletedTodoTutorial {
+            hasCompletedTodoTutorial = false
+            showTodoTutorialStep(TodoHelpCard.stepCount - 1)
+            return
+        }
         if todoTutorialStep == 2 {
             restoreOnboardingTodoToInput()
         } else if todoTutorialStep == 3 {
@@ -480,7 +514,7 @@ struct TodoView: View {
             )
         case 3:
             undoManager?.undo()
-            try? modelContext.save()
+            _ = PersistenceSafety.save(modelContext)
             showTodoTutorialStep(4)
         case TodoHelpCard.stepCount - 1:
             if groups.count > 1 {
@@ -582,7 +616,7 @@ struct TodoView: View {
         let todo = TodoItem(text: "Example")
         todo.bucketRawValue = groupID
         modelContext.insert(todo)
-        try? modelContext.save()
+        _ = PersistenceSafety.save(modelContext)
         onboardingTodoID = todo.id
     }
 
@@ -597,7 +631,7 @@ struct TodoView: View {
 
         if let candidate {
             modelContext.delete(candidate)
-            try? modelContext.save()
+            _ = PersistenceSafety.save(modelContext)
         }
 
         onboardingTodoID = nil
@@ -660,7 +694,7 @@ struct TodoView: View {
         }
 
         if changed {
-            try? modelContext.save()
+            _ = PersistenceSafety.save(modelContext)
         }
     }
 
@@ -726,7 +760,7 @@ struct TodoView: View {
             todo.bucketRawValue = destinationID
         }
         groups = updated
-        try? modelContext.save()
+        _ = PersistenceSafety.save(modelContext)
     }
 
     private func showCompletionUndo(_ todo: TodoItem) {
@@ -765,7 +799,7 @@ struct TodoView: View {
         todo.isDone = false
         todo.isRemoved = false
         todo.completedAt = nil
-        try? modelContext.save()
+        _ = PersistenceSafety.save(modelContext)
         dismissUndoTask?.cancel()
         withAnimation(.easeOut(duration: 0.2)) {
             recentlyRemovedTodo = nil
@@ -824,7 +858,7 @@ struct TodoView: View {
         restoredTodo.showOnWidget = move.showOnWidget
         restoredTodo.createdAt = move.createdAt
         modelContext.insert(restoredTodo)
-        try? modelContext.save()
+        _ = PersistenceSafety.save(modelContext)
 
         dismissUndoTask?.cancel()
         withAnimation(.easeOut(duration: 0.2)) {
@@ -869,7 +903,7 @@ struct TodoView: View {
         guard let todo = recentlyCompletedTodo else { return }
         todo.isDone = false
         todo.completedAt = nil
-        try? modelContext.save()
+        _ = PersistenceSafety.save(modelContext)
         dismissUndoTask?.cancel()
         withAnimation(.easeOut(duration: 0.2)) {
             recentlyCompletedTodo = nil
@@ -879,15 +913,14 @@ struct TodoView: View {
     private var completionUndoBar: some View {
         HStack(spacing: 12) {
             Image(systemName: "checkmark.circle.fill")
-                .foregroundStyle(.green)
-            Text(locale.localized("Taak verplaatst\nnaar Afgerond"))
+                .foregroundStyle(.blue)
+            Text(completionUndoText)
                 .font(.system(size: 14, weight: .medium))
                 .lineLimit(2)
-                .fixedSize(horizontal: false, vertical: true)
-                .layoutPriority(1)
+                .truncationMode(.tail)
+                .frame(maxWidth: .infinity, alignment: .leading)
             Spacer(minLength: 4)
-            Button(locale.localized("Ongedaan maken"), action: undoCompletion)
-                .font(.system(size: 14, weight: .semibold))
+            completionUndoButton
         }
         .padding(.horizontal, 14)
         .frame(minHeight: 50)
@@ -899,6 +932,23 @@ struct TodoView: View {
                 .stroke(Color.primary.opacity(0.08), lineWidth: 1)
         }
         .shadow(color: .black.opacity(0.12), radius: 12, y: 4)
+    }
+
+    private var completionUndoText: String {
+        guard let todo = recentlyCompletedTodo else { return "" }
+        return locale.localizedFormat("feedback.movedToFinished", todo.text)
+    }
+
+    private var completionUndoButton: some View {
+        Button(action: undoCompletion) {
+            Text(locale.localized("Ongedaan maken"))
+                .font(.system(size: 14, weight: .semibold))
+                .lineLimit(2)
+                .multilineTextAlignment(.trailing)
+                .fixedSize(horizontal: false, vertical: true)
+                .frame(maxWidth: 82, alignment: .trailing)
+        }
+        .layoutPriority(1)
     }
 }
 
@@ -1054,7 +1104,9 @@ private struct TodoHelpCard: View {
         TutorialCompletionContent(
             message: locale.localized("Je hebt je taken helemaal in de hand."),
             replayTitle: locale.localized("Opnieuw"),
+            backAccessibilityLabel: locale.localized("Vorige stap"),
             closeAccessibilityLabel: locale.localized("Sluiten"),
+            back: previous,
             replay: replay,
             close: close
         )
@@ -1091,6 +1143,7 @@ private struct TodoBucketCard: View {
     let movedToAgenda: (TodoAgendaMoveUndo) -> Void
     @State private var showingAppearancePicker = false
     @State private var showingCategoryActions = false
+    @State private var isNewTodoFieldFocused = false
 
     private var canDelete: Bool {
         canDeleteGroup
@@ -1151,6 +1204,7 @@ private struct TodoBucketCard: View {
                         backgroundColor: group.backgroundColor,
                         isReorderHintActive: activeReorderHintIDs.contains(todo.id),
                         isOnboardingHighlighted: highlightedTodoID == todo.id,
+                        isCompletionEnabled: !(isNewTodoFieldFocused && index == todos.count - 1),
                         movePerformed: todoMovePerformed,
                         completed: completed,
                         removed: removed,
@@ -1166,7 +1220,8 @@ private struct TodoBucketCard: View {
                     minimumCharacterCount: minimumTodoLength,
                     requiresPlusToSubmit: requiresPlusToSubmit,
                     textChanged: newTodoTextChanged,
-                    todoAdded: newTodoAdded
+                    todoAdded: newTodoAdded,
+                    focusChanged: { isNewTodoFieldFocused = $0 }
                 )
             }
             .padding(.leading, 12)
@@ -1396,6 +1451,7 @@ private struct TodoLine: View {
     let backgroundColor: Color
     let isReorderHintActive: Bool
     let isOnboardingHighlighted: Bool
+    let isCompletionEnabled: Bool
     let movePerformed: (UUID) -> Void
     let completed: (TodoItem) -> Void
     let removed: (TodoItem) -> Void
@@ -1407,25 +1463,30 @@ private struct TodoLine: View {
     @State private var showMoveToAgenda = false
     @State private var agendaDate = AppCalendar.startOfDay(.now)
     @State private var isDeleting = false
+    @State private var moveSelectionToEndToken = 0
+    @State private var isProtectingInitialTap = false
+    @State private var initialTapProtectionTask: Task<Void, Never>?
     @FocusState private var isTextFieldFocused: Bool
 
     var body: some View {
         HStack(alignment: .top, spacing: 9) {
             moveMenu
 
-            TextField("", text: $todo.text, axis: .vertical)
+            todoTextField
                 .font(.system(size: 16))
                 .textFieldStyle(.plain)
-                .focused($isTextFieldFocused)
                 .lineLimit(1...)
-                .fixedSize(horizontal: false, vertical: true)
                 .strikethrough(todo.isDone)
                 .foregroundStyle(todo.isDone ? .secondary : .primary)
                 .submitLabel(.done)
                 .onChange(of: todo.text) { _, newValue in
                     let normalizedText = newValue.replacingOccurrences(of: "\n", with: "")
                     if normalizedText != newValue {
-                        todo.text = normalizedText
+                        var transaction = Transaction()
+                        transaction.disablesAnimations = true
+                        withTransaction(transaction) {
+                            todo.text = normalizedText
+                        }
                         dismissKeyboard()
                     }
                     if normalizedText.isEmpty {
@@ -1440,7 +1501,7 @@ private struct TodoLine: View {
 
             Button {
                 todo.toggleDone()
-                try? modelContext.save()
+                _ = PersistenceSafety.save(modelContext)
                 if todo.isDone {
                     completed(todo)
                 }
@@ -1453,6 +1514,10 @@ private struct TodoLine: View {
                     .contentShape(Rectangle().inset(by: -6))
             }
             .buttonStyle(.plain)
+            .allowsHitTesting(isCompletionEnabled)
+        }
+        .onDisappear {
+            initialTapProtectionTask?.cancel()
         }
         .sheet(isPresented: $showMoveToAgenda) {
             NavigationStack {
@@ -1493,12 +1558,64 @@ private struct TodoLine: View {
         AppKeyboard.dismiss()
     }
 
+    private var todoTextField: some View {
+        Text(todo.text.isEmpty ? " " : todo.text)
+            .fixedSize(horizontal: false, vertical: true)
+            .hidden()
+            .accessibilityHidden(true)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .overlay(alignment: .topLeading) {
+                ZStack(alignment: .topLeading) {
+                    compatibleTodoTextField
+                        .focused($isTextFieldFocused)
+
+                    if !isTextFieldFocused || isProtectingInitialTap {
+                        Color.clear
+                            .contentShape(Rectangle())
+                            .onTapGesture(perform: beginEditingAtEnd)
+                            .accessibilityLabel("Taak bewerken")
+                    }
+                }
+            }
+    }
+
+    @ViewBuilder private var compatibleTodoTextField: some View {
+        if #available(iOS 18.0, *) {
+            TodoSelectionTextField(
+                text: $todo.text,
+                moveSelectionToEndToken: moveSelectionToEndToken
+            )
+        } else {
+            TextField("", text: $todo.text, axis: .vertical)
+        }
+    }
+
+    private func beginEditingAtEnd() {
+        moveSelectionToEndToken &+= 1
+        if !isTextFieldFocused {
+            protectInitialTap()
+            isTextFieldFocused = true
+        }
+    }
+
+    private func protectInitialTap() {
+        initialTapProtectionTask?.cancel()
+        isProtectingInitialTap = true
+
+        initialTapProtectionTask = Task { @MainActor in
+            try? await Task.sleep(for: .milliseconds(320))
+            guard !Task.isCancelled else { return }
+            isProtectingInitialTap = false
+            initialTapProtectionTask = nil
+        }
+    }
+
     private var moveMenu: some View {
         Menu {
             ForEach(groups) { group in
                 Button {
                     todo.bucketRawValue = group.id
-                    try? modelContext.save()
+                    _ = PersistenceSafety.save(modelContext)
                     movePerformed(todo.id)
                 } label: {
                     Label(group.title, systemImage: group.icon)
@@ -1607,7 +1724,7 @@ private struct TodoLine: View {
         guard !isDeleting else { return }
         isDeleting = true
         modelContext.delete(todo)
-        try? modelContext.save()
+        _ = PersistenceSafety.save(modelContext)
     }
 
     private func removeTodo() {
@@ -1616,7 +1733,7 @@ private struct TodoLine: View {
         todo.isDone = false
         todo.isRemoved = true
         todo.completedAt = .now
-        try? modelContext.save()
+        _ = PersistenceSafety.save(modelContext)
         removed(todo)
     }
 
@@ -1644,7 +1761,7 @@ private struct TodoLine: View {
         modelContext.insert(agendaEntry)
         movePerformed(todo.id)
         modelContext.delete(todo)
-        try? modelContext.save()
+        _ = PersistenceSafety.save(modelContext)
         movedToAgenda(undo)
         showMoveToAgenda = false
     }
@@ -1659,11 +1776,13 @@ private struct NewTodoLine: View {
     let requiresPlusToSubmit: Bool
     let textChanged: (String) -> Void
     let todoAdded: (UUID) -> Void
+    let focusChanged: (Bool) -> Void
 
     @Environment(\.modelContext)
     private var modelContext
 
     @State private var text = ""
+    @State private var suppressFocusCommit = false
     @FocusState private var isTextFieldFocused: Bool
 
     var body: some View {
@@ -1693,14 +1812,18 @@ private struct NewTodoLine: View {
                     guard newValue.contains("\n") else { return }
                     text = newValue.replacingOccurrences(of: "\n", with: "")
                     guard !requiresPlusToSubmit else { return }
-                    addTodoAndDismissKeyboard()
+                    finishTodoAndDismissKeyboard()
                 }
                 .onSubmit {
                     guard !requiresPlusToSubmit else { return }
-                    addTodoAndDismissKeyboard()
+                    finishTodoAndDismissKeyboard()
                 }
                 .onChange(of: isTextFieldFocused) { wasFocused, isFocused in
-                    guard wasFocused, !isFocused, !requiresPlusToSubmit else { return }
+                    focusChanged(isFocused)
+                    guard wasFocused,
+                          !isFocused,
+                          !requiresPlusToSubmit,
+                          !suppressFocusCommit else { return }
                     addTodo()
                 }
                 .onChange(of: tutorialInputCommand) { _, command in
@@ -1724,7 +1847,7 @@ private struct NewTodoLine: View {
             } label: {
                 Image(systemName: "plus")
                     .font(.system(size: 12, weight: .semibold))
-                    .frame(width: 36, height: 24)
+                    .frame(width: 24, height: 24)
             }
             .buttonStyle(.plain)
             .opacity(cleanText.count >= minimumCharacterCount ? 1 : 0)
@@ -1745,6 +1868,9 @@ private struct NewTodoLine: View {
                     .allowsHitTesting(false)
             }
         }
+        .onDisappear {
+            focusChanged(false)
+        }
     }
 
     private func addTodo() {
@@ -1757,20 +1883,31 @@ private struct NewTodoLine: View {
         let todo = TodoItem(text: normalizedText)
         todo.bucketRawValue = groupID
 
-        modelContext.insert(todo)
-        try? modelContext.save()
+        var transaction = Transaction()
+        transaction.disablesAnimations = true
+
+        withTransaction(transaction) {
+            modelContext.insert(todo)
+            text = ""
+            _ = PersistenceSafety.save(modelContext)
+        }
         todoAdded(todo.id)
-        text = ""
     }
 
     private var cleanText: String {
         text.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
-    private func addTodoAndDismissKeyboard() {
-        addTodo()
+    private func finishTodoAndDismissKeyboard() {
+        suppressFocusCommit = true
         isTextFieldFocused = false
         AppKeyboard.dismiss()
+        addTodo()
+
+        Task { @MainActor in
+            await Task.yield()
+            suppressFocusCommit = false
+        }
     }
 
     private func beginEditing() {
@@ -1778,6 +1915,26 @@ private struct NewTodoLine: View {
             await Task.yield()
             isTextFieldFocused = true
         }
+    }
+}
+
+@available(iOS 18.0, *)
+private struct TodoSelectionTextField: View {
+    @Binding var text: String
+    let moveSelectionToEndToken: Int
+
+    @State private var selection: TextSelection?
+
+    var body: some View {
+        TextField("", text: $text, selection: $selection, axis: .vertical)
+            .onAppear(perform: moveSelectionToEnd)
+            .onChange(of: moveSelectionToEndToken) { _, _ in
+                moveSelectionToEnd()
+            }
+    }
+
+    private func moveSelectionToEnd() {
+        selection = TextSelection(insertionPoint: text.endIndex)
     }
 }
 

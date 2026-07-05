@@ -6,9 +6,75 @@
 //
 
 import XCTest
+import SwiftData
 @testable import Don_t_forget
 
 final class Don_t_forgetTests: XCTestCase {
+
+    @MainActor
+    func testProductionDefaultsKeepHistoryForever() {
+        XCTAssertEqual(HistoryRetentionOption.default, .never)
+        XCTAssertNil(HistoryRetentionOption.default.cutoffDate(from: .now))
+    }
+
+    @MainActor
+    func testFullBackupRoundTripRestoresAllModelTypesAndSettings() throws {
+        let schema = Schema(versionedSchema: AppSchemaV1.self)
+        let configuration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: true)
+        let container = try ModelContainer(
+            for: schema,
+            migrationPlan: AppSchemaMigrationPlan.self,
+            configurations: configuration
+        )
+        let context = container.mainContext
+        let suiteName = "AppBackupTests.\(UUID().uuidString)"
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: suiteName))
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+
+        let entry = DayEntry(date: try date(2027, 3, 4), rawText: "Afspraak 14:00")
+        entry.isDone = true
+        entry.completedAt = try date(2027, 3, 4)
+        entry.accentRawValue = "blue"
+        context.insert(entry)
+
+        let todo = TodoItem(text: "Melk halen")
+        todo.bucketRawValue = "custom-group"
+        context.insert(todo)
+
+        let recurring = RecurringItem(
+            title: "Verjaardag",
+            nextDate: try date(2027, 8, 9),
+            recurrenceKind: .birthday,
+            notes: "Cadeau regelen"
+        )
+        recurring.scheduleShiftsData = "[{\"offset\":1}]"
+        context.insert(recurring)
+        try context.save()
+        defaults.set("backup-setting", forKey: SettingsKeys.todoGroups)
+
+        let original = try AppBackupService.makeArchive(from: context, defaults: defaults)
+        let decoded = try AppBackupService.decode(AppBackupService.encode(original))
+
+        entry.rawText = "Gewijzigd"
+        context.delete(todo)
+        context.delete(recurring)
+        try context.save()
+        defaults.set("changed-setting", forKey: SettingsKeys.todoGroups)
+
+        try AppBackupService.restore(decoded, into: context, defaults: defaults)
+
+        let restoredEntries = try context.fetch(FetchDescriptor<DayEntry>())
+        let restoredTodos = try context.fetch(FetchDescriptor<TodoItem>())
+        let restoredRecurring = try context.fetch(FetchDescriptor<RecurringItem>())
+        XCTAssertEqual(restoredEntries.count, 1)
+        XCTAssertEqual(restoredEntries.first?.rawText, "Afspraak 14:00")
+        XCTAssertEqual(restoredEntries.first?.accentRawValue, "blue")
+        XCTAssertEqual(restoredTodos.first?.text, "Melk halen")
+        XCTAssertEqual(restoredTodos.first?.bucketRawValue, "custom-group")
+        XCTAssertEqual(restoredRecurring.first?.notes, "Cadeau regelen")
+        XCTAssertEqual(restoredRecurring.first?.scheduleShiftsData, "[{\"offset\":1}]")
+        XCTAssertEqual(defaults.string(forKey: SettingsKeys.todoGroups), "backup-setting")
+    }
 
     func testTimeParserSupportsTwentyFourHourAndDayPeriodNotations() {
         XCTAssertEqual(TimeParser.parse("16u sporten", locale: Locale(identifier: "nl_NL")).startMinutes, 16 * 60)
@@ -21,13 +87,15 @@ final class Don_t_forgetTests: XCTestCase {
         XCTAssertEqual(range.endMinutes, 18 * 60)
     }
 
-    func testTimeParserSupportsLocalizedDayPeriodBeforeTime() {
+    func testTimeParserSupportsLocalizedDayPeriodBeforeTime() throws {
         let locale = Locale(identifier: "zh_CN")
         let formatter = DateFormatter()
         formatter.locale = locale
 
+        let pmSymbol = try XCTUnwrap(formatter.pmSymbol)
+        let input = "\(pmSymbol)4:00 运动"
         XCTAssertEqual(
-            TimeParser.parse("\(formatter.pmSymbol)4:00 运动", locale: locale).startMinutes,
+            TimeParser.parse(input, locale: locale).startMinutes,
             16 * 60
         )
     }
@@ -122,7 +190,7 @@ final class Don_t_forgetTests: XCTestCase {
         let data = try Data(contentsOf: catalogURL)
         let json = try XCTUnwrap(JSONSerialization.jsonObject(with: data) as? [String: Any])
         let strings = try XCTUnwrap(json["strings"] as? [String: Any])
-        let key = "Taak verplaatst\nnaar Afgerond"
+        let key = "feedback.movedToFinished"
         let entry = try XCTUnwrap(strings[key] as? [String: Any])
         let localizations = try XCTUnwrap(entry["localizations"] as? [String: Any])
 
@@ -132,8 +200,8 @@ final class Don_t_forgetTests: XCTestCase {
             return try XCTUnwrap(unit["value"] as? String)
         }
 
-        XCTAssertEqual(try value("nl"), "Taak verplaatst\nnaar Afgerond")
-        XCTAssertEqual(try value("en"), "Task Moved\nto Finished")
+        XCTAssertEqual(try value("nl"), "‘%@’ is verplaatst naar Afgerond")
+        XCTAssertEqual(try value("en"), "‘%@’ was moved to Finished")
     }
 
     @MainActor

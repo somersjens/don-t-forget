@@ -96,7 +96,13 @@ enum RecurringScheduler {
         through endDate: Date
     ) {
         let today = AppCalendar.startOfDay(.now)
-        var allEntries = (try? modelContext.fetch(FetchDescriptor<DayEntry>())) ?? []
+        var allEntries: [DayEntry]
+        do {
+            allEntries = try modelContext.fetch(FetchDescriptor<DayEntry>())
+        } catch {
+            PersistenceSafety.report(error)
+            return
+        }
         let validItemIDs = Set(items.map(\.id))
         let orphanedEntries = allEntries.filter {
             guard let itemID = $0.recurringItemIdentifier else { return false }
@@ -120,7 +126,13 @@ enum RecurringScheduler {
 
     static func insertNextOccurrenceAndAdvance(item: RecurringItem, in modelContext: ModelContext) {
         guard let date = RecurrenceEngine.nextDate(for: item) else { return }
-        var entries = (try? modelContext.fetch(FetchDescriptor<DayEntry>())) ?? []
+        var entries: [DayEntry]
+        do {
+            entries = try modelContext.fetch(FetchDescriptor<DayEntry>())
+        } catch {
+            PersistenceSafety.report(error)
+            return
+        }
         let desired = desiredEntries(for: item, from: date, through: date)
         sync(item: item, desired: desired, allEntries: &entries, in: modelContext)
     }

@@ -7,6 +7,17 @@
 	<string></string>
 	<key>CFBundleDisplayName</key>
 	<string>Don't Forget</string>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLName</key>
+			<string>Hakketjak.Don-t-forget.navigation</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>dontforget</string>
+			</array>
+		</dict>
+	</array>
 	<key>NSCalendarsFullAccessUsageDescription</key>
 	<string>Don't forget gebruikt toegang om je agenda-items met de iPhone Kalender te synchroniseren.</string>
 	<key>NSMicrophoneUsageDescription</key>

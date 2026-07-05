@@ -3,6 +3,37 @@ import SwiftData
 import Charts
 import StoreKit
 
+private extension View {
+    @ViewBuilder
+    func historyScrollCompatibility(isScrolled: Binding<Bool>) -> some View {
+        if #available(iOS 26.0, *) {
+            scrollEdgeEffectStyle(.soft, for: .top)
+                .onScrollGeometryChange(for: Bool.self) { geometry in
+                    geometry.contentOffset.y + geometry.contentInsets.top > 12
+                } action: { _, newValue in
+                    isScrolled.wrappedValue = newValue
+                }
+        } else if #available(iOS 18.0, *) {
+            onScrollGeometryChange(for: Bool.self) { geometry in
+                geometry.contentOffset.y + geometry.contentInsets.top > 12
+            } action: { _, newValue in
+                isScrolled.wrappedValue = newValue
+            }
+        } else {
+            self
+        }
+    }
+
+    @ViewBuilder
+    func compatibleHistoryGlassEffect() -> some View {
+        if #available(iOS 26.0, *) {
+            glassEffect(.regular.interactive(), in: Circle())
+        } else {
+            background(.regularMaterial, in: Circle())
+        }
+    }
+}
+
 private struct HistoryRecurringCategoryAppearance: Decodable {
     let id: String
     let title: String?
@@ -395,13 +426,9 @@ struct HistoryView: View {
                 }
                 .padding(.horizontal, 14)
                 .padding(.vertical, 12)
+                .adaptiveReadableWidth()
             }
-            .scrollEdgeEffectStyle(.soft, for: .top)
-            .onScrollGeometryChange(for: Bool.self) { geometry in
-                geometry.contentOffset.y + geometry.contentInsets.top > 12
-            } action: { _, newValue in
-                isScrolled = newValue
-            }
+            .historyScrollCompatibility(isScrolled: $isScrolled)
             .toolbar(.hidden, for: .navigationBar)
             .safeAreaInset(edge: .top, spacing: 0) {
                 ZStack {
@@ -428,7 +455,7 @@ struct HistoryView: View {
                                 .font(.system(size: 20, weight: .semibold))
                                 .frame(width: 44, height: 44)
                         }
-                        .glassEffect(.regular.interactive(), in: Circle())
+                        .compatibleHistoryGlassEffect()
                         .background(
                             visibleOnboardingStep == 5 ? Color.brandLightBlue : Color.clear,
                             in: Circle()
@@ -446,6 +473,7 @@ struct HistoryView: View {
                 }
                 .padding(.horizontal, 18)
                 .padding(.vertical, 6)
+                .adaptiveReadableWidth()
             }
             .safeAreaInset(edge: .bottom, spacing: 8) {
                 Group {
@@ -468,6 +496,7 @@ struct HistoryView: View {
                             .transition(.move(edge: .bottom).combined(with: .opacity))
                     }
                 }
+                .adaptiveReadableWidth()
                 .padding(.bottom, 4)
             }
             .sheet(isPresented: $isShowingSettings) {
@@ -512,7 +541,7 @@ struct HistoryView: View {
 
     private func activateHistoryDemoData() {
         DemoData.insertHistoryData(in: modelContext)
-        try? modelContext.save()
+        _ = PersistenceSafety.save(modelContext)
     }
 
     private func toggleHelp() {
@@ -545,7 +574,7 @@ struct HistoryView: View {
             if entry.rawText != historyTutorialExampleText {
                 entry.rawText = historyTutorialExampleText
                 entry.refreshParsedFields()
-                try? modelContext.save()
+                _ = PersistenceSafety.save(modelContext)
             }
             if reset {
                 normalizeTutorialExampleToHistory(entry)
@@ -558,7 +587,7 @@ struct HistoryView: View {
         entry.completedAt = .now
         modelContext.insert(entry)
         historyTutorialExampleID = entry.id.uuidString
-        try? modelContext.save()
+        _ = PersistenceSafety.save(modelContext)
     }
 
     private func localizeHistoryTutorialExampleIfPresent() {
@@ -567,7 +596,7 @@ struct HistoryView: View {
         }
         entry.rawText = historyTutorialExampleText
         entry.refreshParsedFields()
-        try? modelContext.save()
+        _ = PersistenceSafety.save(modelContext)
     }
 
     private func tutorialExampleEntry() -> DayEntry? {
@@ -597,10 +626,15 @@ struct HistoryView: View {
         entry.isDone = true
         entry.isRemoved = false
         entry.completedAt = .now
-        try? modelContext.save()
+        _ = PersistenceSafety.save(modelContext)
     }
 
     private func showPreviousHistoryTutorialStep() {
+        if hasCompletedHistoryTutorial {
+            hasCompletedHistoryTutorial = false
+            showHistoryTutorialStep(HistoryHelpCard.stepCount - 1)
+            return
+        }
         guard historyTutorialStep > 0 else { return }
         showHistoryTutorialStep(historyTutorialStep - 1)
     }
@@ -695,7 +729,7 @@ struct HistoryView: View {
 
     private func deactivateHistoryDemoData() {
         DemoData.removeHistoryData(in: modelContext)
-        try? modelContext.save()
+        _ = PersistenceSafety.save(modelContext)
     }
 
     private func restore(_ row: HistoryRow) {
@@ -705,7 +739,7 @@ struct HistoryView: View {
             row.restore()
             recentlyRestoredRow = row
         }
-        try? modelContext.save()
+        _ = PersistenceSafety.save(modelContext)
 
         if visibleOnboardingStep == 2, row.id == tutorialExampleID {
             historyTutorialStep = 3
@@ -772,8 +806,18 @@ struct HistoryView: View {
     private func commitPermanentDeletion(_ row: HistoryRow) {
         permanentDeletionTask?.cancel()
         permanentDeletionTask = nil
+        do {
+            try AppBackupService.createAutomaticSnapshot(
+                from: modelContext,
+                reason: "before-permanent-delete"
+            )
+        } catch {
+            PersistenceSafety.report(error)
+            pendingPermanentDeletion = nil
+            return
+        }
         row.permanentlyDelete(in: modelContext)
-        try? modelContext.save()
+        _ = PersistenceSafety.save(modelContext)
         withAnimation(.easeOut(duration: 0.2)) {
             if pendingPermanentDeletion?.id == row.id {
                 pendingPermanentDeletion = nil
@@ -846,7 +890,7 @@ struct HistoryView: View {
     private func undoRestore() {
         guard let row = recentlyRestoredRow else { return }
         row.undoRestore()
-        try? modelContext.save()
+        _ = PersistenceSafety.save(modelContext)
         hideRestoreBar()
         if visibleOnboardingStep == 3, row.id == tutorialExampleID {
             historyTutorialStep = 4
@@ -1082,7 +1126,9 @@ private struct HistoryHelpCard: View {
         TutorialCompletionContent(
             message: locale.localized("Je weet nu precies hoe Afgerond werkt."),
             replayTitle: locale.localized("Opnieuw"),
+            backAccessibilityLabel: locale.localized("Vorige stap"),
             closeAccessibilityLabel: locale.localized("Sluiten"),
+            back: previous,
             replay: replay,
             close: close
         )

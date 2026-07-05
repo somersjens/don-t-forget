@@ -1,6 +1,58 @@
 import SwiftUI
 import SwiftData
 
+private extension View {
+    @ViewBuilder
+    func agendaScrollCompatibility(
+        isScrolled: Binding<Bool>,
+        scrollIdleChanged: @escaping (Bool) -> Void
+    ) -> some View {
+        if #available(iOS 26.0, *) {
+            scrollEdgeEffectStyle(.soft, for: .top)
+                .onScrollPhaseChange { _, newPhase in
+                    scrollIdleChanged(newPhase == .idle)
+                }
+                .onScrollGeometryChange(for: Bool.self) { geometry in
+                    geometry.contentOffset.y + geometry.contentInsets.top > 12
+                } action: { _, newValue in
+                    isScrolled.wrappedValue = newValue
+                }
+        } else if #available(iOS 18.0, *) {
+            onScrollPhaseChange { _, newPhase in
+                scrollIdleChanged(newPhase == .idle)
+            }
+            .onScrollGeometryChange(for: Bool.self) { geometry in
+                geometry.contentOffset.y + geometry.contentInsets.top > 12
+            } action: { _, newValue in
+                isScrolled.wrappedValue = newValue
+            }
+        } else {
+            self
+        }
+    }
+
+    @ViewBuilder
+    func compatibleAgendaGlassEffect() -> some View {
+        if #available(iOS 26.0, *) {
+            glassEffect(.regular.interactive(), in: Circle())
+        } else {
+            background(.regularMaterial, in: Circle())
+        }
+    }
+
+    @ViewBuilder
+    func agendaVisibilityCompatibility(
+        changed: @escaping (Bool) -> Void
+    ) -> some View {
+        if #available(iOS 18.0, *) {
+            onScrollVisibilityChange(threshold: 0.01, changed)
+        } else {
+            onAppear { changed(true) }
+                .onDisappear { changed(false) }
+        }
+    }
+}
+
 private struct AgendaRecurringCategoryAppearance: Decodable {
     let id: String
     let colorRawValue: String
@@ -246,21 +298,21 @@ struct AgendaView: View {
                     }
                     .padding(.horizontal, 14)
                     .padding(.vertical, 12)
+                    .adaptiveReadableWidth()
                 }
                 .scrollDisabled(isLoadingMoreFuture)
-                .scrollEdgeEffectStyle(.soft, for: .top)
-                .onScrollPhaseChange { _, newPhase in
-                    visibilityCache.isScrollIdle = newPhase == .idle
-                    if newPhase == .idle {
+                .agendaScrollCompatibility(
+                    isScrolled: Binding(
+                        get: { scrollPresentation.isScrolled },
+                        set: { scrollPresentation.isScrolled = $0 }
+                    )
+                ) { isIdle in
+                    visibilityCache.isScrollIdle = isIdle
+                    if isIdle {
                         startPendingFutureLoad()
                     } else {
                         cancelDeferredFutureLoad()
                     }
-                }
-                .onScrollGeometryChange(for: Bool.self) { geometry in
-                    geometry.contentOffset.y + geometry.contentInsets.top > 12
-                } action: { _, newValue in
-                    scrollPresentation.isScrolled = newValue
                 }
                 .onChange(of: scrollTargetDate) { _, targetDate in
                     guard let targetDate else { return }
@@ -302,7 +354,7 @@ struct AgendaView: View {
                                     .font(.system(size: 20, weight: .semibold))
                                     .frame(width: 44, height: 44)
                             }
-                            .glassEffect(.regular.interactive(), in: Circle())
+                            .compatibleAgendaGlassEffect()
                             .disabled(!(undoManager?.canUndo ?? false))
                             .accessibilityLabel("Laatste wijziging terugdraaien")
 
@@ -315,7 +367,7 @@ struct AgendaView: View {
                                     .font(.system(size: 20, weight: .semibold))
                                     .frame(width: 44, height: 44)
                             }
-                            .glassEffect(.regular.interactive(), in: Circle())
+                            .compatibleAgendaGlassEffect()
                             .background(
                                 visibleOnboardingStep == 2 && hasPerformedAgendaTutorialMove
                                     ? Color.brandLightBlue
@@ -336,6 +388,7 @@ struct AgendaView: View {
                     .padding(.leading, 22)
                     .padding(.trailing, 18)
                     .padding(.vertical, 6)
+                    .adaptiveReadableWidth()
 
                 }
             }
@@ -355,6 +408,7 @@ struct AgendaView: View {
                             .transition(.move(edge: .bottom).combined(with: .opacity))
                     }
                 }
+                .adaptiveReadableWidth()
                 .padding(.bottom, 4)
             }
             .overlay(alignment: .bottom) {
@@ -362,6 +416,7 @@ struct AgendaView: View {
                     recurringMoveOfferBar
                         .padding(.horizontal, 14)
                         .padding(.bottom, 12)
+                        .adaptiveReadableWidth()
                         .transition(.move(edge: .bottom).combined(with: .opacity))
                 }
             }
@@ -383,7 +438,7 @@ struct AgendaView: View {
             }
             .onChange(of: focusedField) { _, newValue in
                 if newValue == nil {
-                    try? modelContext.save()
+                    _ = PersistenceSafety.save(modelContext)
                     startPendingFutureLoad()
                 } else {
                     // Text input always outranks speculative future loading.
@@ -450,7 +505,7 @@ struct AgendaView: View {
                 setAgendaExampleID(entry.id, at: index)
             }
         }
-        try? modelContext.save()
+        _ = PersistenceSafety.save(modelContext)
     }
 
     private var agendaOnboardingExamples: [String] {
@@ -490,10 +545,15 @@ struct AgendaView: View {
                 entry.refreshParsedFields()
             }
         }
-        try? modelContext.save()
+        _ = PersistenceSafety.save(modelContext)
     }
 
     private func showPreviousAgendaTutorialStep() {
+        if hasCompletedAgendaTutorial {
+            hasCompletedAgendaTutorial = false
+            showAgendaTutorialStep(AgendaHelpCard.stepCount - 1)
+            return
+        }
         showAgendaTutorialStep(agendaTutorialStep - 1)
     }
 
@@ -610,7 +670,7 @@ struct AgendaView: View {
         guard let entry = recentlyCompletedEntry else { return }
         entry.isDone = false
         entry.completedAt = nil
-        try? modelContext.save()
+        _ = PersistenceSafety.save(modelContext)
         dismissRemovalUndoTask?.cancel()
         withAnimation(.easeOut(duration: 0.2)) {
             recentlyCompletedEntry = nil
@@ -620,15 +680,14 @@ struct AgendaView: View {
     private var completionUndoBar: some View {
         HStack(spacing: 12) {
             Image(systemName: "checkmark.circle.fill")
-                .foregroundStyle(.green)
-            Text(locale.localized("Item verplaatst\nnaar Afgerond"))
+                .foregroundStyle(.blue)
+            Text(completionUndoText)
                 .font(.system(size: 14, weight: .medium))
                 .lineLimit(2)
-                .fixedSize(horizontal: false, vertical: true)
-                .layoutPriority(1)
+                .truncationMode(.tail)
+                .frame(maxWidth: .infinity, alignment: .leading)
             Spacer(minLength: 4)
-            Button(locale.localized("Ongedaan maken"), action: undoCompletion)
-                .font(.system(size: 14, weight: .semibold))
+            completionUndoButton
         }
         .padding(.horizontal, 14)
         .frame(minHeight: 50)
@@ -642,6 +701,23 @@ struct AgendaView: View {
         .shadow(color: .black.opacity(0.12), radius: 12, y: 4)
     }
 
+    private var completionUndoText: String {
+        guard let entry = recentlyCompletedEntry else { return "" }
+        return locale.localizedFormat("feedback.movedToFinished", entry.rawText)
+    }
+
+    private var completionUndoButton: some View {
+        Button(action: undoCompletion) {
+            Text(locale.localized("Ongedaan maken"))
+                .font(.system(size: 14, weight: .semibold))
+                .lineLimit(2)
+                .multilineTextAlignment(.trailing)
+                .fixedSize(horizontal: false, vertical: true)
+                .frame(maxWidth: 82, alignment: .trailing)
+        }
+        .layoutPriority(1)
+    }
+
     private func undoRemoval() {
         guard let entry = recentlyRemovedEntry else { return }
         entry.isDone = false
@@ -651,7 +727,7 @@ struct AgendaView: View {
             CalendarSyncService.cancelEventDeletion(withIdentifier: identifier)
             entry.calendarEventIdentifier = identifier
         }
-        try? modelContext.save()
+        _ = PersistenceSafety.save(modelContext)
         dismissRemovalUndoTask?.cancel()
         withAnimation(.easeOut(duration: 0.2)) {
             recentlyRemovedEntry = nil
@@ -707,7 +783,7 @@ struct AgendaView: View {
             showRecurringMoveOfferIfNeeded(for: entry, from: originalDay, to: day)
             requestScroll(to: day)
         }
-        try? modelContext.save()
+        _ = PersistenceSafety.save(modelContext)
         recordAgendaTutorialMove()
     }
 
@@ -750,7 +826,7 @@ struct AgendaView: View {
             dayOffset: offset,
             to: item
         )
-        try? modelContext.save()
+        _ = PersistenceSafety.save(modelContext)
 
         dismissRecurringMoveOfferTask?.cancel()
         offer.isApplied = true
@@ -771,7 +847,7 @@ struct AgendaView: View {
                 in: modelContext,
                 through: endDate
             )
-            try? modelContext.save()
+            _ = PersistenceSafety.save(modelContext)
 
             try? await Task.sleep(for: .seconds(2))
             guard !Task.isCancelled else { return }
@@ -998,7 +1074,7 @@ struct AgendaView: View {
         if originalDay != day {
             showRecurringMoveOfferIfNeeded(for: entry, from: originalDay, to: day)
         }
-        try? modelContext.save()
+        _ = PersistenceSafety.save(modelContext)
         requestScroll(to: day)
         recordAgendaTutorialMove()
     }
@@ -1013,7 +1089,7 @@ struct AgendaView: View {
         let entryDate = AppCalendar.startOfDay(entry.date)
         focusedField = nil
         AppKeyboard.dismiss()
-        try? modelContext.save()
+        _ = PersistenceSafety.save(modelContext)
         setMoveMode(entryID: entry.id, date: entryDate)
         completeAgendaTutorialAction(for: 1)
     }
@@ -1065,7 +1141,7 @@ struct AgendaView: View {
         if currentEntries.indices.contains(targetIndex) {
             focusedField = nil
             renumber(entries: movableEntries, inserting: entry, at: targetIndex)
-            try? modelContext.save()
+            _ = PersistenceSafety.save(modelContext)
             recordAgendaTutorialMove()
             return
         }
@@ -1123,7 +1199,7 @@ struct AgendaView: View {
         modelContext.insert(todo)
         modelContext.delete(entry)
         activeMoveEntryID = nil
-        try? modelContext.save()
+        _ = PersistenceSafety.save(modelContext)
         showMoveToTodoUndo(undo)
         returnToAgendaTutorialMoveStep()
     }
@@ -1171,7 +1247,7 @@ struct AgendaView: View {
         if let identifier = move.calendarEventIdentifier {
             CalendarSyncService.cancelEventDeletion(withIdentifier: identifier)
         }
-        try? modelContext.save()
+        _ = PersistenceSafety.save(modelContext)
         dismissRemovalUndoTask?.cancel()
         withAnimation(.easeOut(duration: 0.2)) {
             recentlyMovedToTodo = nil
@@ -1394,13 +1470,30 @@ private struct AgendaHelpCard: View {
             }
 
             if let note = currentStep.note(for: locale) {
-                Text(note)
-                    .font(.system(size: 13, weight: .medium))
-                    .foregroundStyle(.secondary)
-                .padding(10)
-                .background(Color.yellow.opacity(0.28), in: RoundedRectangle(cornerRadius: 10))
+                HStack(alignment: .top, spacing: 7) {
+                    Image(systemName: "info.circle")
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundStyle(.secondary)
+                        .frame(width: 16, height: 16)
+
+                    Text(highlightedNote(note))
+                        .font(.system(size: 13, weight: .medium))
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
             }
         }
+    }
+
+    private func highlightedNote(_ note: String) -> AttributedString {
+        var text = AttributedString(note)
+        let languageCode = locale.language.languageCode?.identifier
+        let highlightedWord = languageCode == "nl" ? "geel" : "yellow"
+
+        if let range = text.range(of: highlightedWord, options: [.caseInsensitive]) {
+            text[range].backgroundColor = Color.yellow.opacity(0.34)
+        }
+        return text
     }
 
     private var navigationControls: some View {
@@ -1433,7 +1526,9 @@ private struct AgendaHelpCard: View {
         TutorialCompletionContent(
             message: locale.localized("Je agenda staat klaar voor alles wat komt."),
             replayTitle: locale.localized("Opnieuw"),
+            backAccessibilityLabel: locale.localized("Vorige stap"),
             closeAccessibilityLabel: locale.localized("Sluiten"),
+            back: previous,
             replay: replay,
             close: close
         )
@@ -1724,7 +1819,7 @@ struct DayBlock: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .id(AgendaScrollTarget.day(day.date))
-        .onScrollVisibilityChange(threshold: 0.01) { isVisible in
+        .agendaVisibilityCompatibility { isVisible in
             dayVisibilityChanged(day.date, isVisible)
         }
     }
@@ -1790,7 +1885,7 @@ struct AgendaEntryLine: View {
 
     @State private var isDeleting = false
     @State private var draftText: String?
-    @State private var textSelection: TextSelection?
+    @State private var moveSelectionToEndToken = 0
     @State private var isProtectingInitialTap = false
     @State private var initialTapProtectionTask: Task<Void, Never>?
     @AppStorage(SettingsKeys.recurringCategories) private var recurringCategoriesData = ""
@@ -1882,7 +1977,7 @@ struct AgendaEntryLine: View {
                 .hidden()
                 .accessibilityHidden(true)
 
-            TextField("", text: draftBinding, selection: $textSelection, axis: .vertical)
+            compatibleTextField
                 .textFieldStyle(.plain)
                 .focused(focusedField, equals: .entry(entry.id))
                 .lineLimit(1...)
@@ -1914,6 +2009,17 @@ struct AgendaEntryLine: View {
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 
+    @ViewBuilder private var compatibleTextField: some View {
+        if #available(iOS 18.0, *) {
+            AgendaSelectionTextField(
+                text: draftBinding,
+                moveSelectionToEndToken: moveSelectionToEndToken
+            )
+        } else {
+            TextField("", text: draftBinding, axis: .vertical)
+        }
+    }
+
     private var editableText: String {
         draftText ?? entry.rawText
     }
@@ -1943,8 +2049,7 @@ struct AgendaEntryLine: View {
     }
 
     private func moveSelectionToEnd() {
-        let text = editableText
-        textSelection = TextSelection(insertionPoint: text.endIndex)
+        moveSelectionToEndToken &+= 1
     }
 
     private func protectInitialTap() {
@@ -1984,7 +2089,7 @@ struct AgendaEntryLine: View {
         }
         entry.refreshParsedFields()
         self.draftText = nil
-        try? modelContext.save()
+        _ = PersistenceSafety.save(modelContext)
     }
 
     private func deleteEntry() {
@@ -2004,7 +2109,7 @@ struct AgendaEntryLine: View {
         Task { @MainActor in
             await Task.yield()
             modelContext.delete(entry)
-            try? modelContext.save()
+            _ = PersistenceSafety.save(modelContext)
 
             if !eventIsShared, let eventIdentifier {
                 CalendarSyncService.enqueueEventDeletion(withIdentifier: eventIdentifier)
@@ -2026,13 +2131,13 @@ struct AgendaEntryLine: View {
         entry.isRemoved = true
         entry.completedAt = .now
         finishMove()
-        try? modelContext.save()
+        _ = PersistenceSafety.save(modelContext)
         removed(entry, eventIdentifier)
     }
 
     private func toggleDone() {
         entry.toggleDone()
-        try? modelContext.save()
+        _ = PersistenceSafety.save(modelContext)
         if entry.isDone {
             completed(entry)
         }
@@ -2060,6 +2165,26 @@ struct AgendaEntryLine: View {
 
     private func recurringColor(_ rawValue: String) -> Color {
         RecurringThemeColorOption(rawValue: rawValue)?.color ?? .primary
+    }
+}
+
+@available(iOS 18.0, *)
+private struct AgendaSelectionTextField: View {
+    @Binding var text: String
+    let moveSelectionToEndToken: Int
+
+    @State private var selection: TextSelection?
+
+    var body: some View {
+        TextField("", text: $text, selection: $selection, axis: .vertical)
+            .onAppear(perform: moveSelectionToEnd)
+            .onChange(of: moveSelectionToEndToken) { _, _ in
+                moveSelectionToEnd()
+            }
+    }
+
+    private func moveSelectionToEnd() {
+        selection = TextSelection(insertionPoint: text.endIndex)
     }
 }
 
@@ -2206,107 +2331,117 @@ private struct AgendaMoveControls: View {
                 .frame(width: AgendaLayout.prefixWidth, height: 32)
 
             HStack(spacing: 0) {
-                Menu {
-                    Section("Verplaats naar:") {
-                        ForEach(todoGroups) { group in
-                            Button {
-                                moveToTodo(group.id)
-                            } label: {
-                                Label(group.title, systemImage: group.icon)
-                            }
-                        }
-                    }
-
-                    Divider()
-
-                    Button(role: .destructive, action: remove) {
-                        Label("Verwijderen", systemImage: "trash")
-                            .foregroundStyle(.red)
-                    }
-                    .tint(.red)
-                } label: {
-                    Color.clear
-                        .frame(width: 22, height: 32)
-                        .overlay {
-                            Image(systemName: "arrow.left.arrow.right")
-                                .font(.system(size: 13, weight: .semibold))
-                                .foregroundStyle(.secondary)
-                        }
-                }
-                .contentShape(Rectangle().inset(by: -4))
-                .accessibilityLabel("Verplaatsopties")
-
-                Spacer(minLength: 8)
-
-                DatePicker("", selection: dateSelection, displayedComponents: .date)
-                    .labelsHidden()
-                    .datePickerStyle(.compact)
-                    .fixedSize()
-                    .opacity(0.02)
+                movementControls
+                    .frame(maxWidth: .infinity)
                     .overlay {
-                        Text(AppCalendar.localizedDate(date, template: "dMMMyyyy"))
-                            .allowsHitTesting(false)
+                        if highlightsControls {
+                            RoundedRectangle(cornerRadius: 9)
+                                .stroke(Color.brandHardBlue, lineWidth: 3)
+                                .padding(.leading, -5)
+                                .padding(.vertical, -4)
+                        }
                     }
-                    .frame(width: 76, height: 32)
-                    .contentShape(Rectangle().inset(by: -4))
-                    .accessibilityValue(AppCalendar.localizedDate(date, template: "dMMMyyyy"))
 
                 Spacer(minLength: 8)
 
-                Button {
-                    performStep(moveUp)
-                } label: {
-                    Image(systemName: "chevron.up")
-                        .frame(width: 24, height: 32)
-                        .contentShape(Rectangle().inset(by: -4))
-                }
-                .buttonStyle(.plain)
-                .accessibilityLabel("Een positie omhoog")
-
-                Spacer(minLength: 8)
-
-                Button {
-                    performStep(moveDown)
-                } label: {
-                    Image(systemName: "chevron.down")
-                        .frame(width: 24, height: 32)
-                        .contentShape(Rectangle().inset(by: -4))
-                }
-                .buttonStyle(.plain)
-                .accessibilityLabel("Een positie omlaag")
-
-                Spacer(minLength: 8)
-
-                Button(action: finishMove) {
-                    Image(systemName: "checkmark")
-                        .font(.system(size: 13, weight: .bold))
-                        .foregroundStyle(.secondary)
-                        .frame(width: 20, height: 32)
-                        .contentShape(Rectangle().inset(by: -4))
-                }
-                .buttonStyle(.plain)
-                .accessibilityLabel("Klaar met verplaatsen")
-                .overlay {
-                    if highlightsFinish {
-                        Circle()
-                            .stroke(Color.brandHardBlue, lineWidth: 3)
-                            .padding(-4)
-                    }
-                }
+                finishButton
             }
             .frame(maxWidth: .infinity)
-            .overlay {
-                if highlightsControls {
-                    RoundedRectangle(cornerRadius: 9)
-                        .stroke(Color.brandHardBlue, lineWidth: 3)
-                        .padding(.leading, -5)
-                        .padding(.trailing, 25)
-                        .padding(.vertical, -4)
-                }
-            }
         }
         .font(.system(size: 13, weight: .medium))
         .foregroundStyle(.secondary)
+    }
+
+    private var movementControls: some View {
+        HStack(spacing: 0) {
+            Menu {
+                Section("Verplaats naar:") {
+                    ForEach(todoGroups) { group in
+                        Button {
+                            moveToTodo(group.id)
+                        } label: {
+                            Label(group.title, systemImage: group.icon)
+                        }
+                    }
+                }
+
+                Divider()
+
+                Button(role: .destructive, action: remove) {
+                    Label("Verwijderen", systemImage: "trash")
+                        .foregroundStyle(.red)
+                }
+                .tint(.red)
+            } label: {
+                Color.clear
+                    .frame(width: 22, height: 32)
+                    .overlay {
+                        Image(systemName: "arrow.left.arrow.right")
+                            .font(.system(size: 13, weight: .semibold))
+                            .foregroundStyle(.secondary)
+                    }
+            }
+            .contentShape(Rectangle().inset(by: -4))
+            .accessibilityLabel("Verplaatsopties")
+
+            Spacer(minLength: 8)
+
+            DatePicker("", selection: dateSelection, displayedComponents: .date)
+                .labelsHidden()
+                .datePickerStyle(.compact)
+                .fixedSize()
+                .opacity(0.02)
+                .overlay {
+                    Text(AppCalendar.localizedDate(date, template: "dMMMyyyy"))
+                        .allowsHitTesting(false)
+                }
+                .frame(width: 76, height: 32)
+                .contentShape(Rectangle().inset(by: -4))
+                .accessibilityValue(AppCalendar.localizedDate(date, template: "dMMMyyyy"))
+
+            Spacer(minLength: 8)
+
+            Button {
+                performStep(moveUp)
+            } label: {
+                Image(systemName: "chevron.up")
+                    .frame(width: 24, height: 32)
+                    .contentShape(Rectangle().inset(by: -4))
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("Een positie omhoog")
+
+            Spacer(minLength: 8)
+
+            Button {
+                performStep(moveDown)
+            } label: {
+                Image(systemName: "chevron.down")
+                    .frame(width: 24, height: 32)
+                    .contentShape(Rectangle().inset(by: -4))
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("Een positie omlaag")
+        }
+    }
+
+    private var finishButton: some View {
+        Button(action: finishMove) {
+            Image(systemName: "checkmark")
+                .font(.system(size: 13, weight: .bold))
+                .foregroundStyle(.secondary)
+                .frame(width: 20, height: 32)
+                .contentShape(Rectangle().inset(by: -4))
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("Klaar met verplaatsen")
+        .overlay {
+            if highlightsFinish {
+                Circle()
+                    .stroke(Color.brandHardBlue, lineWidth: 3)
+                    .padding(-4)
+            }
+        }
     }
 
     private var dateSelection: Binding<Date> {
