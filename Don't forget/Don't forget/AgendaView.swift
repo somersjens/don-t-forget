@@ -135,6 +135,7 @@ struct AgendaView: View {
     @State private var dismissRecurringMoveOfferTask: Task<Void, Never>?
     @State private var isHelpExpanded = false
     @State private var hasPerformedAgendaTutorialMove = false
+    @State private var weatherStore = AppleWeatherForecastStore()
 
     @AppStorage(SettingsKeys.hasPresentedAgendaHelp)
     private var hasPresentedAgendaHelp = false
@@ -161,6 +162,10 @@ struct AgendaView: View {
     @AppStorage(SettingsKeys.weekNumberRule) private var weekNumberSetting = WeekNumberRule.iso8601.rawValue
     @AppStorage(SettingsKeys.language) private var languageSetting = AppLanguage.system.rawValue
     @AppStorage(SettingsKeys.todoGroups) private var todoGroupsData = ""
+    @AppStorage(SettingsKeys.weatherInAgendaEnabled) private var weatherInAgendaEnabled = false
+    @AppStorage(SettingsKeys.weatherLatitude) private var weatherLatitude = 0.0
+    @AppStorage(SettingsKeys.weatherLongitude) private var weatherLongitude = 0.0
+    @AppStorage(SettingsKeys.weatherReloadToken) private var weatherReloadToken = 0
     @AppStorage(SettingsKeys.recurringHorizon)
     private var recurringHorizon = RecurringHorizonOption.threeMonths.rawValue
     @AppStorage(SettingsKeys.recurringExtendedThrough)
@@ -233,6 +238,10 @@ struct AgendaView: View {
         let groupedEntries = entriesByDay
         let visibleWeeks = weeks
         let loadedWeekLimit = loadedFutureWeeks
+        let weatherByDay = weatherStore.days
+        let firstWeatherWeekID = visibleWeeks.first { week in
+            week.days.contains { weatherByDay[AppCalendar.startOfDay($0.date)] != nil }
+        }?.id
 
         NavigationStack {
             ScrollViewReader { proxy in
@@ -255,6 +264,10 @@ struct AgendaView: View {
                             WeekCard(
                                 week: week,
                                 entriesByDay: groupedEntries,
+                                weatherByDay: weatherByDay,
+                                weatherAttribution: week.id == firstWeatherWeekID
+                                    ? weatherStore.attribution
+                                    : nil,
                                 focusedField: $focusedField,
                                 moveEntry: moveEntry,
                                 moveEntryOneStep: moveEntryOneStep,
@@ -266,6 +279,10 @@ struct AgendaView: View {
                                 removed: showRemovalUndo,
                                 dayVisibilityChanged: updateDayVisibility,
                                 onboardingStep: visibleOnboardingStep,
+                                onboardingExampleIDs: Set([
+                                    UUID(uuidString: agendaSportsExampleID),
+                                    UUID(uuidString: agendaDinnerExampleID)
+                                ].compactMap { $0 }),
                                 hasPerformedOnboardingMove: hasPerformedAgendaTutorialMove,
                                 onboardingEntryAdded: {
                                     completeAgendaTutorialAction(for: 0)
@@ -430,6 +447,9 @@ struct AgendaView: View {
                     isHelpExpanded = true
                 }
             }
+            .task(id: "\(weatherInAgendaEnabled)|\(weatherLatitude)|\(weatherLongitude)|\(weatherReloadToken)") {
+                await weatherStore.reload()
+            }
             .onChange(of: languageSetting) { _, _ in
                 localizeAgendaOnboardingExamplesIfPresent()
             }
@@ -455,14 +475,54 @@ struct AgendaView: View {
 
     private func toggleHelp() {
         hasOpenedAgendaHelp = true
-        if !isHelpExpanded && !hasSeededAgendaExamples && !hasCompletedAgendaTutorial {
+        if isHelpExpanded {
+            collapseHelp()
+            return
+        }
+        if !hasSeededAgendaExamples && !hasCompletedAgendaTutorial {
             insertAgendaOnboardingExamplesIfNeeded()
         }
-        isHelpExpanded.toggle()
+        isHelpExpanded = true
     }
 
     private func collapseHelp() {
         isHelpExpanded = false
+        removeAgendaOnboardingExamples()
+    }
+
+    private func removeAgendaOnboardingExamples() {
+        let allEntries = (try? modelContext.fetch(FetchDescriptor<DayEntry>())) ?? entries
+        var examplesToDelete: [DayEntry] = []
+
+        // Older app versions did not always retain the example IDs. Only fall
+        // back to matching their localized text when the corresponding ID is
+        // unavailable, so a user-created entry with the same text is preserved
+        // whenever the seeded example can be identified precisely.
+        let knownTexts: [Set<String>] = [
+            ["17u exercising", "16u sports (example)", "16u sporten", "4PM sports"],
+            ["18u dinnertime", "18u dinner (example)", "18u uit eten", "6PM dinner"]
+        ]
+        let storedIDStrings = [agendaSportsExampleID, agendaDinnerExampleID]
+        for index in knownTexts.indices {
+            let storedExample = UUID(uuidString: storedIDStrings[index]).flatMap { id in
+                allEntries.first { $0.id == id }
+            }
+            if let example = storedExample
+                ?? allEntries.first(where: { knownTexts[index].contains($0.rawText) }) {
+                examplesToDelete.append(example)
+            }
+        }
+
+        for entry in Dictionary(uniqueKeysWithValues: examplesToDelete.map { ($0.id, $0) }).values {
+            if activeMoveEntryID == entry.id {
+                activeMoveEntryID = nil
+            }
+            modelContext.delete(entry)
+        }
+
+        agendaSportsExampleID = ""
+        agendaDinnerExampleID = ""
+        _ = PersistenceSafety.save(modelContext)
     }
 
     private func insertAgendaOnboardingExamplesIfNeeded(reset: Bool = false) {
@@ -678,44 +738,18 @@ struct AgendaView: View {
     }
 
     private var completionUndoBar: some View {
-        HStack(spacing: 12) {
-            Image(systemName: "checkmark.circle.fill")
-                .foregroundStyle(.blue)
-            Text(completionUndoText)
-                .font(.system(size: 14, weight: .medium))
-                .lineLimit(2)
-                .truncationMode(.tail)
-                .frame(maxWidth: .infinity, alignment: .leading)
-            Spacer(minLength: 4)
-            completionUndoButton
-        }
-        .padding(.horizontal, 14)
-        .frame(minHeight: 50)
-        .contentShape(RoundedRectangle(cornerRadius: 14))
-        .onTapGesture(perform: undoCompletion)
-        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 14))
-        .overlay {
-            RoundedRectangle(cornerRadius: 14)
-                .stroke(Color.primary.opacity(0.08), lineWidth: 1)
-        }
-        .shadow(color: .black.opacity(0.12), radius: 12, y: 4)
+        UndoFeedbackBar(
+            iconSystemName: "checkmark.circle.fill",
+            iconColor: .blue,
+            message: completionUndoText,
+            undoTitle: locale.localized("Ongedaan maken"),
+            action: undoCompletion
+        )
     }
 
     private var completionUndoText: String {
         guard let entry = recentlyCompletedEntry else { return "" }
         return locale.localizedFormat("feedback.movedToFinished", entry.rawText)
-    }
-
-    private var completionUndoButton: some View {
-        Button(action: undoCompletion) {
-            Text(locale.localized("Ongedaan maken"))
-                .font(.system(size: 14, weight: .semibold))
-                .lineLimit(2)
-                .multilineTextAlignment(.trailing)
-                .fixedSize(horizontal: false, vertical: true)
-                .frame(maxWidth: 82, alignment: .trailing)
-        }
-        .layoutPriority(1)
     }
 
     private func undoRemoval() {
@@ -735,28 +769,13 @@ struct AgendaView: View {
     }
 
     private var removalUndoBar: some View {
-        HStack(spacing: 12) {
-            Image(systemName: "trash.fill")
-                .foregroundStyle(.red)
-            Text(locale.localizedFormat("feedback.deleted", recentlyRemovedEntryTitle))
-                .font(.system(size: 14, weight: .medium))
-                .lineLimit(2)
-                .fixedSize(horizontal: false, vertical: true)
-                .layoutPriority(1)
-            Spacer(minLength: 4)
-            Button(locale.localized("Ongedaan maken"), action: undoRemoval)
-                .font(.system(size: 14, weight: .semibold))
-        }
-        .padding(.horizontal, 14)
-        .frame(minHeight: 50)
-        .contentShape(RoundedRectangle(cornerRadius: 14))
-        .onTapGesture(perform: undoRemoval)
-        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 14))
-        .overlay {
-            RoundedRectangle(cornerRadius: 14)
-                .stroke(Color.primary.opacity(0.08), lineWidth: 1)
-        }
-        .shadow(color: .black.opacity(0.12), radius: 12, y: 4)
+        UndoFeedbackBar(
+            iconSystemName: "trash.fill",
+            iconColor: .red,
+            message: locale.localizedFormat("feedback.deleted", recentlyRemovedEntryTitle),
+            undoTitle: locale.localized("Ongedaan maken"),
+            action: undoRemoval
+        )
     }
 
     private func moveEntry(_ entryID: UUID, to targetDate: Date, insertionIndex: Int? = nil) {
@@ -1255,34 +1274,17 @@ struct AgendaView: View {
     }
 
     private var moveToTodoUndoBar: some View {
-        HStack(spacing: 12) {
-            Image(systemName: "arrow.left.arrow.right")
-                .foregroundStyle(.blue)
-            Text(locale.localizedFormat(
+        UndoFeedbackBar(
+            iconSystemName: "arrow.left.arrow.right",
+            iconColor: .blue,
+            message: locale.localizedFormat(
                 "feedback.movedTo",
                 recentlyMovedToTodo?.rawText ?? "",
                 recentlyMovedToTodo?.destinationTitle ?? AppSection.todo.title(for: locale)
-            ))
-                .font(.system(size: 14, weight: .medium))
-                .lineLimit(2)
-                .truncationMode(.tail)
-                .frame(maxWidth: .infinity, alignment: .leading)
-            Spacer(minLength: 4)
-            Button(locale.localized("Ongedaan maken"), action: undoMoveToTodo)
-                .font(.system(size: 14, weight: .semibold))
-                .fixedSize(horizontal: true, vertical: false)
-                .layoutPriority(1)
-        }
-        .padding(.horizontal, 14)
-        .frame(minHeight: 50)
-        .contentShape(RoundedRectangle(cornerRadius: 14))
-        .onTapGesture(perform: undoMoveToTodo)
-        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 14))
-        .overlay {
-            RoundedRectangle(cornerRadius: 14)
-                .stroke(Color.primary.opacity(0.08), lineWidth: 1)
-        }
-        .shadow(color: .black.opacity(0.12), radius: 12, y: 4)
+            ),
+            undoTitle: locale.localized("Ongedaan maken"),
+            action: undoMoveToTodo
+        )
     }
 
     private func requestScroll(to date: Date) {
@@ -1548,7 +1550,7 @@ private struct AgendaFutureLoadingFooter: View {
         .frame(maxWidth: .infinity)
         .frame(minHeight: 51)
         .background {
-            RoundedRectangle(cornerRadius: 8)
+            RoundedRectangle(cornerRadius: 14)
                 .fill(Color(.secondarySystemBackground))
         }
         .accessibilityElement(children: .combine)
@@ -1572,6 +1574,19 @@ private enum AgendaLayout {
     static let lineSpacing: CGFloat = 6
     static let lineWidth: CGFloat = 1
     static let rowSpacing: CGFloat = 8
+    static let completionControlInset: CGFloat = 8
+    static let weatherControlOffset: CGFloat = -3
+    static let moveActionSpacing: CGFloat = 8
+    static let categoryControlWidth: CGFloat = 22
+    static let dateControlWidth: CGFloat = 76
+    static let stepControlWidth: CGFloat = 24
+    static let finishControlWidth: CGFloat = 20
+    static let onboardingControlsTrailingSpace: CGFloat = 6
+
+    static var moveControlsFixedWidth: CGFloat {
+        categoryControlWidth + dateControlWidth
+            + (2 * stepControlWidth) + finishControlWidth
+    }
 
     static var lineX: CGFloat {
         dateWidth + dateWeekdaySpacing + weekdayWidth + lineSpacing
@@ -1589,6 +1604,8 @@ private enum AgendaLayout {
 struct WeekCard: View {
     let week: WeekSection
     let entriesByDay: [Date: [DayEntry]]
+    let weatherByDay: [Date: AgendaWeatherDay]
+    let weatherAttribution: AgendaWeatherAttribution?
     let focusedField: FocusState<AgendaField?>.Binding
     let moveEntry: (UUID, Date, Int?) -> Void
     let moveEntryOneStep: (UUID, Int) -> Void
@@ -1600,6 +1617,7 @@ struct WeekCard: View {
     let removed: (DayEntry, String?) -> Void
     let dayVisibilityChanged: (Date, Bool) -> Void
     let onboardingStep: Int?
+    let onboardingExampleIDs: Set<UUID>
     let hasPerformedOnboardingMove: Bool
     let onboardingEntryAdded: () -> Void
     let completed: (DayEntry) -> Void
@@ -1639,6 +1657,7 @@ struct WeekCard: View {
                     DayBlock(
                         day: day,
                         entries: entriesByDay[day.date] ?? [],
+                        weather: weatherByDay[AppCalendar.startOfDay(day.date)],
                         focusedField: focusedField,
                         moveEntry: moveEntry,
                         moveEntryOneStep: moveEntryOneStep,
@@ -1650,6 +1669,7 @@ struct WeekCard: View {
                         removed: removed,
                         dayVisibilityChanged: dayVisibilityChanged,
                         onboardingStep: onboardingStep,
+                        onboardingExampleIDs: onboardingExampleIDs,
                         hasPerformedOnboardingMove: hasPerformedOnboardingMove,
                         onboardingEntryAdded: onboardingEntryAdded,
                         completed: completed,
@@ -1661,17 +1681,50 @@ struct WeekCard: View {
             .padding(.leading, 14)
             .padding(.trailing, 8)
             .padding(.vertical, 13)
-            .background {
-                RoundedRectangle(cornerRadius: 8)
-                    .fill(Color(.secondarySystemBackground))
+        .background {
+            RoundedRectangle(cornerRadius: 14)
+                .fill(Color(.secondarySystemBackground))
+        }
+
+
+            if let weatherAttribution {
+                AgendaWeatherAttributionLink(attribution: weatherAttribution)
+                    .frame(maxWidth: .infinity, alignment: .trailing)
+                    .padding(.trailing, 4)
             }
         }
+    }
+}
+
+private struct AgendaWeatherAttributionLink: View {
+    @Environment(\.colorScheme) private var colorScheme
+    let attribution: AgendaWeatherAttribution
+
+    var body: some View {
+        Link(destination: attribution.legalPageURL) {
+            AsyncImage(url: markURL) { image in
+                image
+                    .resizable()
+                    .scaledToFit()
+            } placeholder: {
+                Text("Apple Weather")
+                    .font(.caption2.weight(.medium))
+                    .foregroundStyle(.secondary)
+            }
+            .frame(width: 82, height: 13)
+        }
+        .accessibilityLabel("Apple Weather, broninformatie")
+    }
+
+    private var markURL: URL {
+        colorScheme == .dark ? attribution.lightMarkURL : attribution.darkMarkURL
     }
 }
 
 struct DayBlock: View {
     let day: DayInfo
     let entries: [DayEntry]
+    let weather: AgendaWeatherDay?
     let focusedField: FocusState<AgendaField?>.Binding
     let moveEntry: (UUID, Date, Int?) -> Void
     let moveEntryOneStep: (UUID, Int) -> Void
@@ -1683,6 +1736,7 @@ struct DayBlock: View {
     let removed: (DayEntry, String?) -> Void
     let dayVisibilityChanged: (Date, Bool) -> Void
     let onboardingStep: Int?
+    let onboardingExampleIDs: Set<UUID>
     let hasPerformedOnboardingMove: Bool
     let onboardingEntryAdded: () -> Void
     let completed: (DayEntry) -> Void
@@ -1715,6 +1769,12 @@ struct DayBlock: View {
         return min(2, sortedEntries.count - 1)
     }
 
+    private var onboardingCompletionIndex: Int? {
+        guard AppCalendar.isSameDay(day.date, .now), !sortedEntries.isEmpty else { return nil }
+        return sortedEntries.firstIndex { !onboardingExampleIDs.contains($0.id) }
+            ?? onboardingExampleIndex
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 2) {
             ZStack(alignment: .leading) {
@@ -1740,6 +1800,9 @@ struct DayBlock: View {
                                 dateLabel: index == 0 ? day.dateLabel : "",
                                 weekdayLetter: day.weekdayLetter,
                                 entry: entry,
+                                weather: index == 0 && day.date > AppCalendar.startOfDay(.now)
+                                    ? weather
+                                    : nil,
                                 focusedField: focusedField,
                                 isMoveActive: activeMoveEntryID == entry.id,
                                 isMoveModeActive: activeMoveEntryID != nil,
@@ -1779,7 +1842,7 @@ struct DayBlock: View {
                                     && entry.id == activeMoveEntryID
                                     && hasPerformedOnboardingMove,
                                 highlightsCompletion: onboardingStep == 3
-                                    && index == onboardingExampleIndex,
+                                    && index == onboardingCompletionIndex,
                                 completed: completed,
                                 onboardingMoveCancelled: onboardingMoveCancelled
                             )
@@ -1860,6 +1923,7 @@ struct AgendaEntryLine: View {
     let weekdayLetter: String
 
     @Bindable var entry: DayEntry
+    let weather: AgendaWeatherDay?
     let focusedField: FocusState<AgendaField?>.Binding
     let isMoveActive: Bool
     let isMoveModeActive: Bool
@@ -1917,24 +1981,7 @@ struct AgendaEntryLine: View {
 
                 Spacer(minLength: 2)
 
-                Image(systemName: entry.isDone ? "checkmark.circle.fill" : "circle")
-                    .font(.system(size: 18))
-                    .symbolRenderingMode(.hierarchical)
-                    .foregroundStyle(entryAccentColor)
-                    .frame(width: 20, height: 20)
-                    .padding(.top, 1)
-                    .contentShape(Circle())
-                    .onTapGesture {
-                        toggleDone()
-                    }
-                    .accessibilityLabel("Afvinken")
-                    .overlay {
-                        if highlightsCompletion {
-                            Circle()
-                                .stroke(Color.brandHardBlue, lineWidth: 3)
-                                .padding(-5)
-                        }
-                    }
+                completionControl
             }
 
             if isMoveActive {
@@ -1967,6 +2014,56 @@ struct AgendaEntryLine: View {
         .onDisappear {
             initialTapProtectionTask?.cancel()
             commitDraft()
+        }
+    }
+
+    @ViewBuilder private var completionControl: some View {
+        if let weather, !entry.isDone {
+            Button(action: toggleDone) {
+                VStack(spacing: -2) {
+                    Text("\(weather.temperature)°")
+                        .font(.system(size: 10, weight: .semibold, design: .rounded))
+                        .monospacedDigit()
+                        .foregroundStyle(.primary)
+
+                    Image(systemName: weather.symbolName)
+                        .font(.system(size: 18, weight: .medium))
+                        .symbolRenderingMode(.multicolor)
+                }
+                .frame(width: 30, height: 32)
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .padding(.top, -5)
+            .accessibilityLabel("\(weather.temperature) graden, afvinken als afgerond")
+            .overlay {
+                if highlightsCompletion {
+                    RoundedRectangle(cornerRadius: 8)
+                        .stroke(Color.brandHardBlue, lineWidth: 3)
+                        .padding(-3)
+                }
+            }
+            .offset(x: AgendaLayout.weatherControlOffset)
+        } else {
+            Image(systemName: entry.isDone ? "checkmark.circle.fill" : "circle")
+                .font(.system(size: 18))
+                .symbolRenderingMode(.hierarchical)
+                .foregroundStyle(entryAccentColor)
+                .frame(width: 20, height: 20)
+                .padding(.top, 1)
+                .contentShape(Circle())
+                .onTapGesture(perform: toggleDone)
+                .accessibilityLabel("Afvinken")
+                .overlay {
+                    if highlightsCompletion {
+                        Circle()
+                            .stroke(Color.brandHardBlue, lineWidth: 3)
+                            .padding(-5)
+                    }
+                }
+                // Apply the offset after the onboarding overlay so the ring,
+                // checkbox and hit area stay centered on the same axis.
+                .offset(x: -AgendaLayout.completionControlInset)
         }
     }
 
@@ -2252,7 +2349,8 @@ struct AgendaInputLine: View {
                 if isOnboardingHighlighted {
                     RoundedRectangle(cornerRadius: 7)
                         .stroke(Color.brandHardBlue, lineWidth: 3)
-                        .padding(.horizontal, -4)
+                        .padding(.leading, -4)
+                        .padding(.trailing, 2)
                         .padding(.vertical, -5)
                 }
             }
@@ -2266,6 +2364,7 @@ struct AgendaInputLine: View {
             }
             .buttonStyle(.plain)
             .opacity(text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? 0 : 1)
+            .offset(x: -AgendaLayout.completionControlInset)
         }
         .onChange(of: focusedField.wrappedValue) { oldValue, newValue in
             if oldValue == .newEntry(date), newValue != oldValue {
@@ -2330,23 +2429,30 @@ private struct AgendaMoveControls: View {
             Color.clear
                 .frame(width: AgendaLayout.prefixWidth, height: 32)
 
-            HStack(spacing: 0) {
-                movementControls
-                    .frame(maxWidth: .infinity)
-                    .overlay {
-                        if highlightsControls {
+            movementControls
+                .frame(maxWidth: .infinity)
+                .overlay(alignment: .leading) {
+                    if highlightsControls {
+                        GeometryReader { geometry in
+                            let distributedSpacing = max(
+                                AgendaLayout.moveActionSpacing,
+                                (geometry.size.width - AgendaLayout.moveControlsFixedWidth) / 4
+                            )
+
                             RoundedRectangle(cornerRadius: 9)
                                 .stroke(Color.brandHardBlue, lineWidth: 3)
+                                .frame(
+                                    width: geometry.size.width
+                                        - distributedSpacing
+                                        - AgendaLayout.finishControlWidth
+                                        + AgendaLayout.onboardingControlsTrailingSpace
+                                )
                                 .padding(.leading, -5)
                                 .padding(.vertical, -4)
                         }
                     }
-
-                Spacer(minLength: 8)
-
-                finishButton
-            }
-            .frame(maxWidth: .infinity)
+                }
+                .padding(.trailing, AgendaLayout.completionControlInset)
         }
         .font(.system(size: 13, weight: .medium))
         .foregroundStyle(.secondary)
@@ -2374,7 +2480,7 @@ private struct AgendaMoveControls: View {
                 .tint(.red)
             } label: {
                 Color.clear
-                    .frame(width: 22, height: 32)
+                    .frame(width: AgendaLayout.categoryControlWidth, height: 32)
                     .overlay {
                         Image(systemName: "arrow.left.arrow.right")
                             .font(.system(size: 13, weight: .semibold))
@@ -2384,7 +2490,7 @@ private struct AgendaMoveControls: View {
             .contentShape(Rectangle().inset(by: -4))
             .accessibilityLabel("Verplaatsopties")
 
-            Spacer(minLength: 8)
+            Spacer(minLength: AgendaLayout.moveActionSpacing)
 
             DatePicker("", selection: dateSelection, displayedComponents: .date)
                 .labelsHidden()
@@ -2395,42 +2501,47 @@ private struct AgendaMoveControls: View {
                     Text(AppCalendar.localizedDate(date, template: "dMMMyyyy"))
                         .allowsHitTesting(false)
                 }
-                .frame(width: 76, height: 32)
+                .frame(width: AgendaLayout.dateControlWidth, height: 32)
                 .contentShape(Rectangle().inset(by: -4))
                 .accessibilityValue(AppCalendar.localizedDate(date, template: "dMMMyyyy"))
 
-            Spacer(minLength: 8)
+            Spacer(minLength: AgendaLayout.moveActionSpacing)
 
             Button {
                 performStep(moveUp)
             } label: {
                 Image(systemName: "chevron.up")
-                    .frame(width: 24, height: 32)
+                    .frame(width: AgendaLayout.stepControlWidth, height: 32)
                     .contentShape(Rectangle().inset(by: -4))
             }
             .buttonStyle(.plain)
             .accessibilityLabel("Een positie omhoog")
 
-            Spacer(minLength: 8)
+            Spacer(minLength: AgendaLayout.moveActionSpacing)
 
             Button {
                 performStep(moveDown)
             } label: {
                 Image(systemName: "chevron.down")
-                    .frame(width: 24, height: 32)
+                    .frame(width: AgendaLayout.stepControlWidth, height: 32)
                     .contentShape(Rectangle().inset(by: -4))
             }
             .buttonStyle(.plain)
             .accessibilityLabel("Een positie omlaag")
+
+            Spacer(minLength: AgendaLayout.moveActionSpacing)
+
+            finishButton
         }
     }
 
     private var finishButton: some View {
         Button(action: finishMove) {
             Image(systemName: "checkmark")
-                .font(.system(size: 13, weight: .bold))
+                .font(.system(size: 13, weight: .medium))
                 .foregroundStyle(.secondary)
-                .frame(width: 20, height: 32)
+                .offset(y: -2)
+                .frame(width: AgendaLayout.finishControlWidth, height: 32)
                 .contentShape(Rectangle().inset(by: -4))
         }
         .buttonStyle(.plain)

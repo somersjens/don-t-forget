@@ -266,6 +266,9 @@
 					F9D98A952FE86CF600B20CE0 = {
 						CreatedOnToolsVersion = 26.1.1;
 						SystemCapabilities = {
+							com.apple.WeatherKit = {
+								enabled = 1;
+							};
 							com.apple.iCloud = {
 								enabled = 1;
 							};

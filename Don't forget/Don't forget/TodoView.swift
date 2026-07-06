@@ -807,28 +807,13 @@ struct TodoView: View {
     }
 
     private var removalUndoBar: some View {
-        HStack(spacing: 12) {
-            Image(systemName: "trash.fill")
-                .foregroundStyle(.red)
-            Text(locale.localizedFormat("feedback.deleted", recentlyRemovedTodoTitle))
-                .font(.system(size: 14, weight: .medium))
-                .lineLimit(2)
-                .fixedSize(horizontal: false, vertical: true)
-                .layoutPriority(1)
-            Spacer(minLength: 4)
-            Button(locale.localized("Ongedaan maken"), action: undoRemoval)
-                .font(.system(size: 14, weight: .semibold))
-        }
-        .padding(.horizontal, 14)
-        .frame(minHeight: 50)
-        .contentShape(RoundedRectangle(cornerRadius: 14))
-        .onTapGesture(perform: undoRemoval)
-        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 14))
-        .overlay {
-            RoundedRectangle(cornerRadius: 14)
-                .stroke(Color.primary.opacity(0.08), lineWidth: 1)
-        }
-        .shadow(color: .black.opacity(0.12), radius: 12, y: 4)
+        UndoFeedbackBar(
+            iconSystemName: "trash.fill",
+            iconColor: .red,
+            message: locale.localizedFormat("feedback.deleted", recentlyRemovedTodoTitle),
+            undoTitle: locale.localized("Ongedaan maken"),
+            action: undoRemoval
+        )
     }
 
     private func showMoveToAgendaUndo(_ move: TodoAgendaMoveUndo) {
@@ -867,30 +852,13 @@ struct TodoView: View {
     }
 
     private var moveToAgendaUndoBar: some View {
-        HStack(spacing: 12) {
-            Image(systemName: "calendar.badge.checkmark")
-                .foregroundStyle(.blue)
-            Text(moveToAgendaUndoText)
-                .font(.system(size: 14, weight: .medium))
-                .lineLimit(2)
-                .truncationMode(.tail)
-                .frame(maxWidth: .infinity, alignment: .leading)
-            Spacer(minLength: 4)
-            Button(locale.localized("Ongedaan maken"), action: undoMoveToAgenda)
-                .font(.system(size: 14, weight: .semibold))
-                .fixedSize(horizontal: true, vertical: false)
-                .layoutPriority(1)
-        }
-        .padding(.horizontal, 14)
-        .frame(minHeight: 50)
-        .contentShape(RoundedRectangle(cornerRadius: 14))
-        .onTapGesture(perform: undoMoveToAgenda)
-        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 14))
-        .overlay {
-            RoundedRectangle(cornerRadius: 14)
-                .stroke(Color.primary.opacity(0.08), lineWidth: 1)
-        }
-        .shadow(color: .black.opacity(0.12), radius: 12, y: 4)
+        UndoFeedbackBar(
+            iconSystemName: "calendar.badge.checkmark",
+            iconColor: .blue,
+            message: moveToAgendaUndoText,
+            undoTitle: locale.localized("Ongedaan maken"),
+            action: undoMoveToAgenda
+        )
     }
 
     private var moveToAgendaUndoText: String {
@@ -911,27 +879,13 @@ struct TodoView: View {
     }
 
     private var completionUndoBar: some View {
-        HStack(spacing: 12) {
-            Image(systemName: "checkmark.circle.fill")
-                .foregroundStyle(.blue)
-            Text(completionUndoText)
-                .font(.system(size: 14, weight: .medium))
-                .lineLimit(2)
-                .truncationMode(.tail)
-                .frame(maxWidth: .infinity, alignment: .leading)
-            Spacer(minLength: 4)
-            completionUndoButton
-        }
-        .padding(.horizontal, 14)
-        .frame(minHeight: 50)
-        .contentShape(RoundedRectangle(cornerRadius: 14))
-        .onTapGesture(perform: undoCompletion)
-        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 14))
-        .overlay {
-            RoundedRectangle(cornerRadius: 14)
-                .stroke(Color.primary.opacity(0.08), lineWidth: 1)
-        }
-        .shadow(color: .black.opacity(0.12), radius: 12, y: 4)
+        UndoFeedbackBar(
+            iconSystemName: "checkmark.circle.fill",
+            iconColor: .blue,
+            message: completionUndoText,
+            undoTitle: locale.localized("Ongedaan maken"),
+            action: undoCompletion
+        )
     }
 
     private var completionUndoText: String {
@@ -939,17 +893,6 @@ struct TodoView: View {
         return locale.localizedFormat("feedback.movedToFinished", todo.text)
     }
 
-    private var completionUndoButton: some View {
-        Button(action: undoCompletion) {
-            Text(locale.localized("Ongedaan maken"))
-                .font(.system(size: 14, weight: .semibold))
-                .lineLimit(2)
-                .multilineTextAlignment(.trailing)
-                .fixedSize(horizontal: false, vertical: true)
-                .frame(maxWidth: 82, alignment: .trailing)
-        }
-        .layoutPriority(1)
-    }
 }
 
 private struct TodoTopTitle: View {
@@ -1230,7 +1173,7 @@ private struct TodoBucketCard: View {
             .padding(.bottom, 14)
         }
         .background {
-            RoundedRectangle(cornerRadius: 8)
+            RoundedRectangle(cornerRadius: 14)
                 .fill(Color(.secondarySystemBackground))
         }
         .sheet(isPresented: $showingAppearancePicker) {
@@ -1513,6 +1456,9 @@ private struct TodoLine: View {
                     .frame(width: 24, height: 24)
                     .contentShape(Rectangle().inset(by: -6))
             }
+            // The header action is centered 40 pt from the readable edge. Move
+            // only the control so the task text keeps its full layout width.
+            .offset(x: -6)
             .buttonStyle(.plain)
             .allowsHitTesting(isCompletionEnabled)
         }
@@ -1983,7 +1929,7 @@ private struct NewTodoGroupLine: View {
         .padding(.leading, 18)
         .padding(.trailing, 13)
         .padding(.vertical, 12)
-        .background(Color(.secondarySystemBackground), in: RoundedRectangle(cornerRadius: 8))
+        .background(Color(.secondarySystemBackground), in: RoundedRectangle(cornerRadius: 14))
     }
 
     private func beginEditing() {

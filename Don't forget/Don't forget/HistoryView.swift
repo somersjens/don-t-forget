@@ -826,30 +826,13 @@ struct HistoryView: View {
     }
 
     private func permanentDeletionBar(title: String) -> some View {
-        HStack(spacing: 12) {
-            Image(systemName: "trash.fill")
-                .foregroundStyle(.red)
-            Text(locale.localizedFormat("feedback.permanentlyDeleted", title))
-                .font(.system(size: 14, weight: .medium))
-                .lineLimit(2)
-                .fixedSize(horizontal: false, vertical: true)
-                .layoutPriority(1)
-            Spacer(minLength: 4)
-            Button(locale.localized("Ongedaan maken"), action: undoPermanentDeletion)
-                .font(.system(size: 14, weight: .semibold))
-                .fixedSize(horizontal: true, vertical: false)
-                .layoutPriority(2)
-        }
-        .padding(.horizontal, 14)
-        .frame(minHeight: 50)
-        .contentShape(RoundedRectangle(cornerRadius: 14))
-        .onTapGesture(perform: undoPermanentDeletion)
-        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 14))
-        .overlay {
-            RoundedRectangle(cornerRadius: 14)
-                .stroke(Color.primary.opacity(0.08), lineWidth: 1)
-        }
-        .shadow(color: .black.opacity(0.12), radius: 12, y: 4)
+        UndoFeedbackBar(
+            iconSystemName: "trash.fill",
+            iconColor: .red,
+            message: locale.localizedFormat("feedback.permanentlyDeleted", title),
+            undoTitle: locale.localized("Ongedaan maken"),
+            action: undoPermanentDeletion
+        )
     }
 
     private func hideRestoreBar() {
@@ -861,30 +844,13 @@ struct HistoryView: View {
     }
 
     private func restoreBar(title: String) -> some View {
-        HStack(spacing: 12) {
-            Image(systemName: "arrow.uturn.backward.circle.fill")
-                .foregroundStyle(.blue)
-            Text(locale.localizedFormat("feedback.restored", title))
-                .font(.system(size: 14, weight: .medium))
-                .lineLimit(2)
-                .fixedSize(horizontal: false, vertical: true)
-                .layoutPriority(1)
-            Spacer(minLength: 4)
-            Button(locale.localized("Ongedaan maken")) {
-                undoRestore()
-            }
-            .font(.system(size: 14, weight: .semibold))
-        }
-        .padding(.horizontal, 14)
-        .frame(minHeight: 50)
-        .contentShape(RoundedRectangle(cornerRadius: 14))
-        .onTapGesture(perform: undoRestore)
-        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 14))
-        .overlay {
-            RoundedRectangle(cornerRadius: 14)
-                .stroke(Color.primary.opacity(0.08), lineWidth: 1)
-        }
-        .shadow(color: .black.opacity(0.12), radius: 12, y: 4)
+        UndoFeedbackBar(
+            iconSystemName: "arrow.uturn.backward.circle.fill",
+            iconColor: .blue,
+            message: locale.localizedFormat("feedback.restored", title),
+            undoTitle: locale.localized("Ongedaan maken"),
+            action: undoRestore
+        )
     }
 
     private func undoRestore() {

@@ -124,6 +124,7 @@ final class Don_t_forgetTests: XCTestCase {
     @MainActor
     func testEndOfDayReminderFormattingAndDefaultTime() {
         XCTAssertEqual(EndOfDayReminderService.defaultMinutes, 21 * 60 + 50)
+        XCTAssertEqual(EndOfDayReminderService.notificationSoundName, "Notification_sound.mp3")
         XCTAssertEqual(
             EndOfDayReminderService.reminderBody(texts: [
                 "paella maken",

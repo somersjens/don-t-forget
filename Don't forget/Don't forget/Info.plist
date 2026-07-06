@@ -22,6 +22,8 @@
 	<string>Don't forget gebruikt toegang om je agenda-items met de iPhone Kalender te synchroniseren.</string>
 	<key>NSMicrophoneUsageDescription</key>
 	<string>Don't forget gebruikt de microfoon om gesproken tekst aan een nieuwe invoer toe te voegen.</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>Don't forget gebruikt je locatie om het weer bij toekomstige dagen in je agenda te tonen.</string>
 	<key>NSSpeechRecognitionUsageDescription</key>
 	<string>Don't forget gebruikt spraakherkenning om je gesproken invoer om te zetten naar tekst.</string>
 	<key>UIBackgroundModes</key>
