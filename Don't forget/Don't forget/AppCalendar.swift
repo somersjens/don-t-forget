@@ -58,6 +58,15 @@ enum AppCalendar {
         return calendar
     }
 
+    static var dateFormatOption: DateFormatOption {
+        let stored = UserDefaults.standard.string(forKey: SettingsKeys.dateFormat)
+        let selected = DateFormatOption.resolved(from: stored)
+        guard selected != .system else {
+            return DateFormatOption.localeDefault(for: locale)
+        }
+        return selected
+    }
+
     static func startOfDay(_ date: Date) -> Date {
         calendar.startOfDay(for: date)
     }
@@ -75,6 +84,13 @@ enum AppCalendar {
         cachedFormatter(template: template).string(from: date)
     }
 
+    static func localizedShortDayMonth(_ date: Date) -> String {
+        if let dateFormat = dateFormatOption.dateFormat {
+            return cachedFormatter(dateFormat: dateFormat).string(from: date)
+        }
+        return cachedFormatter(dateFormat: "dd/MM").string(from: date)
+    }
+
     static func localizedLongDate(_ date: Date, includeYear: Bool) -> String {
         return localizedDate(date, template: includeYear ? "dMMMMyyyy" : "dMMMM")
     }
@@ -84,7 +100,7 @@ enum AppCalendar {
         numberOfWeeks: Int = 12
     ) -> [WeekSection] {
         let configuredCalendar = calendar
-        let dateFormatter = cachedFormatter(dateFormat: "dd-MM")
+        let dateFormatter = cachedFormatter(dateFormat: dateFormatOption.dateFormat ?? "dd/MM")
 
         guard let firstWeekStart = configuredCalendar.dateInterval(of: .weekOfYear, for: date)?.start else {
             return []
@@ -169,6 +185,7 @@ enum AppCalendar {
             configuredCalendar.timeZone.identifier,
             String(configuredCalendar.firstWeekday),
             String(configuredCalendar.minimumDaysInFirstWeek),
+            dateFormatOption.rawValue,
             cacheComponent
         ].joined(separator: "|")
 

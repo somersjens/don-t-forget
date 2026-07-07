@@ -1683,7 +1683,7 @@ private struct TodoLine: View {
     }
 
     private var todayDateText: String {
-        AppCalendar.localizedDate(.now, template: "Md")
+        AppCalendar.localizedShortDayMonth(.now)
     }
 
     private func deleteTodo() {
