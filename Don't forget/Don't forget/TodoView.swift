@@ -1189,6 +1189,7 @@ private struct TodoBucketCard: View {
 
     private var actionToolbar: some View {
         Button {
+            AppKeyboard.dismiss()
             showingCategoryActions = true
         } label: {
             Image(systemName: "chevron.up.chevron.down")
@@ -1269,6 +1270,7 @@ private struct TodoBucketCard: View {
     }
 
     private func performCategoryAction(_ action: () -> Void) {
+        AppKeyboard.dismiss()
         showingCategoryActions = false
         action()
     }
@@ -1558,8 +1560,9 @@ private struct TodoLine: View {
 
     private var moveMenu: some View {
         Menu {
-            ForEach(groups) { group in
+            ForEach(destinationGroups) { group in
                 Button {
+                    dismissKeyboard()
                     todo.bucketRawValue = group.id
                     _ = PersistenceSafety.save(modelContext)
                     movePerformed(todo.id)
@@ -1568,15 +1571,24 @@ private struct TodoLine: View {
                 }
             }
 
+            if destinationGroups.isEmpty {
+                Button {} label: {
+                    Label("Geen andere categorieën", systemImage: "tray")
+                }
+                .disabled(true)
+            }
+
             Divider()
 
             Button {
+                dismissKeyboard()
                 moveToAgenda(on: AppCalendar.startOfDay(.now))
             } label: {
                 Label("Naar vandaag \(todayDateText)", systemImage: "calendar.badge.checkmark")
             }
 
             Button {
+                dismissKeyboard()
                 let today = AppCalendar.startOfDay(.now)
                 agendaDate = AppCalendar.calendar.date(
                     byAdding: .day,
@@ -1595,6 +1607,7 @@ private struct TodoLine: View {
             Divider()
 
             Button(role: .destructive) {
+                dismissKeyboard()
                 removeTodo()
             } label: {
                 Label("Verwijderen", systemImage: "trash")
@@ -1645,6 +1658,13 @@ private struct TodoLine: View {
             }
         }
         .accessibilityLabel("\(accessibleAgeText), taak verplaatsen")
+        .simultaneousGesture(TapGesture().onEnded {
+            dismissKeyboard()
+        })
+    }
+
+    private var destinationGroups: [TodoGroup] {
+        groups.filter { $0.id != todo.bucketRawValue }
     }
 
     private var ageBadgeText: String {
@@ -1728,6 +1748,7 @@ private struct NewTodoLine: View {
     private var modelContext
 
     @State private var text = ""
+    @State private var textFieldResetToken = 0
     @State private var suppressFocusCommit = false
     @FocusState private var isTextFieldFocused: Bool
 
@@ -1745,6 +1766,7 @@ private struct NewTodoLine: View {
             .accessibilityLabel("Nieuwe taak invoeren")
 
             TextField("typ iets", text: $text, axis: .vertical)
+                .id(textFieldResetToken)
                 .font(.system(size: 16))
                 .textFieldStyle(.plain)
                 .focused($isTextFieldFocused)
@@ -1796,6 +1818,7 @@ private struct NewTodoLine: View {
                     .frame(width: 24, height: 24)
             }
             .buttonStyle(.plain)
+            .offset(x: -6)
             .opacity(cleanText.count >= minimumCharacterCount ? 1 : 0)
             .overlay {
                 if highlightsPlus {
@@ -1826,6 +1849,8 @@ private struct NewTodoLine: View {
             return
         }
 
+        suppressFocusCommit = true
+        let shouldRestoreFocus = isTextFieldFocused
         let todo = TodoItem(text: normalizedText)
         todo.bucketRawValue = groupID
 
@@ -1833,11 +1858,21 @@ private struct NewTodoLine: View {
         transaction.disablesAnimations = true
 
         withTransaction(transaction) {
-            modelContext.insert(todo)
             text = ""
+            textFieldResetToken &+= 1
+            modelContext.insert(todo)
             _ = PersistenceSafety.save(modelContext)
         }
         todoAdded(todo.id)
+
+        Task { @MainActor in
+            await Task.yield()
+            text = ""
+            if shouldRestoreFocus {
+                isTextFieldFocused = true
+            }
+            suppressFocusCommit = false
+        }
     }
 
     private var cleanText: String {
@@ -1845,15 +1880,9 @@ private struct NewTodoLine: View {
     }
 
     private func finishTodoAndDismissKeyboard() {
-        suppressFocusCommit = true
         isTextFieldFocused = false
         AppKeyboard.dismiss()
         addTodo()
-
-        Task { @MainActor in
-            await Task.yield()
-            suppressFocusCommit = false
-        }
     }
 
     private func beginEditing() {

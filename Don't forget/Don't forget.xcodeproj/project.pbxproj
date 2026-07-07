@@ -395,7 +395,7 @@
 				APPLICATION_EXTENSION_API_ONLY = YES;
 				CODE_SIGN_ENTITLEMENTS = "Don't forgetWidget/Don't_forgetWidget.entitlements";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 1.2;
 				DEVELOPMENT_TEAM = 4283ACUG4Y;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = "Don't forgetWidget/Info.plist";
@@ -405,7 +405,7 @@
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
-				MARKETING_VERSION = 1.0;
+				MARKETING_VERSION = 1;
 				PRODUCT_BUNDLE_IDENTIFIER = "Hakketjak.Don-t-forget.Widget";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				REGISTER_APP_GROUPS = YES;
@@ -425,7 +425,7 @@
 				APPLICATION_EXTENSION_API_ONLY = YES;
 				CODE_SIGN_ENTITLEMENTS = "Don't forgetWidget/Don't_forgetWidget.entitlements";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 1.2;
 				DEVELOPMENT_TEAM = 4283ACUG4Y;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = "Don't forgetWidget/Info.plist";
@@ -435,7 +435,7 @@
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
-				MARKETING_VERSION = 1.0;
+				MARKETING_VERSION = 1;
 				PRODUCT_BUNDLE_IDENTIFIER = "Hakketjak.Don-t-forget.Widget";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				REGISTER_APP_GROUPS = YES;
@@ -456,7 +456,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = "Don't forget/Don_t_forget.entitlements";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 1.2;
 				DEVELOPMENT_TEAM = 4283ACUG4Y;
 				ENABLE_APP_SANDBOX = YES;
 				ENABLE_HARDENED_RUNTIME = YES;
@@ -493,7 +493,7 @@
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				MARKETING_VERSION = 1.1;
+				MARKETING_VERSION = 1;
 				PRODUCT_BUNDLE_IDENTIFIER = "Hakketjak.Don-t-forget";
 				PRODUCT_MODULE_NAME = Don_t_forget;
 				PRODUCT_NAME = "Forget It";
@@ -518,7 +518,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = "Don't forget/Don_t_forget.entitlements";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 1.2;
 				DEVELOPMENT_TEAM = 4283ACUG4Y;
 				ENABLE_APP_SANDBOX = YES;
 				ENABLE_HARDENED_RUNTIME = YES;
@@ -555,7 +555,7 @@
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				MARKETING_VERSION = 1.1;
+				MARKETING_VERSION = 1;
 				PRODUCT_BUNDLE_IDENTIFIER = "Hakketjak.Don-t-forget";
 				PRODUCT_MODULE_NAME = Don_t_forget;
 				PRODUCT_NAME = "Forget It";
@@ -694,12 +694,12 @@
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 1.2;
 				DEVELOPMENT_TEAM = 4283ACUG4Y;
 				GENERATE_INFOPLIST_FILE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				MACOSX_DEPLOYMENT_TARGET = 26.1;
-				MARKETING_VERSION = 1.0;
+				MARKETING_VERSION = 1;
 				PRODUCT_BUNDLE_IDENTIFIER = "Hakketjak.Don-t-forgetTests";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = auto;
@@ -720,12 +720,12 @@
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 1.2;
 				DEVELOPMENT_TEAM = 4283ACUG4Y;
 				GENERATE_INFOPLIST_FILE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				MACOSX_DEPLOYMENT_TARGET = 26.1;
-				MARKETING_VERSION = 1.0;
+				MARKETING_VERSION = 1;
 				PRODUCT_BUNDLE_IDENTIFIER = "Hakketjak.Don-t-forgetTests";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = auto;
@@ -745,12 +745,12 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 1.2;
 				DEVELOPMENT_TEAM = 4283ACUG4Y;
 				GENERATE_INFOPLIST_FILE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				MACOSX_DEPLOYMENT_TARGET = 26.1;
-				MARKETING_VERSION = 1.0;
+				MARKETING_VERSION = 1;
 				PRODUCT_BUNDLE_IDENTIFIER = "Hakketjak.Don-t-forgetUITests";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = auto;
@@ -770,12 +770,12 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 1.2;
 				DEVELOPMENT_TEAM = 4283ACUG4Y;
 				GENERATE_INFOPLIST_FILE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				MACOSX_DEPLOYMENT_TARGET = 26.1;
-				MARKETING_VERSION = 1.0;
+				MARKETING_VERSION = 1;
 				PRODUCT_BUNDLE_IDENTIFIER = "Hakketjak.Don-t-forgetUITests";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = auto;

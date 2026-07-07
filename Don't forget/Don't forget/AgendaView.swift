@@ -82,6 +82,39 @@ private struct AgendaRecurringMoveOffer {
     var isApplied = false
 }
 
+private enum AgendaEntryOrdering {
+    nonisolated static func areInIncreasingOrder(_ first: DayEntry, _ second: DayEntry) -> Bool {
+        switch (first.startMinutes, second.startMinutes) {
+        case let (a?, b?):
+            if a != b {
+                return a < b
+            }
+            return compareManualOrderThenIdentity(first, second)
+
+        case (_?, nil):
+            return true
+
+        case (nil, _?):
+            return false
+
+        case (nil, nil):
+            return compareManualOrderThenIdentity(first, second)
+        }
+    }
+
+    nonisolated private static func compareManualOrderThenIdentity(_ first: DayEntry, _ second: DayEntry) -> Bool {
+        if first.manualOrder != second.manualOrder {
+            return first.manualOrder < second.manualOrder
+        }
+
+        if first.createdAt != second.createdAt {
+            return first.createdAt < second.createdAt
+        }
+
+        return first.id.uuidString < second.id.uuidString
+    }
+}
+
 /// Day visibility changes rapidly during a fling. Keeping this outside
 /// observable SwiftUI state prevents every entering/leaving day from
 /// invalidating and rebuilding the complete agenda hierarchy.
@@ -1311,22 +1344,7 @@ struct AgendaView: View {
     }
 
     private func sortEntries(_ first: DayEntry, _ second: DayEntry) -> Bool {
-        switch (first.startMinutes, second.startMinutes) {
-        case let (a?, b?):
-            if a == b {
-                return first.manualOrder < second.manualOrder
-            }
-            return a < b
-
-        case (_?, nil):
-            return true
-
-        case (nil, _?):
-            return false
-
-        case (nil, nil):
-            return first.manualOrder < second.manualOrder
-        }
+        AgendaEntryOrdering.areInIncreasingOrder(first, second)
     }
 
     private func renumber(entries targetEntries: [DayEntry], inserting entry: DayEntry, at targetIndex: Int) {
@@ -1744,24 +1762,14 @@ struct DayBlock: View {
     let onboardingMoveCancelled: () -> Void
 
     private var sortedEntries: [DayEntry] {
-        entries.sorted { first, second in
-            switch (first.startMinutes, second.startMinutes) {
-            case let (a?, b?):
-                if a == b {
-                    return first.manualOrder < second.manualOrder
-                }
-                return a < b
+        entries.sorted(by: AgendaEntryOrdering.areInIncreasingOrder)
+    }
 
-            case (_?, nil):
-                return true
-
-            case (nil, _?):
-                return false
-
-            case (nil, nil):
-                return first.manualOrder < second.manualOrder
-            }
-        }
+    private var nextUntimedManualOrder: Double {
+        let currentUntimedOrders = sortedEntries
+            .filter { !$0.hasTime }
+            .map(\.manualOrder)
+        return (currentUntimedOrders.max() ?? -1) + 1
     }
 
     private var onboardingExampleIndex: Int? {
@@ -1773,6 +1781,11 @@ struct DayBlock: View {
         guard AppCalendar.isSameDay(day.date, .now), !sortedEntries.isEmpty else { return nil }
         return sortedEntries.firstIndex { !onboardingExampleIDs.contains($0.id) }
             ?? onboardingExampleIndex
+    }
+
+    private var entryLayoutAnimationKey: String {
+        sortedEntries.map { "\($0.id.uuidString):\($0.manualOrder):\($0.startMinutes ?? -1)" }
+            .joined(separator: "|")
     }
 
     var body: some View {
@@ -1852,7 +1865,7 @@ struct DayBlock: View {
                             dateLabel: "",
                             weekdayLetter: day.weekdayLetter,
                             date: day.date,
-                            nextOrder: Double(sortedEntries.count + 1),
+                            nextOrder: nextUntimedManualOrder,
                             focusedField: focusedField,
                             isMoveModeActive: activeMoveEntryID != nil,
                             isMoveTargetHighlighted: false,
@@ -1862,6 +1875,11 @@ struct DayBlock: View {
                                 && AppCalendar.isSameDay(day.date, .now),
                             entryAdded: onboardingEntryAdded
                         )
+                    }
+                }
+                .transaction { transaction in
+                    if activeMoveEntryID == nil {
+                        transaction.animation = nil
                     }
                 }
 
@@ -1882,6 +1900,13 @@ struct DayBlock: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .id(AgendaScrollTarget.day(day.date))
+        .animation(activeMoveEntryID == nil ? nil : .smooth(duration: 0.22, extraBounce: 0), value: entryLayoutAnimationKey)
+        .transaction { transaction in
+            if activeMoveEntryID == nil {
+                transaction.animation = nil
+                transaction.disablesAnimations = true
+            }
+        }
         .agendaVisibilityCompatibility { isVisible in
             dayVisibilityChanged(day.date, isVisible)
         }
@@ -1965,9 +1990,7 @@ struct AgendaEntryLine: View {
                     isOnboardingHighlighted: highlightsMoveHandle
                 )
                     .contentShape(Rectangle())
-                    .onTapGesture {
-                        handlePrefixTap()
-                    }
+                    .onTapGesture(perform: activateMoveHandle)
                     .accessibilityLabel("Verplaatsopties")
 
                 entryContent
@@ -2014,6 +2037,12 @@ struct AgendaEntryLine: View {
         .onDisappear {
             initialTapProtectionTask?.cancel()
             commitDraft()
+        }
+        .transaction { transaction in
+            if !isMoveModeActive {
+                transaction.animation = nil
+                transaction.disablesAnimations = true
+            }
         }
     }
 
@@ -2068,37 +2097,39 @@ struct AgendaEntryLine: View {
     }
 
     @ViewBuilder private var entryContent: some View {
-        ZStack(alignment: .topLeading) {
-            Text(editableText.isEmpty ? " " : editableText)
-                .fixedSize(horizontal: false, vertical: true)
-                .hidden()
-                .accessibilityHidden(true)
+        Text(editableText.isEmpty ? " " : editableText)
+            .fixedSize(horizontal: false, vertical: true)
+            .hidden()
+            .accessibilityHidden(true)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .overlay(alignment: .topLeading) {
+                ZStack(alignment: .topLeading) {
+                    compatibleTextField
+                        .textFieldStyle(.plain)
+                        .focused(focusedField, equals: .entry(entry.id))
+                        .lineLimit(1...)
+                        .onChange(of: draftText) { _, newValue in
+                            guard let newValue else { return }
+                            handleTextChange(newValue)
+                        }
+                        .allowsHitTesting(!isMoveModeActive)
 
-            compatibleTextField
-                .textFieldStyle(.plain)
-                .focused(focusedField, equals: .entry(entry.id))
-                .lineLimit(1...)
-                .onChange(of: draftText) { _, newValue in
-                    guard let newValue else { return }
-                    handleTextChange(newValue)
-                }
-                .allowsHitTesting(!isMoveModeActive)
-
-            if !isMoveModeActive
-                && (focusedField.wrappedValue != .entry(entry.id) || isProtectingInitialTap) {
-                Color.clear
-                    .contentShape(Rectangle())
-                    .onTapGesture {
-                        beginEditing()
+                    if !isMoveModeActive
+                        && (focusedField.wrappedValue != .entry(entry.id) || isProtectingInitialTap) {
+                        Color.clear
+                            .contentShape(Rectangle())
+                            .onTapGesture {
+                                beginEditing()
+                            }
+                            .accessibilityLabel("Regel bewerken")
+                    } else if isMoveModeActive {
+                        Color.clear
+                            .contentShape(Rectangle())
+                            .onTapGesture(perform: finishMove)
+                            .accessibilityLabel("Verplaatsmodus afsluiten")
                     }
-                    .accessibilityLabel("Regel bewerken")
-            } else if isMoveModeActive {
-                Color.clear
-                    .contentShape(Rectangle())
-                    .onTapGesture(perform: finishMove)
-                    .accessibilityLabel("Verplaatsmodus afsluiten")
+                }
             }
-        }
         .font(.system(size: 16, weight: .regular))
         .lineLimit(1...)
         .strikethrough(entry.isDone)
@@ -2136,6 +2167,15 @@ struct AgendaEntryLine: View {
         } else {
             moveSelectionToEnd()
         }
+    }
+
+    private func activateMoveHandle() {
+        if focusedField.wrappedValue == .entry(entry.id) {
+            commitDraft()
+        }
+        focusedField.wrappedValue = nil
+        AppKeyboard.dismiss()
+        handlePrefixTap()
     }
 
     private func prepareDraftForEditing() {
@@ -2302,6 +2342,8 @@ struct AgendaInputLine: View {
     private var modelContext
 
     @State private var text = ""
+    @State private var textFieldResetToken = 0
+    @State private var suppressFocusCommit = false
 
     var body: some View {
         HStack(alignment: .top, spacing: AgendaLayout.rowSpacing) {
@@ -2319,32 +2361,39 @@ struct AgendaInputLine: View {
                     }
                 }
 
-            ZStack(alignment: .leading) {
-                TextField("", text: $text, axis: .vertical)
-                    .textFieldStyle(.plain)
-                    .focused(focusedField, equals: .newEntry(date))
-                    .submitLabel(.return)
-                    .onChange(of: text) { _, newValue in
-                        guard newValue.contains("\n") else { return }
-                        text = newValue.replacingOccurrences(of: "\n", with: "")
-                        finishEntry()
-                    }
-                    .onSubmit {
-                        finishEntry()
-                    }
-                    .allowsHitTesting(!isMoveModeActive)
+            Text(text.isEmpty ? " " : text)
+                .fixedSize(horizontal: false, vertical: true)
+                .hidden()
+                .accessibilityHidden(true)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .overlay(alignment: .topLeading) {
+                    ZStack(alignment: .leading) {
+                        TextField("", text: $text, axis: .vertical)
+                            .id(textFieldResetToken)
+                            .textFieldStyle(.plain)
+                            .focused(focusedField, equals: .newEntry(date))
+                            .submitLabel(.return)
+                            .onChange(of: text) { _, newValue in
+                                guard newValue.contains("\n") else { return }
+                                text = newValue.replacingOccurrences(of: "\n", with: "")
+                                finishEntry()
+                            }
+                            .onSubmit {
+                                finishEntry()
+                            }
+                            .allowsHitTesting(!isMoveModeActive)
 
-                if isMoveModeActive {
-                    Color.clear
-                        .contentShape(Rectangle())
-                        .onTapGesture(perform: finishMove)
-                        .accessibilityLabel("Verplaatsmodus afsluiten")
+                        if isMoveModeActive {
+                            Color.clear
+                                .contentShape(Rectangle())
+                                .onTapGesture(perform: finishMove)
+                                .accessibilityLabel("Verplaatsmodus afsluiten")
+                        }
+                    }
                 }
-            }
             .font(.system(size: 16, weight: .regular))
             .lineLimit(1...)
             .foregroundStyle(.primary)
-            .frame(maxWidth: .infinity, alignment: .leading)
             .overlay {
                 if isOnboardingHighlighted {
                     RoundedRectangle(cornerRadius: 7)
@@ -2367,12 +2416,20 @@ struct AgendaInputLine: View {
             .offset(x: -AgendaLayout.completionControlInset)
         }
         .onChange(of: focusedField.wrappedValue) { oldValue, newValue in
-            if oldValue == .newEntry(date), newValue != oldValue {
+            if oldValue == .newEntry(date),
+               newValue != oldValue,
+               !suppressFocusCommit {
                 addEntry(continueEditing: false)
             }
         }
         .onDisappear {
             addEntry(continueEditing: false)
+        }
+        .transaction { transaction in
+            if !isMoveModeActive {
+                transaction.animation = nil
+                transaction.disablesAnimations = true
+            }
         }
     }
 
@@ -2383,6 +2440,7 @@ struct AgendaInputLine: View {
             return
         }
 
+        suppressFocusCommit = true
         let entry = DayEntry(
             date: date,
             rawText: cleanText,
@@ -2393,22 +2451,31 @@ struct AgendaInputLine: View {
         transaction.disablesAnimations = true
 
         withTransaction(transaction) {
-            modelContext.insert(entry)
             text = ""
+            textFieldResetToken &+= 1
+            modelContext.insert(entry)
         }
         entryAdded()
 
-        if continueEditing {
-            // Enter and the plus button continue on a fresh entry for this day.
-            Task { @MainActor in
+        Task { @MainActor in
+            await Task.yield()
+            text = ""
+            if continueEditing {
+                // Enter and the plus button continue on a fresh entry for this day.
                 focusedField.wrappedValue = .newEntry(date)
             }
+            suppressFocusCommit = false
         }
     }
 
     private func finishEntry() {
+        var transaction = Transaction()
+        transaction.disablesAnimations = true
+        withTransaction(transaction) {
+            focusedField.wrappedValue = nil
+        }
+        AppKeyboard.dismiss()
         addEntry(continueEditing: false)
-        focusedField.wrappedValue = nil
     }
 }
 
