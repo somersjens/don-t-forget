@@ -1,0 +1,553 @@
+import Foundation
+
+enum RecurrenceEngine {
+    struct ScheduleShift: Codable, Equatable {
+        let effectiveFrom: Date
+        let dayOffset: Int
+    }
+
+    static func scheduleShifts(for item: RecurringItem) -> [ScheduleShift] {
+        guard !item.scheduleShiftsData.isEmpty,
+              let data = item.scheduleShiftsData.data(using: .utf8),
+              let shifts = try? JSONDecoder().decode([ScheduleShift].self, from: data) else {
+            return []
+        }
+        return shifts
+    }
+
+    static func appendScheduleShift(effectiveFrom: Date, dayOffset: Int, to item: RecurringItem) {
+        guard dayOffset != 0 else { return }
+        var shifts = scheduleShifts(for: item)
+        shifts.append(ScheduleShift(
+            effectiveFrom: AppCalendar.startOfDay(effectiveFrom),
+            dayOffset: dayOffset
+        ))
+        guard let data = try? JSONEncoder().encode(shifts),
+              let encoded = String(data: data, encoding: .utf8) else { return }
+        item.scheduleShiftsData = encoded
+    }
+
+    static func prepareLegacyItem(_ item: RecurringItem) {
+        guard item.recurrenceConfigurationVersion == 0 else { return }
+        defer { item.recurrenceConfigurationVersion = 1 }
+        guard item.frequencyText.isEmpty == false else { return }
+
+        if item.title.localizedCaseInsensitiveContains("verjaardag") ||
+            item.frequencyText.localizedCaseInsensitiveContains("verjaardag") {
+            item.theme = .birthday
+            item.recurrenceKind = .birthday
+            if item.birthDate == nil {
+                item.birthDate = item.nextDate
+            }
+            return
+        }
+
+        guard let parsed = RecurrenceParser.parse(item.frequencyText) else { return }
+        item.recurrenceKind = .interval
+        item.intervalValue = max(1, parsed.amount)
+
+        switch parsed.component {
+        case .day: item.intervalUnit = .day
+        case .weekOfYear: item.intervalUnit = .week
+        case .month: item.intervalUnit = .month
+        case .year: item.intervalUnit = .year
+        default: break
+        }
+    }
+
+    static func dates(for item: RecurringItem, from startDate: Date, through endDate: Date) -> [Date] {
+        let start = AppCalendar.startOfDay(startDate)
+        let end = AppCalendar.startOfDay(endDate)
+        guard start <= end else { return [] }
+        let shifts = scheduleShifts(for: item)
+        let shiftReach = shifts.reduce(0) { $0 + abs($1.dayOffset) }
+        let generationStart = AppCalendar.calendar.date(
+            byAdding: .day,
+            value: -shiftReach,
+            to: start
+        ) ?? start
+        let generationEnd = AppCalendar.calendar.date(
+            byAdding: .day,
+            value: shiftReach,
+            to: end
+        ) ?? end
+
+        if let holiday = HolidayCatalog.managedHoliday(from: item.notes) {
+            return applyingScheduleShifts(
+                shifts,
+                to: HolidayCatalog.dates(
+                    for: holiday.definition,
+                    from: generationStart,
+                    through: generationEnd
+                )
+            ).filter { $0 >= start && $0 <= end }
+        }
+
+        let dates: [Date] = switch item.recurrenceKind {
+        case .birthday:
+            birthdayDates(for: item, from: generationStart, through: generationEnd)
+        case .yearly:
+            annualFixedDates(for: item, from: generationStart, through: generationEnd)
+        case .annualFixed:
+            annualFixedDates(for: item, from: generationStart, through: generationEnd)
+        case .annualOrdinalWeekday:
+            annualOrdinalDates(for: item, from: generationStart, through: generationEnd)
+        case .quarterly:
+            fixedIntervalDates(
+                anchor: item.nextDate,
+                amount: 3,
+                unit: .month,
+                from: generationStart,
+                through: generationEnd
+            )
+        case .monthlyDay:
+            monthlyDates(from: item.nextDate, through: generationEnd) { monthStart in
+                date(day: item.monthlyDay, inMonthContaining: monthStart)
+            }.filter { $0 >= generationStart }
+        case .monthlyOrdinalWeekday:
+            monthlyDates(from: item.nextDate, through: generationEnd) { monthStart in
+                ordinalWeekday(
+                    item.monthlyWeekday,
+                    ordinal: item.monthlyOrdinal,
+                    inMonthContaining: monthStart
+                )
+            }.filter { $0 >= generationStart }
+        case .interval:
+            intervalDates(for: item, from: generationStart, through: generationEnd, approximate: false)
+        case .approximateInterval:
+            intervalDates(for: item, from: generationStart, through: generationEnd, approximate: true)
+        }
+
+        let shifted = applyingScheduleShifts(shifts, to: dates)
+        return shifted.filter { $0 >= start && $0 <= end }
+    }
+
+    private static func applyingScheduleShifts(_ shifts: [ScheduleShift], to dates: [Date]) -> [Date] {
+        guard !shifts.isEmpty else { return dates }
+        return dates.map { date in
+            shifts.reduce(AppCalendar.startOfDay(date)) { shiftedDate, shift in
+                guard shiftedDate >= AppCalendar.startOfDay(shift.effectiveFrom) else {
+                    return shiftedDate
+                }
+                return AppCalendar.calendar.date(
+                    byAdding: .day,
+                    value: shift.dayOffset,
+                    to: shiftedDate
+                ).map { AppCalendar.startOfDay($0) } ?? shiftedDate
+            }
+        }
+    }
+
+    static func nextDate(for item: RecurringItem, onOrAfter date: Date = .now) -> Date? {
+        guard let horizon = AppCalendar.calendar.date(byAdding: .year, value: 8, to: date) else {
+            return nil
+        }
+        return dates(for: item, from: date, through: horizon).first
+    }
+
+    static func ageTurning(for item: RecurringItem, on occurrenceDate: Date) -> Int? {
+        guard let birthDate = item.birthDate else { return nil }
+        let birthYear = AppCalendar.calendar.component(.year, from: birthDate)
+        let occurrenceYear = AppCalendar.calendar.component(.year, from: occurrenceDate)
+        let age = occurrenceYear - birthYear
+        return age >= 0 ? age : nil
+    }
+
+    static func currentAge(for birthDate: Date, today: Date = .now) -> Int {
+        let calendar = AppCalendar.calendar
+        let today = AppCalendar.startOfDay(today)
+        let birthYear = calendar.component(.year, from: birthDate)
+        let currentYear = calendar.component(.year, from: today)
+        let birthdayThisYear = birthdayDate(
+            month: calendar.component(.month, from: birthDate),
+            day: calendar.component(.day, from: birthDate),
+            year: currentYear
+        )
+        let hasHadBirthday = birthdayThisYear.map { $0 <= today } ?? false
+        return max(0, currentYear - birthYear - (hasHadBirthday ? 0 : 1))
+    }
+
+    static func birthDate(month: Int, day: Int, currentAge: Int, today: Date = .now) -> Date? {
+        let calendar = AppCalendar.calendar
+        let currentYear = calendar.component(.year, from: today)
+        var year = currentYear - max(0, currentAge)
+
+        if let birthdayThisYear = birthdayDate(month: month, day: day, year: currentYear),
+           birthdayThisYear > AppCalendar.startOfDay(today) {
+            year -= 1
+        }
+
+        return exactDate(month: month, day: day, year: year)
+    }
+
+    static func description(for item: RecurringItem) -> String {
+        let locale = AppCalendar.locale
+        if let holiday = HolidayCatalog.managedHoliday(from: item.notes) {
+            return holiday.definition.recurrenceDescription
+        }
+        switch item.recurrenceKind {
+        case .birthday:
+            let source = item.birthDate ?? item.nextDate
+            let date = AppCalendar.localizedLongDate(source, includeYear: false)
+            return locale.localizedFormat("recurrence.annuallyOn", date)
+        case .yearly:
+            let date = AppCalendar.localizedLongDate(item.nextDate, includeYear: false)
+            return locale.localizedFormat("recurrence.annuallyOn", date)
+        case .annualFixed:
+            return AppCalendar.localizedLongDate(item.nextDate, includeYear: false)
+        case .annualOrdinalWeekday:
+            let description = locale.localizedFormat(
+                "recurrence.ordinalWeekdayOfNamedMonth",
+                annualOrdinalName(item.monthlyOrdinal).capitalized,
+                weekdayName(item.monthlyWeekday),
+                AppCalendar.monthName(item.annualMonth)
+            )
+            if let nextDate = nextDate(for: item) {
+                return "\(AppCalendar.localizedLongDate(nextDate, includeYear: true)) · \(description)"
+            }
+            return description
+        case .quarterly:
+            let day = dayOrdinal(AppCalendar.calendar.component(.day, from: item.nextDate))
+            return locale.localizedFormat("recurrence.quarterlyOn", day)
+        case .monthlyDay:
+            let day = dayOrdinal(item.monthlyDay)
+            return locale.localizedFormat("recurrence.monthlyOn", day)
+        case .monthlyOrdinalWeekday:
+            return locale.localizedFormat(
+                "recurrence.ordinalWeekdayOfMonth",
+                annualOrdinalName(item.monthlyOrdinal).capitalized,
+                weekdayName(item.monthlyWeekday)
+            )
+        case .approximateInterval:
+            return approximateIntervalDescription(for: item)
+        case .interval:
+            return intervalDescription(for: item)
+        }
+    }
+
+    private static func intervalDescription(for item: RecurringItem) -> String {
+        let amount = max(1, item.intervalValue)
+        let calendar = AppCalendar.calendar
+        let locale = AppCalendar.locale
+
+        switch item.intervalUnit {
+        case .day:
+            return amount == 1
+                ? locale.localized("Dagelijks")
+                : locale.localizedFormat("recurrence.everyDays", amount)
+        case .week:
+            let weekday = weekdayName(calendar.component(.weekday, from: item.nextDate))
+            if amount == 1 { return locale.localizedFormat("recurrence.weeklyOn", weekday) }
+            if amount == 2 {
+                let week = calendar.component(.weekOfYear, from: item.nextDate)
+                let parity = week.isMultiple(of: 2)
+                    ? locale.localized("even")
+                    : locale.localized("oneven")
+                return locale.localizedFormat("recurrence.everyParityWeekOn", parity, weekday)
+            }
+            return locale.localizedFormat("recurrence.everyWeeksOn", amount, weekday)
+        case .month:
+            let day = dayOrdinal(calendar.component(.day, from: item.nextDate))
+            return amount == 1
+                ? locale.localizedFormat("recurrence.monthlyOn", day)
+                : locale.localizedFormat("recurrence.everyMonthsOn", amount, day)
+        case .year:
+            let date = AppCalendar.localizedLongDate(item.nextDate, includeYear: false)
+            return amount == 1
+                ? locale.localizedFormat("recurrence.annuallyOn", date)
+                : locale.localizedFormat("recurrence.everyYearsOn", amount, date)
+        }
+    }
+
+    private static func approximateIntervalDescription(for item: RecurringItem) -> String {
+        let amount = max(1, item.intervalValue)
+        let locale = AppCalendar.locale
+        switch item.intervalUnit {
+        case .day:
+            return amount == 1
+                ? locale.localized("Ongeveer dagelijks")
+                : locale.localizedFormat("recurrence.approximatelyEveryDays", amount)
+        case .week:
+            return amount == 1
+                ? locale.localized("Ongeveer wekelijks")
+                : locale.localizedFormat("recurrence.approximatelyEveryWeeks", amount)
+        case .month:
+            return amount == 1
+                ? locale.localized("Ongeveer maandelijks")
+                : locale.localizedFormat("recurrence.approximatelyEveryMonths", amount)
+        case .year:
+            return amount == 1
+                ? locale.localized("Ongeveer jaarlijks")
+                : locale.localizedFormat("recurrence.approximatelyEveryYears", amount)
+        }
+    }
+
+    private static func dayOrdinal(_ day: Int) -> String {
+        let formatter = NumberFormatter()
+        formatter.locale = AppCalendar.locale
+        formatter.numberStyle = .ordinal
+        return formatter.string(from: NSNumber(value: day)) ?? String(day)
+    }
+
+    private static func intervalDates(
+        for item: RecurringItem,
+        from start: Date,
+        through end: Date,
+        approximate: Bool
+    ) -> [Date] {
+        var result: [Date] = []
+        let anchor = AppCalendar.startOfDay(item.nextDate)
+        var current = anchor
+        var index = 0
+
+        while current <= end && index < 2_000 {
+            if current >= start { result.append(current) }
+
+            guard var next = approximate
+                ? addInterval(item.intervalValue, unit: item.intervalUnit, to: current)
+                : fixedIntervalDate(
+                    anchor: anchor,
+                    occurrenceIndex: index + 1,
+                    amount: item.intervalValue,
+                    unit: item.intervalUnit
+                ) else {
+                break
+            }
+
+            if approximate {
+                let nominalDays = max(2, AppCalendar.calendar.dateComponents([.day], from: current, to: next).day ?? 2)
+                let range = max(1, nominalDays / 5)
+                let jitter = deterministicJitter(id: item.id, index: index, range: range)
+                next = AppCalendar.calendar.date(byAdding: .day, value: jitter, to: next) ?? next
+                if next <= current {
+                    next = AppCalendar.calendar.date(byAdding: .day, value: 1, to: current) ?? current
+                }
+            }
+
+            current = AppCalendar.startOfDay(next)
+            index += 1
+        }
+
+        return result
+    }
+
+    private static func fixedIntervalDates(
+        anchor: Date,
+        amount: Int,
+        unit: RecurrenceUnit,
+        from start: Date,
+        through end: Date
+    ) -> [Date] {
+        let anchor = AppCalendar.startOfDay(anchor)
+        var result: [Date] = []
+        var index = 0
+
+        while index < 2_000,
+              let current = fixedIntervalDate(
+                  anchor: anchor,
+                  occurrenceIndex: index,
+                  amount: amount,
+                  unit: unit
+              ),
+              current <= end {
+            if current >= start { result.append(current) }
+            index += 1
+        }
+
+        return result
+    }
+
+    private static func birthdayDates(for item: RecurringItem, from start: Date, through end: Date) -> [Date] {
+        let source = item.birthDate ?? item.nextDate
+        let calendar = AppCalendar.calendar
+        let month = calendar.component(.month, from: source)
+        let day = calendar.component(.day, from: source)
+        let firstYear = calendar.component(.year, from: start)
+        let lastYear = calendar.component(.year, from: end)
+
+        return (firstYear...lastYear).compactMap {
+            birthdayDate(month: month, day: day, year: $0)
+        }.filter { $0 >= start && $0 <= end }
+    }
+
+    private static func annualFixedDates(for item: RecurringItem, from start: Date, through end: Date) -> [Date] {
+        let calendar = AppCalendar.calendar
+        let month = calendar.component(.month, from: item.nextDate)
+        let day = calendar.component(.day, from: item.nextDate)
+        let firstYear = calendar.component(.year, from: start)
+        let lastYear = calendar.component(.year, from: end)
+        return (firstYear...lastYear).compactMap { exactDate(month: month, day: day, year: $0) }
+            .filter { $0 >= start && $0 <= end }
+    }
+
+    private static func annualOrdinalDates(for item: RecurringItem, from start: Date, through end: Date) -> [Date] {
+        let calendar = AppCalendar.calendar
+        let firstYear = calendar.component(.year, from: start)
+        let lastYear = calendar.component(.year, from: end)
+        return (firstYear...lastYear).compactMap { year -> Date? in
+            guard let month = calendar.date(from: DateComponents(year: year, month: item.annualMonth, day: 1)) else { return nil }
+            if item.monthlyOrdinal == 5 {
+                return lastWeekday(item.monthlyWeekday, inMonthContaining: month)
+            }
+            return ordinalWeekday(item.monthlyWeekday, ordinal: item.monthlyOrdinal, inMonthContaining: month)
+        }.filter { $0 >= start && $0 <= end }
+    }
+
+    private static func lastWeekday(_ weekday: Int, inMonthContaining month: Date) -> Date? {
+        let calendar = AppCalendar.calendar
+        guard let monthStart = calendar.date(from: calendar.dateComponents([.year, .month], from: month)),
+              let nextMonth = calendar.date(byAdding: .month, value: 1, to: monthStart),
+              let lastDay = calendar.date(byAdding: .day, value: -1, to: nextMonth) else { return nil }
+        let lastWeekday = calendar.component(.weekday, from: lastDay)
+        let offset = (lastWeekday - weekday + 7) % 7
+        return calendar.date(byAdding: .day, value: -offset, to: lastDay).map { AppCalendar.startOfDay($0) }
+    }
+
+    private static func birthdayDate(month: Int, day: Int, year: Int) -> Date? {
+        if let date = exactDate(month: month, day: day, year: year) { return date }
+
+        // A birthday on 29 February is celebrated on 28 February in non-leap years.
+        if month == 2 && day == 29 {
+            return exactDate(month: 2, day: 28, year: year)
+        }
+
+        return nil
+    }
+
+    private static func exactDate(month: Int, day: Int, year: Int) -> Date? {
+        let calendar = AppCalendar.calendar
+        let components = DateComponents(year: year, month: month, day: day)
+        guard let date = calendar.date(from: components),
+              calendar.component(.year, from: date) == year,
+              calendar.component(.month, from: date) == month,
+              calendar.component(.day, from: date) == day else {
+            return nil
+        }
+        return AppCalendar.startOfDay(date)
+    }
+
+    private static func monthlyDates(
+        from anchor: Date,
+        through end: Date,
+        makeDate: (Date) -> Date?
+    ) -> [Date] {
+        let calendar = AppCalendar.calendar
+        var month = calendar.date(from: calendar.dateComponents([.year, .month], from: anchor)) ?? anchor
+        var result: [Date] = []
+        var safety = 0
+
+        while month <= end && safety < 1_000 {
+            if let candidate = makeDate(month), candidate >= AppCalendar.startOfDay(anchor), candidate <= end {
+                result.append(candidate)
+            }
+            guard let nextMonth = calendar.date(byAdding: .month, value: 1, to: month) else { break }
+            month = nextMonth
+            safety += 1
+        }
+        return result
+    }
+
+    private static func date(day: Int, inMonthContaining month: Date) -> Date? {
+        let calendar = AppCalendar.calendar
+        guard let range = calendar.range(of: .day, in: .month, for: month) else { return nil }
+        var components = calendar.dateComponents([.year, .month], from: month)
+        components.day = min(max(1, day), range.count)
+        return calendar.date(from: components).map { AppCalendar.startOfDay($0) }
+    }
+
+    private static func ordinalWeekday(_ weekday: Int, ordinal: Int, inMonthContaining month: Date) -> Date? {
+        let calendar = AppCalendar.calendar
+        guard let monthStart = calendar.date(from: calendar.dateComponents([.year, .month], from: month)) else {
+            return nil
+        }
+        let firstWeekday = calendar.component(.weekday, from: monthStart)
+        let offset = (weekday - firstWeekday + 7) % 7 + (max(1, ordinal) - 1) * 7
+        guard let candidate = calendar.date(byAdding: .day, value: offset, to: monthStart),
+              calendar.isDate(candidate, equalTo: monthStart, toGranularity: .month) else {
+            return nil
+        }
+        return AppCalendar.startOfDay(candidate)
+    }
+
+    private static func addInterval(_ amount: Int, unit: RecurrenceUnit, to date: Date) -> Date? {
+        let component: Calendar.Component = switch unit {
+        case .day: .day
+        case .week: .weekOfYear
+        case .month: .month
+        case .year: .year
+        }
+        return AppCalendar.calendar.date(byAdding: component, value: max(1, amount), to: date)
+    }
+
+    private static func fixedIntervalDate(
+        anchor: Date,
+        occurrenceIndex: Int,
+        amount: Int,
+        unit: RecurrenceUnit
+    ) -> Date? {
+        let calendar = AppCalendar.calendar
+        let distance = max(1, amount) * occurrenceIndex
+
+        switch unit {
+        case .day:
+            return calendar.date(byAdding: .day, value: distance, to: anchor)
+        case .week:
+            return calendar.date(byAdding: .weekOfYear, value: distance, to: anchor)
+        case .month:
+            guard let targetMonth = calendar.date(
+                byAdding: .month,
+                value: distance,
+                to: calendar.date(from: calendar.dateComponents([.year, .month], from: anchor)) ?? anchor
+            ) else { return nil }
+            return date(day: calendar.component(.day, from: anchor), inMonthContaining: targetMonth)
+        case .year:
+            let targetYear = calendar.component(.year, from: anchor) + distance
+            return birthdayDate(
+                month: calendar.component(.month, from: anchor),
+                day: calendar.component(.day, from: anchor),
+                year: targetYear
+            )
+        }
+    }
+
+    private static func deterministicJitter(id: UUID, index: Int, range: Int) -> Int {
+        let bytes = Array(id.uuidString.utf8)
+        var value = UInt64(index &+ 1) &* 1_099_511_628_211
+        for byte in bytes {
+            value = (value ^ UInt64(byte)) &* 1_099_511_628_211
+        }
+        return Int(value % UInt64(range * 2 + 1)) - range
+    }
+
+    private static func annualOrdinalName(_ ordinal: Int) -> String {
+        let key = switch ordinal {
+        case 1: "ordinal.first"
+        case 2: "ordinal.second"
+        case 3: "ordinal.third"
+        case 4: "ordinal.fourth"
+        default: "ordinal.last"
+        }
+        return AppCalendar.locale.localized(key)
+    }
+
+    static func weekdayName(_ weekday: Int) -> String {
+        let formatter = DateFormatter()
+        formatter.locale = AppCalendar.locale
+        let names = [""] + (formatter.weekdaySymbols ?? [])
+        return names.indices.contains(weekday) ? names[weekday] : names[2]
+    }
+
+    static func unitName(_ unit: RecurrenceUnit, amount: Int) -> String {
+        let key = switch (unit, amount == 1) {
+        case (.day, true): "unit.day.one"
+        case (.day, false): "unit.day.other"
+        case (.week, true): "unit.week.one"
+        case (.week, false): "unit.week.other"
+        case (.month, true): "unit.month.one"
+        case (.month, false): "unit.month.other"
+        case (.year, true): "unit.year.one"
+        case (.year, false): "unit.year.other"
+        }
+        return AppCalendar.locale.localized(key)
+    }
+}

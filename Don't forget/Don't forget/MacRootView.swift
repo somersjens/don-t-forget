@@ -1,0 +1,400 @@
+#if os(macOS)
+import CloudKit
+import SwiftData
+import SwiftUI
+
+extension Notification.Name {
+    static let macCreateItem = Notification.Name("mac.createItem")
+}
+
+enum MacSection: String, CaseIterable, Identifiable {
+    case agenda, todo, recurring, history
+
+    var id: Self { self }
+    var title: String {
+        switch self {
+        case .agenda: "Agenda"
+        case .todo: "Taken"
+        case .recurring: "Terugkerend"
+        case .history: "Afgerond"
+        }
+    }
+    var icon: String {
+        switch self {
+        case .agenda: "calendar"
+        case .todo: "checklist"
+        case .recurring: "repeat"
+        case .history: "clock.arrow.circlepath"
+        }
+    }
+}
+
+struct MacRootView: View {
+    @Environment(\.locale) private var locale
+    @Environment(\.modelContext) private var modelContext
+    @Query private var dayEntries: [DayEntry]
+    @Query private var todos: [TodoItem]
+    @Query private var recurringItems: [RecurringItem]
+
+    @State private var section: MacSection? = .agenda
+    @State private var selection: UUID?
+    @State private var searchText = ""
+    @State private var persistenceError: String?
+
+    var body: some View {
+        NavigationSplitView {
+            List(MacSection.allCases, selection: $section) { item in
+                Label(item.title, systemImage: item.icon).tag(item)
+            }
+            .navigationTitle(locale.appDisplayName)
+            .navigationSplitViewColumnWidth(min: 170, ideal: 210, max: 260)
+        } content: {
+            itemList
+                .navigationTitle(section?.title ?? locale.appDisplayName)
+                .searchable(text: $searchText, placement: .toolbar, prompt: "Zoeken")
+                .toolbar {
+                    ToolbarItemGroup {
+                        Button(action: createItem) {
+                            Label("Nieuw", systemImage: "plus")
+                        }
+                        .keyboardShortcut("n", modifiers: .command)
+                        .disabled(section == .history)
+
+                        Button(action: removeSelection) {
+                            Label("Verwijder", systemImage: "trash")
+                        }
+                        .disabled(selection == nil)
+                    }
+                }
+        } detail: {
+            detail
+        }
+        .frame(minWidth: 900, minHeight: 580)
+        .onChange(of: section) { _, _ in selection = nil }
+        .onReceive(NotificationCenter.default.publisher(for: .macCreateItem)) { _ in
+            createItem()
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .persistenceSaveFailed)) { note in
+            persistenceError = note.userInfo?[PersistenceSafety.errorUserInfoKey] as? String
+        }
+        .alert("Bewaren mislukt", isPresented: Binding(
+            get: { persistenceError != nil },
+            set: { if !$0 { persistenceError = nil } }
+        )) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text(persistenceError ?? "")
+        }
+    }
+
+    @ViewBuilder
+    private var itemList: some View {
+        switch section ?? .agenda {
+        case .agenda:
+            List(agendaItems, selection: $selection) { entry in
+                MacAgendaRow(entry: entry).tag(entry.id)
+            }
+            .overlay { emptyState(agendaItems.isEmpty, "Geen agenda-items", "calendar") }
+        case .todo:
+            List(todoItems, selection: $selection) { todo in
+                MacTodoRow(todo: todo).tag(todo.id)
+            }
+            .overlay { emptyState(todoItems.isEmpty, "Geen taken", "checklist") }
+        case .recurring:
+            List(activeRecurringItems, selection: $selection) { item in
+                MacRecurringRow(item: item).tag(item.id)
+            }
+            .overlay { emptyState(activeRecurringItems.isEmpty, "Geen terugkerende items", "repeat") }
+        case .history:
+            List(selection: $selection) {
+                if !historyDayEntries.isEmpty {
+                    Section("Agenda") {
+                        ForEach(historyDayEntries) { entry in
+                            MacAgendaRow(entry: entry).tag(entry.id)
+                        }
+                    }
+                }
+                if !historyTodos.isEmpty {
+                    Section("Taken") {
+                        ForEach(historyTodos) { todo in
+                            MacTodoRow(todo: todo).tag(todo.id)
+                        }
+                    }
+                }
+            }
+            .overlay {
+                emptyState(historyDayEntries.isEmpty && historyTodos.isEmpty, "Nog niets afgerond", "clock")
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var detail: some View {
+        if let entry = dayEntries.first(where: { $0.id == selection }) {
+            MacDayEntryEditor(entry: entry)
+        } else if let todo = todos.first(where: { $0.id == selection }) {
+            MacTodoEditor(todo: todo)
+        } else if let item = recurringItems.first(where: { $0.id == selection }) {
+            MacRecurringEditor(item: item)
+        } else {
+            ContentUnavailableView("Selecteer een item", systemImage: section?.icon ?? "square.grid.2x2")
+        }
+    }
+
+    private var normalizedSearch: String {
+        searchText.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    private var agendaItems: [DayEntry] {
+        dayEntries
+            .filter { !$0.isDone && !$0.isRemoved && matches($0.rawText) }
+            .sorted { ($0.date, $0.manualOrder) < ($1.date, $1.manualOrder) }
+    }
+
+    private var todoItems: [TodoItem] {
+        todos
+            .filter { !$0.isDone && !$0.isRemoved && matches($0.text) }
+            .sorted { $0.createdAt > $1.createdAt }
+    }
+
+    private var activeRecurringItems: [RecurringItem] {
+        recurringItems
+            .filter { !$0.isRemoved && matches($0.title + " " + $0.notes) }
+            .sorted { $0.nextDate < $1.nextDate }
+    }
+
+    private var historyDayEntries: [DayEntry] {
+        dayEntries
+            .filter { ($0.isDone || $0.isRemoved) && matches($0.rawText) }
+            .sorted { ($0.completedAt ?? $0.date) > ($1.completedAt ?? $1.date) }
+    }
+
+    private var historyTodos: [TodoItem] {
+        todos
+            .filter { ($0.isDone || $0.isRemoved) && matches($0.text) }
+            .sorted { ($0.completedAt ?? $0.createdAt) > ($1.completedAt ?? $1.createdAt) }
+    }
+
+    private func matches(_ value: String) -> Bool {
+        normalizedSearch.isEmpty || value.localizedCaseInsensitiveContains(normalizedSearch)
+    }
+
+    @ViewBuilder
+    private func emptyState(_ isEmpty: Bool, _ title: String, _ image: String) -> some View {
+        if isEmpty {
+            ContentUnavailableView.search(text: normalizedSearch)
+                .opacity(normalizedSearch.isEmpty ? 0 : 1)
+                .overlay {
+                    if normalizedSearch.isEmpty {
+                        ContentUnavailableView(title, systemImage: image)
+                    }
+                }
+        }
+    }
+
+    private func createItem() {
+        switch section ?? .agenda {
+        case .agenda:
+            let item = DayEntry(date: .now)
+            modelContext.insert(item)
+            selection = item.id
+        case .todo:
+            let item = TodoItem()
+            modelContext.insert(item)
+            selection = item.id
+        case .recurring:
+            let item = RecurringItem(nextDate: .now)
+            modelContext.insert(item)
+            selection = item.id
+        case .history:
+            return
+        }
+        PersistenceSafety.save(modelContext)
+    }
+
+    private func removeSelection() {
+        guard let selection else { return }
+        if let item = dayEntries.first(where: { $0.id == selection }) {
+            item.isRemoved = true
+            item.completedAt = .now
+        } else if let item = todos.first(where: { $0.id == selection }) {
+            item.isRemoved = true
+            item.completedAt = .now
+        } else if let item = recurringItems.first(where: { $0.id == selection }) {
+            item.isRemoved = true
+            item.completedAt = .now
+        }
+        PersistenceSafety.save(modelContext)
+        self.selection = nil
+    }
+}
+
+private struct MacAgendaRow: View {
+    let entry: DayEntry
+    var body: some View {
+        HStack(spacing: 10) {
+            Image(systemName: entry.isDone ? "checkmark.circle.fill" : "calendar")
+                .foregroundStyle(entry.isDone ? .green : .blue)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(entry.rawText.isEmpty ? "Nieuw agenda-item" : entry.rawText)
+                    .lineLimit(2)
+                Text(entry.date, format: .dateTime.weekday(.abbreviated).day().month().year())
+                    .font(.caption).foregroundStyle(.secondary)
+            }
+        }.padding(.vertical, 3)
+    }
+}
+
+private struct MacTodoRow: View {
+    let todo: TodoItem
+    var body: some View {
+        HStack(spacing: 10) {
+            Image(systemName: todo.isDone ? "checkmark.circle.fill" : "circle")
+                .foregroundStyle(todo.isDone ? .green : .secondary)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(todo.text.isEmpty ? "Nieuwe taak" : todo.text).lineLimit(2)
+                Text(todo.bucketRawValue).font(.caption).foregroundStyle(.secondary)
+            }
+        }.padding(.vertical, 3)
+    }
+}
+
+private struct MacRecurringRow: View {
+    let item: RecurringItem
+    var body: some View {
+        HStack(spacing: 10) {
+            Image(systemName: "repeat").foregroundStyle(.orange)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(item.title.isEmpty ? "Nieuw terugkerend item" : item.title).lineLimit(2)
+                Text("Volgende: \(item.nextDate.formatted(date: .abbreviated, time: .omitted))")
+                    .font(.caption).foregroundStyle(.secondary)
+            }
+        }.padding(.vertical, 3)
+    }
+}
+
+private struct MacDayEntryEditor: View {
+    @Environment(\.modelContext) private var modelContext
+    @Bindable var entry: DayEntry
+
+    var body: some View {
+        Form {
+            Section("Agenda-item") {
+                TextField("Omschrijving", text: $entry.rawText, axis: .vertical)
+                DatePicker("Datum", selection: $entry.date, displayedComponents: .date)
+                Toggle("Afgerond", isOn: $entry.isDone)
+                Toggle("Toon in widget", isOn: $entry.showOnWidget)
+            }
+            Section("Details") {
+                LabeledContent("Aangemaakt", value: entry.createdAt.formatted())
+                LabeledContent("Bron", value: entry.sourceRawValue)
+            }
+        }
+        .formStyle(.grouped)
+        .navigationTitle(entry.rawText.isEmpty ? "Nieuw agenda-item" : entry.rawText)
+        .onChange(of: entry.rawText) { _, _ in entry.refreshParsedFields(); save() }
+        .onChange(of: entry.date) { _, newValue in entry.date = AppCalendar.startOfDay(newValue); save() }
+        .onChange(of: entry.isDone) { _, done in entry.completedAt = done ? .now : nil; save() }
+        .onChange(of: entry.showOnWidget) { _, _ in save() }
+    }
+    private func save() { PersistenceSafety.save(modelContext) }
+}
+
+private struct MacTodoEditor: View {
+    @Environment(\.modelContext) private var modelContext
+    @Bindable var todo: TodoItem
+
+    var body: some View {
+        Form {
+            Section("Taak") {
+                TextField("Omschrijving", text: $todo.text, axis: .vertical)
+                Picker("Lijst", selection: $todo.bucketRawValue) {
+                    Text("Vandaag").tag(TodoBucket.today.rawValue)
+                    Text("Binnenkort").tag(TodoBucket.shortTerm.rawValue)
+                    Text("Later").tag(TodoBucket.longTerm.rawValue)
+                }
+                Toggle("Afgerond", isOn: $todo.isDone)
+                Toggle("Toon in widget", isOn: $todo.showOnWidget)
+            }
+            Section("Details") {
+                LabeledContent("Aangemaakt", value: todo.createdAt.formatted())
+            }
+        }
+        .formStyle(.grouped)
+        .navigationTitle(todo.text.isEmpty ? "Nieuwe taak" : todo.text)
+        .onChange(of: todo.text) { _, _ in save() }
+        .onChange(of: todo.bucketRawValue) { _, _ in save() }
+        .onChange(of: todo.isDone) { _, done in todo.completedAt = done ? .now : nil; save() }
+        .onChange(of: todo.showOnWidget) { _, _ in save() }
+    }
+    private func save() { PersistenceSafety.save(modelContext) }
+}
+
+private struct MacRecurringEditor: View {
+    @Environment(\.modelContext) private var modelContext
+    @Bindable var item: RecurringItem
+
+    var body: some View {
+        Form {
+            Section("Terugkerend item") {
+                TextField("Naam", text: $item.title)
+                DatePicker("Volgende datum", selection: $item.nextDate, displayedComponents: .date)
+                TextField("Herhaling", text: $item.frequencyText)
+                Picker("Categorie", selection: $item.themeRawValue) {
+                    Text("Verjaardag").tag(RecurringTheme.birthday.rawValue)
+                    Text("Algemeen").tag(RecurringTheme.general.rawValue)
+                    Text("Persoonlijk").tag(RecurringTheme.personal.rawValue)
+                }
+                Toggle("Toon in widget", isOn: $item.showOnWidget)
+            }
+            Section("Notities") {
+                TextEditor(text: $item.notes).frame(minHeight: 120)
+            }
+        }
+        .formStyle(.grouped)
+        .navigationTitle(item.title.isEmpty ? "Nieuw terugkerend item" : item.title)
+        .onChange(of: item.title) { _, _ in save() }
+        .onChange(of: item.nextDate) { _, value in item.nextDate = AppCalendar.startOfDay(value); save() }
+        .onChange(of: item.frequencyText) { _, _ in save() }
+        .onChange(of: item.themeRawValue) { _, _ in save() }
+        .onChange(of: item.showOnWidget) { _, _ in save() }
+        .onChange(of: item.notes) { _, _ in save() }
+    }
+    private func save() { PersistenceSafety.save(modelContext) }
+}
+
+struct MacCloudSettingsView: View {
+    @State private var status: CKAccountStatus?
+
+    var body: some View {
+        Form {
+            Section("iCloud") {
+                LabeledContent("Synchronisatie") {
+                    HStack {
+                        Image(systemName: status == .available ? "checkmark.icloud.fill" : "exclamationmark.icloud.fill")
+                            .foregroundStyle(status == .available ? .green : .orange)
+                        Text(statusText)
+                    }
+                }
+                Text("Deze Mac gebruikt dezelfde private iCloud-container als je iPhone en iPad. Wijzigingen worden automatisch op alle apparaten bijgewerkt.")
+                    .foregroundStyle(.secondary)
+            }
+        }
+        .formStyle(.grouped)
+        .frame(width: 480, height: 220)
+        .task { status = await ICloudStatusService.accountStatus() }
+    }
+
+    private var statusText: String {
+        switch status {
+        case .available: "Actief"
+        case .noAccount: "Geen iCloud-account"
+        case .restricted: "Beperkt"
+        case .temporarilyUnavailable: "Tijdelijk niet beschikbaar"
+        case .couldNotDetermine: "Onbekend"
+        case nil: "Controleren…"
+        @unknown default: "Onbekend"
+        }
+    }
+}
+#endif

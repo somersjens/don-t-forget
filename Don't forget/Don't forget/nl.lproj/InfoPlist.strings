@@ -1,0 +1,5 @@
+CFBundleDisplayName = "Forget It";
+NSCalendarsFullAccessUsageDescription = "Forget It gebruikt toegang om je agenda-items met de iPhone Kalender te synchroniseren.";
+NSLocationWhenInUseUsageDescription = "Forget It gebruikt je locatie om het weer bij toekomstige dagen in je agenda te tonen.";
+NSMicrophoneUsageDescription = "Forget It gebruikt de microfoon om gesproken tekst aan een nieuwe invoer toe te voegen.";
+NSSpeechRecognitionUsageDescription = "Forget It gebruikt spraakherkenning om je gesproken invoer om te zetten naar tekst.";

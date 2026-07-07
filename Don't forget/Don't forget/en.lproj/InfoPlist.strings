@@ -1,0 +1,5 @@
+CFBundleDisplayName = "Forget It";
+NSCalendarsFullAccessUsageDescription = "Forget It uses access to sync your calendar items with iPhone Calendar.";
+NSLocationWhenInUseUsageDescription = "Forget It uses your location to show weather for future days in your calendar.";
+NSMicrophoneUsageDescription = "Forget It uses the microphone to add spoken text to a new entry.";
+NSSpeechRecognitionUsageDescription = "Forget It uses speech recognition to turn your spoken input into text.";
