@@ -338,6 +338,7 @@ private struct WidgetSnapshotPublisherView: View, Equatable {
     @AppStorage(SettingsKeys.recurringCategories) private var categoriesData = ""
     @AppStorage(SettingsKeys.todoGroups) private var todoGroupsData = ""
     @AppStorage(SettingsKeys.language) private var language = AppLanguage.system.rawValue
+    @AppStorage(SettingsKeys.dateFormat) private var dateFormat = DateFormatOption.system.rawValue
     @AppStorage(SettingsKeys.actionButtonContent)
     private var lockScreenContent = ActionButtonContentOption.today.rawValue
     @AppStorage(SettingsKeys.actionButtonDatePrefix)
@@ -387,6 +388,7 @@ private struct WidgetSnapshotPublisherView: View, Equatable {
             categoriesData,
             todoGroupsData,
             language,
+            dateFormat,
             lockScreenContent,
             lockScreenDatePrefix,
             String(lockScreenItemCount),

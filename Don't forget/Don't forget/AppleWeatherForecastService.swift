@@ -73,13 +73,50 @@ final class AppleWeatherForecastStore {
             // A checkbox is the deliberate fallback whenever WeatherKit has no result.
             days = [:]
             attribution = nil
-            let nsError = error as NSError
-            if nsError.domain.contains("WDSJWTAuthenticatorServiceListener"), nsError.code == 2 {
+            if Self.isAuthenticationFailure(error) {
                 defaults.set(Self.authenticationError, forKey: SettingsKeys.weatherLastError)
             } else {
                 defaults.set(error.localizedDescription, forKey: SettingsKeys.weatherLastError)
             }
         }
+    }
+
+    private static func isAuthenticationFailure(_ error: Error) -> Bool {
+        inspectedErrors(from: error).contains { nsError in
+            let searchableText = [
+                nsError.domain,
+                nsError.localizedDescription,
+                nsError.localizedFailureReason,
+                nsError.localizedRecoverySuggestion
+            ]
+            .compactMap { $0 }
+            .joined(separator: " ")
+            .lowercased()
+
+            return (nsError.domain.contains("WDSJWTAuthenticatorServiceListener") && nsError.code == 2)
+                || searchableText.contains("authentication")
+                || searchableText.contains("not authorized")
+                || searchableText.contains("jwt")
+        }
+    }
+
+    private static func inspectedErrors(from error: Error) -> [NSError] {
+        var errors: [NSError] = []
+        var pending = [error as NSError]
+
+        while let nsError = pending.popLast() {
+            errors.append(nsError)
+
+            if let underlying = nsError.userInfo[NSUnderlyingErrorKey] as? NSError {
+                pending.append(underlying)
+            }
+
+            if let underlyingErrors = nsError.userInfo[NSMultipleUnderlyingErrorsKey] as? [NSError] {
+                pending.append(contentsOf: underlyingErrors)
+            }
+        }
+
+        return errors
     }
 }
 

@@ -374,7 +374,7 @@ enum ActionButtonDatePrefixOption: String, CaseIterable, Identifiable {
     var title: String {
         switch self {
         case .date: "Datum (dd/mm)"
-        case .dayCount: "Dagen tellen (0 = vandaag)"
+        case .dayCount: "0 = vandaag, 1 = morgen"
         }
     }
 
@@ -388,7 +388,7 @@ enum ActionButtonDatePrefixOption: String, CaseIterable, Identifiable {
     func title(for locale: Locale) -> String {
         switch self {
         case .date: locale.localized("Datum (dd/mm)")
-        case .dayCount: locale.localized("Dagen tellen (0 = vandaag)")
+        case .dayCount: locale.localized("0 = vandaag, 1 = morgen")
         }
     }
 

@@ -212,7 +212,11 @@
         }
       }
     },
+    "%lld graden" : {
+
+    },
     "%lld graden, afvinken als afgerond" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -705,22 +709,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Afgerond verwijderen?"
-          }
-        }
-      }
-    },
-    "Datum formattering" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Date formatting"
-          }
-        },
-        "nl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Datum formattering"
           }
         }
       }
@@ -2070,6 +2058,7 @@
       }
     },
     "Dagen tellen (0 = vandaag)" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -2129,6 +2118,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Datum (dd/mm)"
+          }
+        }
+      }
+    },
+    "Datum formattering" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Date formatting"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Datum formattering"
           }
         }
       }
@@ -8076,22 +8081,6 @@
         }
       }
     },
-    "Standaardbestemming" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Default Destination"
-          }
-        },
-        "nl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Standaardbestemming"
-          }
-        }
-      }
-    },
     "Standaard (%@)" : {
       "localizations" : {
         "en" : {
@@ -8104,6 +8093,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Standaard (%@)"
+          }
+        }
+      }
+    },
+    "Standaardbestemming" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Default Destination"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Standaardbestemming"
           }
         }
       }
@@ -9619,6 +9624,9 @@
           }
         }
       }
+    },
+    "Voorbeeld" : {
+
     },
     "Voorvoegsel" : {
       "localizations" : {

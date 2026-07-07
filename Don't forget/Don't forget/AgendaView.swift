@@ -1593,7 +1593,7 @@ private enum AgendaLayout {
     static let lineWidth: CGFloat = 1
     static let rowSpacing: CGFloat = 8
     static let completionControlInset: CGFloat = 8
-    static let weatherControlOffset: CGFloat = -3
+    static let weatherBadgeWidth: CGFloat = 58
     static let moveActionSpacing: CGFloat = 8
     static let categoryControlWidth: CGFloat = 22
     static let dateControlWidth: CGFloat = 76
@@ -1798,6 +1798,9 @@ struct DayBlock: View {
                             weekdayLetter: day.weekdayLetter,
                             date: day.date,
                             nextOrder: 0,
+                            weather: day.date > AppCalendar.startOfDay(.now)
+                                ? weather
+                                : nil,
                             focusedField: focusedField,
                             isMoveModeActive: activeMoveEntryID != nil,
                             isMoveTargetHighlighted: false,
@@ -1866,6 +1869,7 @@ struct DayBlock: View {
                             weekdayLetter: day.weekdayLetter,
                             date: day.date,
                             nextOrder: nextUntimedManualOrder,
+                            weather: nil,
                             focusedField: focusedField,
                             isMoveModeActive: activeMoveEntryID != nil,
                             isMoveTargetHighlighted: false,
@@ -2004,6 +2008,10 @@ struct AgendaEntryLine: View {
 
                 Spacer(minLength: 2)
 
+                if let weather {
+                    AgendaWeatherBadge(weather: weather)
+                }
+
                 completionControl
             }
 
@@ -2047,53 +2055,25 @@ struct AgendaEntryLine: View {
     }
 
     @ViewBuilder private var completionControl: some View {
-        if let weather, !entry.isDone {
-            Button(action: toggleDone) {
-                VStack(spacing: -2) {
-                    Text("\(weather.temperature)°")
-                        .font(.system(size: 10, weight: .semibold, design: .rounded))
-                        .monospacedDigit()
-                        .foregroundStyle(.primary)
-
-                    Image(systemName: weather.symbolName)
-                        .font(.system(size: 18, weight: .medium))
-                        .symbolRenderingMode(.multicolor)
-                }
-                .frame(width: 30, height: 32)
-                .contentShape(Rectangle())
-            }
-            .buttonStyle(.plain)
-            .padding(.top, -5)
-            .accessibilityLabel("\(weather.temperature) graden, afvinken als afgerond")
+        Image(systemName: entry.isDone ? "checkmark.circle.fill" : "circle")
+            .font(.system(size: 18))
+            .symbolRenderingMode(.hierarchical)
+            .foregroundStyle(entryAccentColor)
+            .frame(width: 20, height: 20)
+            .padding(.top, 1)
+            .contentShape(Circle())
+            .onTapGesture(perform: toggleDone)
+            .accessibilityLabel("Afvinken")
             .overlay {
                 if highlightsCompletion {
-                    RoundedRectangle(cornerRadius: 8)
+                    Circle()
                         .stroke(Color.brandHardBlue, lineWidth: 3)
-                        .padding(-3)
+                        .padding(-5)
                 }
             }
-            .offset(x: AgendaLayout.weatherControlOffset)
-        } else {
-            Image(systemName: entry.isDone ? "checkmark.circle.fill" : "circle")
-                .font(.system(size: 18))
-                .symbolRenderingMode(.hierarchical)
-                .foregroundStyle(entryAccentColor)
-                .frame(width: 20, height: 20)
-                .padding(.top, 1)
-                .contentShape(Circle())
-                .onTapGesture(perform: toggleDone)
-                .accessibilityLabel("Afvinken")
-                .overlay {
-                    if highlightsCompletion {
-                        Circle()
-                            .stroke(Color.brandHardBlue, lineWidth: 3)
-                            .padding(-5)
-                    }
-                }
-                // Apply the offset after the onboarding overlay so the ring,
-                // checkbox and hit area stay centered on the same axis.
-                .offset(x: -AgendaLayout.completionControlInset)
-        }
+            // Apply the offset after the onboarding overlay so the ring,
+            // checkbox and hit area stay centered on the same axis.
+            .offset(x: -AgendaLayout.completionControlInset)
     }
 
     @ViewBuilder private var entryContent: some View {
@@ -2330,6 +2310,7 @@ struct AgendaInputLine: View {
     let weekdayLetter: String
     let date: Date
     let nextOrder: Double
+    let weather: AgendaWeatherDay?
     let focusedField: FocusState<AgendaField?>.Binding
     let isMoveModeActive: Bool
     let isMoveTargetHighlighted: Bool
@@ -2404,6 +2385,10 @@ struct AgendaInputLine: View {
                 }
             }
 
+            if let weather {
+                AgendaWeatherBadge(weather: weather)
+            }
+
             Button {
                 addEntry()
             } label: {
@@ -2476,6 +2461,29 @@ struct AgendaInputLine: View {
         }
         AppKeyboard.dismiss()
         addEntry(continueEditing: false)
+    }
+}
+
+private struct AgendaWeatherBadge: View {
+    let weather: AgendaWeatherDay
+
+    var body: some View {
+        HStack(spacing: 4) {
+            Image(systemName: weather.symbolName)
+                .font(.system(size: 17, weight: .medium))
+                .symbolRenderingMode(.multicolor)
+                .frame(width: 20, height: 20)
+
+            Text("\(weather.temperature)°")
+                .font(.system(size: 14, weight: .semibold, design: .rounded))
+                .monospacedDigit()
+                .foregroundStyle(.primary)
+                .lineLimit(1)
+                .minimumScaleFactor(0.82)
+        }
+        .frame(width: AgendaLayout.weatherBadgeWidth, alignment: .trailing)
+        .padding(.top, -1)
+        .accessibilityLabel("\(weather.temperature) graden")
     }
 }
 

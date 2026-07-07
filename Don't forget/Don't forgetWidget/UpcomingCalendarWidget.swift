@@ -19,7 +19,9 @@ private struct WidgetCalendarSnapshot: Codable {
     let generatedAt: Date
     let localeIdentifier: String
     let items: [WidgetCalendarItem]
+    let dateFormat: String?
     let lockScreenItems: [WidgetCalendarItem]?
+    let lockScreenDatePrefix: String?
     let lockScreenWordTruncation: String?
     let todoItems: [WidgetCalendarItem]?
     let homeWidgetContent: String?
@@ -70,7 +72,9 @@ private struct UpcomingCalendarProvider: TimelineProvider {
                 generatedAt: .now,
                 localeIdentifier: Locale.current.identifier,
                 items: [],
+                dateFormat: nil,
                 lockScreenItems: nil,
+                lockScreenDatePrefix: nil,
                 lockScreenWordTruncation: nil,
                 todoItems: nil,
                 homeWidgetContent: nil,
@@ -98,7 +102,9 @@ private struct UpcomingCalendarProvider: TimelineProvider {
                 WidgetCalendarItem(id: UUID(), title: "Keti Koti", date: calendar.date(byAdding: .day, value: 3, to: .now) ?? .now, startMinutes: nil, colorRawValue: "orange", prefixText: "3"),
                 WidgetCalendarItem(id: UUID(), title: "Hardlopen", date: calendar.date(byAdding: .day, value: 4, to: .now) ?? .now, startMinutes: nil, colorRawValue: "green", prefixText: "4")
             ],
+            dateFormat: "system",
             lockScreenItems: nil,
+            lockScreenDatePrefix: nil,
             lockScreenWordTruncation: nil,
             todoItems: [
                 WidgetCalendarItem(id: UUID(), title: "Boodschappenlijst afronden", date: calendar.date(byAdding: .day, value: -2, to: .now) ?? .now, startMinutes: nil, colorRawValue: "green", prefixText: "2d"),
@@ -384,7 +390,11 @@ private struct UpcomingCalendarWidgetView: View {
                 .widgetAccentable()
         case .calendar:
             if (entry.snapshot.homeWidgetDatePrefix ?? "date") == "date" {
-                ShortDatePrefixText(date: item.date, visibleDates: displayedItems.map(\.date))
+                ShortDatePrefixText(
+                    date: item.date,
+                    visibleDates: displayedItems.map(\.date),
+                    format: resolvedDateFormat
+                )
                     .font(.system(size: 10, weight: .bold, design: .rounded))
                     .foregroundStyle(color(item.colorRawValue))
                     .fixedSize(horizontal: true, vertical: false)
@@ -426,7 +436,11 @@ private struct UpcomingCalendarWidgetView: View {
     private func itemRow(_ item: WidgetCalendarItem, accessory: Bool) -> some View {
         HStack(alignment: accessory ? .center : .firstTextBaseline, spacing: accessory ? 2 : 4) {
             if usesDisplayedDatePrefix(for: item, accessory: accessory) {
-                ShortDatePrefixText(date: item.date, visibleDates: visibleItems.map(\.date))
+                ShortDatePrefixText(
+                    date: item.date,
+                    visibleDates: visibleItems.map(\.date),
+                    format: resolvedDateFormat
+                )
                     .font(.system(
                         size: accessory ? accessoryPrefixFontSize : 10,
                         weight: .semibold,
@@ -498,9 +512,16 @@ private struct UpcomingCalendarWidgetView: View {
 
     private func usesDisplayedDatePrefix(for item: WidgetCalendarItem, accessory: Bool) -> Bool {
         if accessory, entry.snapshot.lockScreenItems != nil {
-            return item.prefixText?.contains("/") == true
+            return entry.snapshot.lockScreenDatePrefix == "date"
         }
         return true
+    }
+
+    private var resolvedDateFormat: WidgetDateFormatOption {
+        WidgetDateFormatOption.resolved(
+            from: entry.snapshot.dateFormat,
+            localeIdentifier: entry.snapshot.localeIdentifier
+        )
     }
 
     private func displayedTextPrefix(for item: WidgetCalendarItem, accessory: Bool) -> String? {
@@ -545,6 +566,7 @@ struct UpcomingCalendarWidget: Widget {
 private struct ShortDatePrefixText: View {
     let date: Date
     let visibleDates: [Date]
+    let format: WidgetDateFormatOption
 
     var body: some View {
         ZStack(alignment: .leading) {
@@ -557,48 +579,52 @@ private struct ShortDatePrefixText: View {
 
     private var visibleText: some View {
         HStack(spacing: 0) {
-            if reservesDayDigit {
-                Text("1").opacity(0)
+            ForEach(Array(visibleParts.enumerated()), id: \.offset) { _, part in
+                switch part {
+                case .value(let value, let reserveDigit):
+                    if reserveDigit {
+                        Text("1").opacity(0)
+                    }
+                    Text("\(value)")
+                case .separator(let separator):
+                    Text(separator)
+                }
             }
-            Text("\(day)")
-            Text("/")
-            if reservesMonthDigit {
-                Text("1").opacity(0)
-            }
-            Text("\(month)")
         }
     }
 
     private var visibleTextValue: String {
-        "\(day)/\(month)"
+        parts(reservingDigits: false).map(\.text).joined()
     }
 
     private var reservedText: String {
-        "\(reservedDayText)/\(reservedMonthText)"
+        parts(reservingDigits: true).map(\.text).joined()
     }
 
-    private var reservedDayText: String {
-        visibleDateComponents.contains { $0.day >= 10 } ? "18" : "8"
+    private var visibleParts: [DatePrefixPart] {
+        parts(reservingDigits: true)
     }
 
-    private var reservedMonthText: String {
-        visibleDateComponents.contains { $0.month >= 10 } ? "18" : "8"
+    private func parts(reservingDigits: Bool) -> [DatePrefixPart] {
+        let dateOrder = format.dateOrder
+        let first = value(for: dateOrder.first)
+        let second = value(for: dateOrder.second)
+        return [
+            .value(first.value, reserveDigit: reservingDigits && first.reservesDigit),
+            .separator(format.separator),
+            .value(second.value, reserveDigit: reservingDigits && second.reservesDigit)
+        ]
     }
 
-    private var reservesDayDigit: Bool {
-        visibleDateComponents.contains { $0.day >= 10 } && day < 10
-    }
-
-    private var reservesMonthDigit: Bool {
-        visibleDateComponents.contains { $0.month >= 10 } && month < 10
-    }
-
-    private var day: Int {
-        components(for: date).day
-    }
-
-    private var month: Int {
-        components(for: date).month
+    private func value(for component: DatePrefixComponent) -> (value: Int, reservesDigit: Bool) {
+        switch component {
+        case .day:
+            let day = components(for: date).day
+            return (day, visibleDateComponents.contains { $0.day >= 10 } && day < 10)
+        case .month:
+            let month = components(for: date).month
+            return (month, visibleDateComponents.contains { $0.month >= 10 } && month < 10)
+        }
     }
 
     private var visibleDateComponents: [(day: Int, month: Int)] {
@@ -610,6 +636,81 @@ private struct ShortDatePrefixText: View {
         let calendar = Calendar(identifier: .gregorian)
         let components = calendar.dateComponents([.day, .month], from: date)
         return (components.day ?? 0, components.month ?? 0)
+    }
+
+    private enum DatePrefixPart {
+        case value(Int, reserveDigit: Bool)
+        case separator(String)
+
+        var text: String {
+            switch self {
+            case .value(let value, let reserveDigit):
+                return "\(reserveDigit ? "1" : "")\(value)"
+            case .separator(let separator):
+                return separator
+            }
+        }
+    }
+}
+
+private enum DatePrefixComponent {
+    case day
+    case month
+}
+
+private enum WidgetDateFormatOption: String {
+    case daySlashMonth = "dd/mm"
+    case dayHyphenMonth = "dd-mm"
+    case dayDotMonth = "dd.mm"
+    case monthSlashDay = "mm/dd"
+    case monthHyphenDay = "mm-dd"
+    case monthDotDay = "mm.dd"
+
+    var separator: String {
+        switch self {
+        case .daySlashMonth, .monthSlashDay: "/"
+        case .dayHyphenMonth, .monthHyphenDay: "-"
+        case .dayDotMonth, .monthDotDay: "."
+        }
+    }
+
+    var dateOrder: (first: DatePrefixComponent, second: DatePrefixComponent) {
+        switch self {
+        case .daySlashMonth, .dayHyphenMonth, .dayDotMonth:
+            return (.day, .month)
+        case .monthSlashDay, .monthHyphenDay, .monthDotDay:
+            return (.month, .day)
+        }
+    }
+
+    static func resolved(from storedValue: String?, localeIdentifier: String) -> WidgetDateFormatOption {
+        if let storedValue,
+           storedValue != "system",
+           let option = WidgetDateFormatOption(rawValue: storedValue) {
+            return option
+        }
+        return localeDefault(for: Locale(identifier: localeIdentifier))
+    }
+
+    private static func localeDefault(for locale: Locale) -> WidgetDateFormatOption {
+        let formatter = DateFormatter()
+        formatter.locale = locale
+        formatter.setLocalizedDateFormatFromTemplate("Md")
+        let pattern = formatter.dateFormat ?? "dd/MM"
+        let dayIndex = pattern.firstIndex(of: "d") ?? pattern.startIndex
+        let monthIndex = pattern.firstIndex(of: "M") ?? pattern.endIndex
+        let separator = pattern.first { !$0.isLetter && !$0.isWhitespace } ?? "/"
+
+        switch (dayIndex < monthIndex, separator) {
+        case (true, "/"): return .daySlashMonth
+        case (true, "-"): return .dayHyphenMonth
+        case (true, "."): return .dayDotMonth
+        case (false, "/"): return .monthSlashDay
+        case (false, "-"): return .monthHyphenDay
+        case (false, "."): return .monthDotDay
+        default:
+            return dayIndex < monthIndex ? .daySlashMonth : .monthSlashDay
+        }
     }
 }
 

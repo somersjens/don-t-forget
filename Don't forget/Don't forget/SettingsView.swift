@@ -1015,6 +1015,9 @@ private struct ActionButtonSettingsView: View {
     @Environment(\.locale)
     private var locale
 
+    @AppStorage(SettingsKeys.dateFormat)
+    private var dateFormat = DateFormatOption.system.rawValue
+
     @AppStorage(SettingsKeys.actionButtonContent)
     private var content = ActionButtonContentOption.today.rawValue
 
@@ -1039,6 +1042,16 @@ private struct ActionButtonSettingsView: View {
         LockScreenWordTruncationOption(rawValue: wordTruncation) ?? .ellipsis
     }
 
+    private var selectedDateFormatTitle: String {
+        let localeDefault = DateFormatOption.localeDefault(for: locale)
+        let option = DateFormatOption.resolved(from: dateFormat)
+        return option == .system ? localeDefault.displayTitle : option.displayTitle
+    }
+
+    private var datePrefixTitle: String {
+        "\(locale.localized("Datum")) (\(selectedDateFormatTitle))"
+    }
+
     var body: some View {
         Form {
             Section {
@@ -1054,6 +1067,18 @@ private struct ActionButtonSettingsView: View {
                     }
                 }
                 .pickerStyle(.segmented)
+            }
+
+            Section("Voorbeeld") {
+                LockScreenWidgetSettingsPreview(
+                    content: selectedContent,
+                    datePrefix: selectedDatePrefix,
+                    itemCount: itemCount,
+                    wordTruncation: selectedWordTruncation,
+                    dateFormat: DateFormatOption.resolved(from: dateFormat),
+                    locale: locale
+                )
+                .listRowInsets(EdgeInsets(top: 12, leading: 16, bottom: 12, trailing: 16))
             }
 
             Section("Weergave") {
@@ -1110,14 +1135,24 @@ private struct ActionButtonSettingsView: View {
                                     datePrefix = option.rawValue
                                 } label: {
                                     if option == selectedDatePrefix {
-                                        Label(option.title(for: locale), systemImage: "checkmark")
+                                        Label(
+                                            option == .date ? datePrefixTitle : option.title(for: locale),
+                                            systemImage: "checkmark"
+                                        )
                                     } else {
-                                        Text(option.title(for: locale))
+                                        Text(option == .date ? datePrefixTitle : option.title(for: locale))
                                     }
                                 }
                             }
                         } label: {
-                            Text(selectedDatePrefix.selectionTitle(for: locale))
+                            HStack(spacing: 5) {
+                                Text(selectedDatePrefix == .date
+                                     ? datePrefixTitle
+                                     : selectedDatePrefix.title(for: locale))
+                                Image(systemName: "chevron.up.chevron.down")
+                                    .font(.system(size: 11, weight: .semibold))
+                                    .foregroundStyle(.secondary)
+                            }
                         }
                         .tint(.primary)
                     }
@@ -1134,9 +1169,143 @@ private struct ActionButtonSettingsView: View {
     }
 }
 
+private struct LockScreenWidgetSettingsPreview: View {
+    let content: ActionButtonContentOption
+    let datePrefix: ActionButtonDatePrefixOption
+    let itemCount: Int
+    let wordTruncation: LockScreenWordTruncationOption
+    let dateFormat: DateFormatOption
+    let locale: Locale
+
+    private struct PreviewItem: Identifiable {
+        let id = UUID()
+        let title: String
+        let dayOffset: Int
+    }
+
+    private var items: [PreviewItem] {
+        let todayItems = [
+            PreviewItem(title: locale.localized("Teamoverleg"), dayOffset: 0),
+            PreviewItem(title: locale.localized("Tandarts afspraak voorbereiden"), dayOffset: 0),
+            PreviewItem(title: locale.localized("Lunch met Sam"), dayOffset: 0),
+            PreviewItem(title: locale.localized("Apotheek ophalen"), dayOffset: 0),
+            PreviewItem(title: locale.localized("Bel afspraak bevestigen"), dayOffset: 0)
+        ]
+        let calendarItems = [
+            PreviewItem(title: locale.localized("Teamoverleg"), dayOffset: 0),
+            PreviewItem(title: locale.localized("Tandarts afspraak voorbereiden"), dayOffset: 0),
+            PreviewItem(title: locale.localized("Verjaardag Noor"), dayOffset: 1),
+            PreviewItem(title: locale.localized("Sporttas klaarzetten"), dayOffset: 1),
+            PreviewItem(title: locale.localized("Keti Koti"), dayOffset: 1)
+        ]
+        let todoItems = [
+            PreviewItem(title: locale.localized("Boodschappenlijst afronden"), dayOffset: 0),
+            PreviewItem(title: locale.localized("Treinkaartjes boeken"), dayOffset: 0),
+            PreviewItem(title: locale.localized("Factuur controleren"), dayOffset: 0),
+            PreviewItem(title: locale.localized("Plant water geven"), dayOffset: 0),
+            PreviewItem(title: locale.localized("Mail beantwoorden"), dayOffset: 0)
+        ]
+
+        if content == .todo {
+            return Array(todoItems.prefix(itemCount))
+        }
+        if content == .today {
+            return Array(todayItems.prefix(itemCount))
+        }
+        return Array(calendarItems.prefix(itemCount))
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: rowSpacing) {
+            ForEach(items) { item in
+                HStack(alignment: .center, spacing: 2) {
+                    if let prefix = prefix(for: item) {
+                        Text(prefix)
+                            .font(.system(size: prefixFontSize, weight: .semibold, design: .monospaced))
+                            .foregroundStyle(.blue)
+                            .fixedSize(horizontal: true, vertical: false)
+                    }
+
+                    Text(displayedTitle(item.title))
+                        .font(.system(size: fontSize, weight: .medium))
+                        .lineLimit(1)
+                        .truncationMode(.tail)
+                        .allowsTightening(true)
+                        .minimumScaleFactor(0.97)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+            }
+        }
+        .padding(.vertical, 9)
+        .padding(.horizontal, 12)
+        .frame(maxWidth: .infinity, minHeight: 70, alignment: .leading)
+        .background(.secondary.opacity(0.13), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+    }
+
+    private var fontSize: CGFloat {
+        switch itemCount {
+        case 0...2: 14
+        case 3: 13
+        case 4: 11.5
+        default: 9.5
+        }
+    }
+
+    private var prefixFontSize: CGFloat {
+        max(8.5, fontSize - 1)
+    }
+
+    private var rowSpacing: CGFloat {
+        switch itemCount {
+        case 0...3: 2
+        case 4: 1
+        default: 0
+        }
+    }
+
+    private func prefix(for item: PreviewItem) -> String? {
+        guard content == .todayAndTomorrow else { return nil }
+        switch datePrefix {
+        case .date:
+            return formattedDate(dayOffset: item.dayOffset)
+        case .dayCount:
+            return "\(item.dayOffset)"
+        }
+    }
+
+    private func formattedDate(dayOffset: Int) -> String {
+        let calendar = Calendar.current
+        let date = calendar.date(byAdding: .day, value: dayOffset, to: .now) ?? .now
+        let formatter = DateFormatter()
+        formatter.locale = locale
+        formatter.dateFormat = resolvedDateFormat
+        return formatter.string(from: date)
+    }
+
+    private var resolvedDateFormat: String {
+        if let format = dateFormat.dateFormat {
+            return format
+        }
+        return DateFormatOption.localeDefault(for: locale).dateFormat ?? "dd/MM"
+    }
+
+    private func displayedTitle(_ title: String) -> String {
+        switch wordTruncation {
+        case .ellipsis:
+            return title
+        case .hyphen:
+            return title.count > 20 ? "\(title.prefix(19))-" : title
+        case .none:
+            return title
+        }
+    }
+}
+
 private struct HomeWidgetSettingsView: View {
     @Environment(\.locale) private var locale
 
+    @AppStorage(SettingsKeys.dateFormat)
+    private var dateFormat = DateFormatOption.system.rawValue
     @AppStorage(SettingsKeys.homeWidgetContent)
     private var content = HomeWidgetContentOption.combined.rawValue
     @AppStorage(SettingsKeys.homeWidgetCalendarRange)
@@ -1158,6 +1327,16 @@ private struct HomeWidgetSettingsView: View {
 
     private var todoGroups: [TodoGroup] {
         TodoGroupStore.decode(todoGroupsData)
+    }
+
+    private var selectedDateFormatTitle: String {
+        let localeDefault = DateFormatOption.localeDefault(for: locale)
+        let option = DateFormatOption.resolved(from: dateFormat)
+        return option == .system ? localeDefault.displayTitle : option.displayTitle
+    }
+
+    private var datePrefixTitle: String {
+        "\(locale.localized("Datum")) (\(selectedDateFormatTitle))"
     }
 
     private var usesLightBlueBackground: Binding<Bool> {
@@ -1195,7 +1374,7 @@ private struct HomeWidgetSettingsView: View {
                     Text("0 = vandaag, 1 = morgen")
                         .foregroundStyle(.primary)
                         .tag(ActionButtonDatePrefixOption.dayCount.rawValue)
-                    Text("Datum (dd/mm)")
+                    Text(datePrefixTitle)
                         .foregroundStyle(.primary)
                         .tag(ActionButtonDatePrefixOption.date.rawValue)
                 }

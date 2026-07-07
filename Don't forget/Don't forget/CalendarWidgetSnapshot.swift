@@ -14,7 +14,9 @@ struct CalendarWidgetSnapshot: Codable {
     let generatedAt: Date
     let localeIdentifier: String
     let items: [CalendarWidgetItem]
+    let dateFormat: String?
     let lockScreenItems: [CalendarWidgetItem]?
+    let lockScreenDatePrefix: String?
     let lockScreenWordTruncation: String?
     let todoItems: [CalendarWidgetItem]?
     let homeWidgetContent: String?
@@ -138,7 +140,9 @@ enum CalendarWidgetSnapshotPublisher {
             generatedAt: .now,
             localeIdentifier: AppCalendar.locale.identifier,
             items: Array(items),
+            dateFormat: AppCalendar.dateFormatOption.rawValue,
             lockScreenItems: lockScreenItems,
+            lockScreenDatePrefix: lockScreenDatePrefix,
             lockScreenWordTruncation: lockScreenWordTruncation,
             todoItems: Array(todoItems),
             homeWidgetContent: homeWidgetContent,
@@ -240,10 +244,7 @@ enum CalendarWidgetSnapshotPublisher {
     ) -> String {
         switch style {
         case .date:
-            let components = AppCalendar.calendar.dateComponents([.day, .month], from: date)
-            let day = components.day ?? 0
-            let month = components.month ?? 0
-            return "\(day)/\(month)"
+            return AppCalendar.localizedShortDayMonth(date)
         case .dayCount:
             return "\(max(0, AppCalendar.calendar.dateComponents([.day], from: today, to: date).day ?? 0))"
         }
