@@ -1,6 +1,6 @@
 //
 //  Don_t_forgetUITestsLaunchTests.swift
-//  Don't forgetUITests
+//  Forget ItUITests
 //
 //  Created by Jens Somers on 21/06/2026.
 //

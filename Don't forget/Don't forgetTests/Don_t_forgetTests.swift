@@ -1,6 +1,6 @@
 //
 //  Don_t_forgetTests.swift
-//  Don't forgetTests
+//  Forget ItTests
 //
 //  Created by Jens Somers on 21/06/2026.
 //
@@ -142,11 +142,11 @@ final class Don_t_forgetTests: XCTestCase {
         )
         XCTAssertEqual(
             EndOfDayReminderService.notificationTitle(for: .dutch),
-            "Niet vergeten"
+            "Forget It"
         )
         XCTAssertEqual(
             EndOfDayReminderService.notificationTitle(for: .english),
-            "Don't Forget"
+            "Forget It"
         )
     }
 

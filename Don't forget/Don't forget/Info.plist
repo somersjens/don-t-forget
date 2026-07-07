@@ -6,7 +6,7 @@
 	<key>AppStoreID</key>
 	<string></string>
 	<key>CFBundleDisplayName</key>
-	<string>Don't Forget</string>
+	<string>Forget It</string>
 	<key>CFBundleURLTypes</key>
 	<array>
 		<dict>
@@ -19,13 +19,13 @@
 		</dict>
 	</array>
 	<key>NSCalendarsFullAccessUsageDescription</key>
-	<string>Don't forget gebruikt toegang om je agenda-items met de iPhone Kalender te synchroniseren.</string>
+	<string>Forget It gebruikt toegang om je agenda-items met de iPhone Kalender te synchroniseren.</string>
 	<key>NSMicrophoneUsageDescription</key>
-	<string>Don't forget gebruikt de microfoon om gesproken tekst aan een nieuwe invoer toe te voegen.</string>
+	<string>Forget It gebruikt de microfoon om gesproken tekst aan een nieuwe invoer toe te voegen.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>Don't forget gebruikt je locatie om het weer bij toekomstige dagen in je agenda te tonen.</string>
+	<string>Forget It gebruikt je locatie om het weer bij toekomstige dagen in je agenda te tonen.</string>
 	<key>NSSpeechRecognitionUsageDescription</key>
-	<string>Don't forget gebruikt spraakherkenning om je gesproken invoer om te zetten naar tekst.</string>
+	<string>Forget It gebruikt spraakherkenning om je gesproken invoer om te zetten naar tekst.</string>
 	<key>UIBackgroundModes</key>
 	<array>
 		<string>remote-notification</string>
