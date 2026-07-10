@@ -1593,7 +1593,7 @@ private enum AgendaLayout {
     static let lineWidth: CGFloat = 1
     static let rowSpacing: CGFloat = 8
     static let completionControlInset: CGFloat = 8
-    static let weatherBadgeWidth: CGFloat = 58
+    static let weatherBadgeWidth: CGFloat = 48
     static let moveActionSpacing: CGFloat = 8
     static let categoryControlWidth: CGFloat = 22
     static let dateControlWidth: CGFloat = 76
@@ -1798,7 +1798,7 @@ struct DayBlock: View {
                             weekdayLetter: day.weekdayLetter,
                             date: day.date,
                             nextOrder: 0,
-                            weather: day.date > AppCalendar.startOfDay(.now)
+                            weather: day.date >= AppCalendar.startOfDay(.now)
                                 ? weather
                                 : nil,
                             focusedField: focusedField,
@@ -1816,7 +1816,7 @@ struct DayBlock: View {
                                 dateLabel: index == 0 ? day.dateLabel : "",
                                 weekdayLetter: day.weekdayLetter,
                                 entry: entry,
-                                weather: index == 0 && day.date > AppCalendar.startOfDay(.now)
+                                weather: index == 0 && day.date >= AppCalendar.startOfDay(.now)
                                     ? weather
                                     : nil,
                                 focusedField: focusedField,
@@ -2008,10 +2008,6 @@ struct AgendaEntryLine: View {
 
                 Spacer(minLength: 2)
 
-                if let weather {
-                    AgendaWeatherBadge(weather: weather)
-                }
-
                 completionControl
             }
 
@@ -2055,25 +2051,41 @@ struct AgendaEntryLine: View {
     }
 
     @ViewBuilder private var completionControl: some View {
-        Image(systemName: entry.isDone ? "checkmark.circle.fill" : "circle")
-            .font(.system(size: 18))
-            .symbolRenderingMode(.hierarchical)
-            .foregroundStyle(entryAccentColor)
-            .frame(width: 20, height: 20)
-            .padding(.top, 1)
-            .contentShape(Circle())
-            .onTapGesture(perform: toggleDone)
-            .accessibilityLabel("Afvinken")
-            .overlay {
-                if highlightsCompletion {
-                    Circle()
-                        .stroke(Color.brandHardBlue, lineWidth: 3)
-                        .padding(-5)
+        if let weather, !entry.isDone {
+            AgendaWeatherBadge(weather: weather)
+                .contentShape(Rectangle())
+                .onTapGesture(perform: toggleDone)
+                .accessibilityLabel("\(weather.temperature) graden, afvinken")
+                .overlay {
+                    if highlightsCompletion {
+                        RoundedRectangle(cornerRadius: 8)
+                            .stroke(Color.brandHardBlue, lineWidth: 3)
+                            .padding(.horizontal, -4)
+                            .padding(.vertical, -5)
+                    }
                 }
-            }
-            // Apply the offset after the onboarding overlay so the ring,
-            // checkbox and hit area stay centered on the same axis.
-            .offset(x: -AgendaLayout.completionControlInset)
+                .offset(x: -AgendaLayout.completionControlInset)
+        } else {
+            Image(systemName: entry.isDone ? "checkmark.circle.fill" : "circle")
+                .font(.system(size: 18))
+                .symbolRenderingMode(.hierarchical)
+                .foregroundStyle(entryAccentColor)
+                .frame(width: 20, height: 20)
+                .padding(.top, 1)
+                .contentShape(Circle())
+                .onTapGesture(perform: toggleDone)
+                .accessibilityLabel("Afvinken")
+                .overlay {
+                    if highlightsCompletion {
+                        Circle()
+                            .stroke(Color.brandHardBlue, lineWidth: 3)
+                            .padding(-5)
+                    }
+                }
+                // Apply the offset after the onboarding overlay so the ring,
+                // checkbox and hit area stay centered on the same axis.
+                .offset(x: -AgendaLayout.completionControlInset)
+        }
     }
 
     @ViewBuilder private var entryContent: some View {
@@ -2326,6 +2338,10 @@ struct AgendaInputLine: View {
     @State private var textFieldResetToken = 0
     @State private var suppressFocusCommit = false
 
+    private var cleanText: String {
+        text.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
     var body: some View {
         HStack(alignment: .top, spacing: AgendaLayout.rowSpacing) {
             AgendaLinePrefix(
@@ -2385,20 +2401,29 @@ struct AgendaInputLine: View {
                 }
             }
 
-            if let weather {
+            if let weather, cleanText.isEmpty {
                 AgendaWeatherBadge(weather: weather)
+                    .contentShape(Rectangle())
+                    .onTapGesture {
+                        if isMoveModeActive {
+                            finishMove()
+                        } else {
+                            focusedField.wrappedValue = .newEntry(date)
+                        }
+                    }
+                    .offset(x: -AgendaLayout.completionControlInset)
+            } else {
+                Button {
+                    addEntry()
+                } label: {
+                    Image(systemName: "plus.circle")
+                        .font(.system(size: 17))
+                        .frame(width: 20, height: 20)
+                }
+                .buttonStyle(.plain)
+                .opacity(cleanText.isEmpty ? 0 : 1)
+                .offset(x: -AgendaLayout.completionControlInset)
             }
-
-            Button {
-                addEntry()
-            } label: {
-                Image(systemName: "plus.circle")
-                    .font(.system(size: 17))
-                    .frame(width: 20, height: 20)
-            }
-            .buttonStyle(.plain)
-            .opacity(text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? 0 : 1)
-            .offset(x: -AgendaLayout.completionControlInset)
         }
         .onChange(of: focusedField.wrappedValue) { oldValue, newValue in
             if oldValue == .newEntry(date),
@@ -2419,8 +2444,6 @@ struct AgendaInputLine: View {
     }
 
     private func addEntry(continueEditing: Bool = true) {
-        let cleanText = text.trimmingCharacters(in: .whitespacesAndNewlines)
-
         guard !cleanText.isEmpty else {
             return
         }
@@ -2468,22 +2491,47 @@ private struct AgendaWeatherBadge: View {
     let weather: AgendaWeatherDay
 
     var body: some View {
-        HStack(spacing: 4) {
-            Image(systemName: weather.symbolName)
-                .font(.system(size: 17, weight: .medium))
-                .symbolRenderingMode(.multicolor)
-                .frame(width: 20, height: 20)
+        HStack(spacing: 2) {
+            weatherIcon
 
-            Text("\(weather.temperature)°")
-                .font(.system(size: 14, weight: .semibold, design: .rounded))
-                .monospacedDigit()
-                .foregroundStyle(.primary)
-                .lineLimit(1)
-                .minimumScaleFactor(0.82)
+            temperatureText
         }
         .frame(width: AgendaLayout.weatherBadgeWidth, alignment: .trailing)
         .padding(.top, -1)
         .accessibilityLabel("\(weather.temperature) graden")
+    }
+
+    private var temperatureText: some View {
+        ZStack(alignment: .topTrailing) {
+            Text("\(weather.temperature)")
+                .font(.system(size: 13, weight: .semibold, design: .rounded))
+                .monospacedDigit()
+                .foregroundStyle(.primary)
+                .lineLimit(1)
+                .minimumScaleFactor(0.8)
+                .frame(width: 19, alignment: .center)
+
+            Text("°")
+                .font(.system(size: 11, weight: .semibold, design: .rounded))
+                .foregroundStyle(.primary)
+                .offset(x: 5, y: -1)
+        }
+        .frame(width: 24, height: 18, alignment: .center)
+    }
+
+    @ViewBuilder private var weatherIcon: some View {
+        if weather.symbolName == "sun.max.fill" || weather.symbolName == "sun.min.fill" {
+            Image(systemName: weather.symbolName)
+                .font(.system(size: 13, weight: .medium))
+                .symbolRenderingMode(.monochrome)
+                .foregroundStyle(.yellow)
+                .frame(width: 15, height: 18)
+        } else {
+            Image(systemName: weather.symbolName)
+                .font(.system(size: 13, weight: .medium))
+                .symbolRenderingMode(.multicolor)
+                .frame(width: 15, height: 18)
+        }
     }
 }
 

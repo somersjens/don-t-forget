@@ -215,6 +215,9 @@
     "%lld graden" : {
 
     },
+    "%lld graden, afvinken" : {
+
+    },
     "%lld graden, afvinken als afgerond" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -249,6 +252,7 @@
       }
     },
     "%lld°" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -279,6 +283,9 @@
           }
         }
       }
+    },
+    "°" : {
+
     },
     "↓" : {
       "localizations" : {
@@ -1391,6 +1398,7 @@
       }
     },
     "birthday.status.birthdayInDays" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -1439,6 +1447,7 @@
       }
     },
     "birthday.status.turnsInDays" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -2446,6 +2455,7 @@
       }
     },
     "Deze reminder gebruikt dezelfde kleur als de verjaardagscategorie." : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -5164,6 +5174,7 @@
       }
     },
     "Jaar" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -6882,6 +6893,7 @@
       }
     },
     "Onzeker" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {

@@ -1,5 +1,6 @@
 import SwiftData
 import SwiftUI
+import UIKit
 
 private extension View {
     @ViewBuilder
@@ -1374,10 +1375,32 @@ private struct RecurringRow: View {
             return AppCalendar.locale.localizedFormat("birthday.status.turnedToday", age)
         }
         if item.birthdayYearUncertain {
-            return AppCalendar.locale.localizedFormat("birthday.status.birthdayInDays", days)
+            return birthdayInDaysText(days)
         }
         guard let age = RecurrenceEngine.ageTurning(for: item, on: nextDate) else { return nil }
-        return AppCalendar.locale.localizedFormat("birthday.status.turnsInDays", age, days)
+        return turnsInDaysText(age: age, days: days)
+    }
+
+    private var usesDutchLanguage: Bool {
+        AppCalendar.locale.language.languageCode?.identifier == "nl"
+    }
+
+    private func dayUnit(_ days: Int) -> String {
+        usesDutchLanguage
+            ? (days == 1 ? "dag" : "dagen")
+            : (days == 1 ? "day" : "days")
+    }
+
+    private func birthdayInDaysText(_ days: Int) -> String {
+        usesDutchLanguage
+            ? "Is over \(days) \(dayUnit(days)) jarig"
+            : "Has a birthday in \(days) \(dayUnit(days))"
+    }
+
+    private func turnsInDaysText(age: Int, days: Int) -> String {
+        usesDutchLanguage
+            ? "Wordt over \(days) \(dayUnit(days)) \(age)"
+            : "Turns \(age) in \(days) \(dayUnit(days))"
     }
 
     var body: some View {
@@ -1874,6 +1897,90 @@ private struct HolidayManagerView: View {
     }
 }
 
+private final class EndAlignedNumberTextField: UITextField {
+    override func closestPosition(to point: CGPoint) -> UITextPosition? {
+        endOfDocument
+    }
+}
+
+private struct CompactNumberField: UIViewRepresentable {
+    let placeholder: String
+    @Binding var text: String
+    var isDisabled = false
+    var accessibilityLabel: String
+    var textAlignment: NSTextAlignment = .right
+    var textChanged: () -> Void = {}
+    var editingChanged: (Bool) -> Void = { _ in }
+
+    func makeUIView(context: Context) -> UITextField {
+        let textField = EndAlignedNumberTextField()
+        textField.delegate = context.coordinator
+        textField.keyboardType = .numberPad
+        textField.borderStyle = .none
+        textField.font = .preferredFont(forTextStyle: .body)
+        textField.adjustsFontForContentSizeCategory = true
+        textField.placeholder = placeholder
+        textField.text = text
+        textField.textAlignment = textAlignment
+        textField.accessibilityLabel = accessibilityLabel
+        textField.addTarget(
+            context.coordinator,
+            action: #selector(Coordinator.textChanged(_:)),
+            for: .editingChanged
+        )
+        return textField
+    }
+
+    func updateUIView(_ textField: UITextField, context: Context) {
+        context.coordinator.parent = self
+        if textField.text != text {
+            textField.text = text
+        }
+        textField.placeholder = placeholder
+        textField.textAlignment = textAlignment
+        textField.textColor = isDisabled ? .secondaryLabel : .label
+        textField.isEnabled = true
+        textField.accessibilityLabel = accessibilityLabel
+    }
+
+    func makeCoordinator() -> Coordinator {
+        Coordinator(parent: self)
+    }
+
+    final class Coordinator: NSObject, UITextFieldDelegate {
+        var parent: CompactNumberField
+
+        init(parent: CompactNumberField) {
+            self.parent = parent
+        }
+
+        @objc func textChanged(_ textField: UITextField) {
+            parent.textChanged()
+            parent.text = textField.text ?? ""
+            textField.textAlignment = parent.textAlignment
+        }
+
+        func textFieldDidBeginEditing(_ textField: UITextField) {
+            parent.editingChanged(true)
+            textField.textAlignment = parent.textAlignment
+            let targetPosition = textField.endOfDocument
+            textField.selectedTextRange = textField.textRange(from: targetPosition, to: targetPosition)
+        }
+
+        func textFieldDidEndEditing(_ textField: UITextField) {
+            parent.editingChanged(false)
+        }
+
+        func textField(
+            _ textField: UITextField,
+            shouldChangeCharactersIn range: NSRange,
+            replacementString string: String
+        ) -> Bool {
+            string.allSatisfy(\.isNumber)
+        }
+    }
+}
+
 private struct RecurringEditorView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var modelContext
@@ -1883,6 +1990,7 @@ private struct RecurringEditorView: View {
     let deleted: (RecurringItem) -> Void
     @State private var draft: RecurringDraft
     @State private var editingLinkNameIndex: Int?
+    @State private var datePickerResetID = UUID()
     @FocusState private var focusedField: FocusedField?
 
     private enum FocusedField: Hashable {
@@ -1890,8 +1998,15 @@ private struct RecurringEditorView: View {
         case notes
         case reminderDays
         case birthdayYear
+        case currentAge
         case link(Int)
         case linkName(Int)
+    }
+
+    private var isNumberFieldFocused: Bool {
+        focusedField == .currentAge
+            || focusedField == .birthdayYear
+            || focusedField == .reminderDays
     }
 
     init(
@@ -1925,6 +2040,14 @@ private struct RecurringEditorView: View {
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Bewaar") { save() }.disabled(!draft.canSave)
+                }
+                ToolbarItemGroup(placement: .keyboard) {
+                    Spacer()
+                    Button(locale.localized("Gereed")) {
+                        dismissKeyboard()
+                    }
+                    .opacity(isNumberFieldFocused ? 1 : 0)
+                    .disabled(!isNumberFieldFocused)
                 }
             }
             .onAppear {
@@ -1973,6 +2096,14 @@ private struct RecurringEditorView: View {
             }
             .onChange(of: draft.birthdayMonth) { _, _ in
                 draft.birthdayDay = min(draft.birthdayDay, draft.daysInBirthdayMonth)
+                if !draft.currentAgeText.isEmpty {
+                    draft.updateBirthdayYearFromCurrentAge()
+                }
+            }
+            .onChange(of: draft.birthdayDay) { _, _ in
+                if !draft.currentAgeText.isEmpty {
+                    draft.updateBirthdayYearFromCurrentAge()
+                }
             }
             .onChange(of: draft.birthdayYearText) { _, newValue in
                 let digits = String(newValue.filter(\.isNumber).prefix(4))
@@ -1982,8 +2113,45 @@ private struct RecurringEditorView: View {
                 }
                 draft.birthdayYearUncertain = digits.isEmpty
                 draft.birthdayDay = min(draft.birthdayDay, draft.daysInBirthdayMonth)
+                draft.updateCurrentAgeFromCompleteBirthdayYear()
+            }
+            .onChange(of: draft.currentAgeText) { _, newValue in
+                let digits = String(newValue.filter(\.isNumber).prefix(3))
+                if digits != newValue {
+                    draft.currentAgeText = digits
+                    return
+                }
+                draft.updateBirthdayYearFromCurrentAge()
+            }
+            .onChange(of: draft.reminderDaysText) { _, newValue in
+                let digits = String(newValue.filter(\.isNumber).prefix(3))
+                if digits != newValue {
+                    draft.reminderDaysText = digits
+                    return
+                }
+                draft.updateReminderDaysFromText()
             }
         }
+    }
+
+    private func dismissKeyboard() {
+        focusedField = nil
+        UIApplication.shared.sendAction(
+            #selector(UIResponder.resignFirstResponder),
+            to: nil,
+            from: nil,
+            for: nil
+        )
+    }
+
+    private var birthdayYearUncertainBinding: Binding<Bool> {
+        Binding(
+            get: { draft.birthdayYearUncertain },
+            set: { newValue in
+                dismissKeyboard()
+                draft.birthdayYearUncertain = newValue
+            }
+        )
     }
 
     @ViewBuilder private var editorSections: some View {
@@ -2039,23 +2207,32 @@ private struct RecurringEditorView: View {
     }
 
     @ViewBuilder private var frequencySection: some View {
-        Section("Frequentie") {
+        Section {
             if draft.categoryID == RecurringCategoryStore.holidayID {
                 holidayFrequencyFields
             } else if draft.categoryID == RecurringCategoryStore.birthdayID {
                 birthdayFields
             } else {
-                DatePicker(
-                    draft.kind == .yearly
+                compactClosingDatePicker(
+                    title: draft.kind == .yearly
                         ? locale.localized("Startdatum")
-                        : locale.localized("Eerstvolgende datum"),
-                    selection: $draft.startDate,
-                    displayedComponents: .date
+                        : locale.localized("Eerstvolgende datum")
                 )
-                    .font(.body)
 
                 recurrenceTypePicker
                 nonBirthdayFrequencyFields
+            }
+        } header: {
+            HStack(spacing: 6) {
+                Text(locale.localized("Frequentie"))
+                Spacer()
+                if draft.categoryID == RecurringCategoryStore.birthdayID {
+                    HStack(spacing: 5) {
+                        Text(draft.zodiacSignTitle)
+                        Text(draft.zodiacSignSymbol)
+                    }
+                    .foregroundStyle(.secondary)
+                }
             }
         }
     }
@@ -2091,6 +2268,36 @@ private struct RecurringEditorView: View {
             : locale.localized("Extra notitie...")
     }
 
+    private var formattedStartDate: String {
+        AppCalendar.localizedDate(draft.startDate, template: "dMMMyyyy")
+    }
+
+    private func compactClosingDatePicker(title: String) -> some View {
+        ZStack {
+            HStack {
+                Text(title)
+                Spacer()
+                Text(formattedStartDate)
+                Image(systemName: "chevron.up.chevron.down")
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundStyle(.tertiary)
+            }
+            DatePicker(
+                title,
+                selection: $draft.startDate,
+                displayedComponents: .date
+            )
+            .labelsHidden()
+            .id(datePickerResetID)
+            .opacity(0.02)
+            .frame(maxWidth: .infinity, alignment: .trailing)
+            .onChange(of: draft.startDate) { _, _ in
+                datePickerResetID = UUID()
+            }
+        }
+        .font(.body)
+    }
+
     @ViewBuilder private var holidayFrequencyFields: some View {
         Picker("Regel", selection: $draft.kind) {
             Text("Feestdag op vaste dag").tag(RecurrenceKind.annualFixed)
@@ -2099,7 +2306,7 @@ private struct RecurringEditorView: View {
         .tint(.primary)
 
         if draft.kind == .annualFixed {
-            DatePicker("Datum", selection: $draft.startDate, displayedComponents: .date)
+            compactClosingDatePicker(title: "Datum")
         } else {
             Picker("Maand", selection: $draft.annualMonth) {
                 ForEach(1...12, id: \.self) { month in
@@ -2169,44 +2376,88 @@ private struct RecurringEditorView: View {
     }
 
     @ViewBuilder private var birthdayFields: some View {
-        Picker("Dag", selection: $draft.birthdayDay) {
-            ForEach(1...draft.daysInBirthdayMonth, id: \.self) { day in
-                Text("\(day)").tag(day)
-            }
-        }
-        .font(.body)
-        .tint(.primary)
+        HStack(spacing: 8) {
+            Text(draft.dayMonthLabel)
+            Spacer(minLength: 12)
 
-        Picker("Maand", selection: $draft.birthdayMonth) {
-            ForEach(1...12, id: \.self) { month in
-                Text(AppCalendar.monthName(month)).tag(month)
+            Picker("Dag", selection: $draft.birthdayDay) {
+                ForEach(1...draft.daysInBirthdayMonth, id: \.self) { day in
+                    Text("\(day)").tag(day)
+                }
             }
+            .labelsHidden()
+            .pickerStyle(.menu)
+            .controlSize(.small)
+            .tint(.primary)
+
+            Picker("Maand", selection: $draft.birthdayMonth) {
+                ForEach(1...12, id: \.self) { month in
+                    Text(AppCalendar.monthName(month)).tag(month)
+                }
+            }
+            .labelsHidden()
+            .pickerStyle(.menu)
+            .controlSize(.small)
+            .tint(.primary)
+
         }
         .font(.body)
-        .tint(.primary)
+        .frame(height: RecurringDraft.birthdayRowHeight)
+        .simultaneousGesture(TapGesture().onEnded { dismissKeyboard() })
+
+        HStack(spacing: 8) {
+            Text(draft.ageYearLabel)
+                .contentShape(Rectangle())
+                .onTapGesture { dismissKeyboard() }
+            Spacer(minLength: 12)
+                .contentShape(Rectangle())
+                .onTapGesture { dismissKeyboard() }
+            CompactNumberField(
+                placeholder: draft.currentAgePlaceholder,
+                text: $draft.currentAgeText,
+                isDisabled: draft.shouldDimAgeYearFields,
+                accessibilityLabel: draft.currentAgeAccessibilityLabel,
+                textChanged: {
+                    draft.birthdayYearUncertain = false
+                }
+            ) { isEditing in
+                focusedField = isEditing ? .currentAge : nil
+            }
+            .frame(width: 40, height: 24)
+            .padding(.horizontal, 9)
+            .background(Color(.tertiarySystemFill), in: RoundedRectangle(cornerRadius: 8))
+
+            CompactNumberField(
+                placeholder: "2000",
+                text: $draft.birthdayYearText,
+                isDisabled: draft.shouldDimAgeYearFields,
+                accessibilityLabel: locale.localized("Geboortejaar"),
+                textChanged: {
+                    draft.birthdayYearUncertain = false
+                }
+            ) { isEditing in
+                focusedField = isEditing ? .birthdayYear : nil
+            }
+            .frame(width: 54, height: 24)
+            .padding(.horizontal, 9)
+            .background(Color(.tertiarySystemFill), in: RoundedRectangle(cornerRadius: 8))
+        }
+        .font(.body)
+        .foregroundStyle(draft.shouldDimAgeYearFields ? .secondary : .primary)
+        .frame(height: RecurringDraft.birthdayRowHeight)
 
         HStack(spacing: 10) {
-            Text(locale.localized("Jaar"))
+            Text(draft.ageYearUncertainLabel)
             Spacer()
-            TextField("2000", text: $draft.birthdayYearText)
-                .keyboardType(.numberPad)
-                .multilineTextAlignment(.center)
-                .textFieldStyle(.plain)
-                .focused($focusedField, equals: .birthdayYear)
-                .frame(width: 62)
-                .padding(.horizontal, 9)
-                .padding(.vertical, 6)
-                .background(Color(.tertiarySystemFill), in: RoundedRectangle(cornerRadius: 8))
-                .accessibilityLabel(locale.localized("Geboortejaar"))
-
-            Toggle(
-                locale.localized("Onzeker"),
-                isOn: $draft.birthdayYearUncertain
-            )
+            Toggle("", isOn: birthdayYearUncertainBinding)
+                .labelsHidden()
+                .controlSize(.small)
             .fixedSize()
             .disabled(draft.birthdayYearText.isEmpty)
         }
         .font(.body)
+        .frame(height: RecurringDraft.birthdayRowHeight)
+        .simultaneousGesture(TapGesture().onEnded { dismissKeyboard() })
 
         if !draft.isBirthdayYearValid {
             Text(locale.localized("Vul een geldig geboortejaar in."))
@@ -2219,41 +2470,62 @@ private struct RecurringEditorView: View {
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
         }
-        Toggle("Reminder vooraf", isOn: $draft.hasReminder)
-            .font(.body)
+        HStack(spacing: 10) {
+            Text("Reminder vooraf")
+                .contentShape(Rectangle())
+                .onTapGesture { dismissKeyboard() }
+            Spacer()
+                .contentShape(Rectangle())
+                .onTapGesture { dismissKeyboard() }
+            Toggle("", isOn: $draft.hasReminder)
+                .labelsHidden()
+                .controlSize(.small)
+        }
+        .font(.body)
+        .frame(height: RecurringDraft.birthdayRowHeight)
         if draft.hasReminder {
             HStack(spacing: 8) {
                 Text("Dagen vooraf")
+                    .contentShape(Rectangle())
+                    .onTapGesture { dismissKeyboard() }
                 Spacer()
+                    .contentShape(Rectangle())
+                    .onTapGesture { dismissKeyboard() }
 
                 Button {
+                    dismissKeyboard()
                     draft.reminderDays = max(1, draft.reminderDays - 1)
+                    draft.reminderDaysText = String(draft.reminderDays)
                 } label: {
                     Image(systemName: "minus")
                         .font(.system(size: 13, weight: .semibold))
-                        .frame(width: 36, height: 36)
+                        .frame(width: 26, height: 24)
                         .contentShape(Rectangle())
                 }
                 .buttonStyle(.borderless)
                 .disabled(draft.reminderDays <= 1)
                 .accessibilityLabel("Eén dag minder")
 
-                TextField("7", value: reminderDaysBinding, format: .number)
-                    .keyboardType(.numberPad)
-                    .multilineTextAlignment(.center)
-                    .textFieldStyle(.plain)
-                    .focused($focusedField, equals: .reminderDays)
-                    .frame(width: 44)
-                    .padding(.vertical, 6)
-                    .background(Color(.tertiarySystemFill), in: RoundedRectangle(cornerRadius: 8))
-                    .accessibilityLabel("Aantal dagen vooraf")
+                CompactNumberField(
+                    placeholder: "7",
+                    text: $draft.reminderDaysText,
+                    accessibilityLabel: "Aantal dagen vooraf",
+                    textAlignment: .center
+                ) { isEditing in
+                    focusedField = isEditing ? .reminderDays : nil
+                }
+                .frame(width: draft.reminderDaysFieldWidth, height: 24)
+                .padding(.horizontal, 9)
+                .background(Color(.tertiarySystemFill), in: RoundedRectangle(cornerRadius: 8))
 
                 Button {
+                    dismissKeyboard()
                     draft.reminderDays = min(365, draft.reminderDays + 1)
+                    draft.reminderDaysText = String(draft.reminderDays)
                 } label: {
                     Image(systemName: "plus")
                         .font(.system(size: 13, weight: .semibold))
-                        .frame(width: 36, height: 36)
+                        .frame(width: 26, height: 24)
                         .contentShape(Rectangle())
                 }
                 .buttonStyle(.borderless)
@@ -2261,18 +2533,8 @@ private struct RecurringEditorView: View {
                 .accessibilityLabel("Eén dag meer")
             }
             .font(.body)
-
-            Text("Deze reminder gebruikt dezelfde kleur als de verjaardagscategorie.")
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
+            .frame(height: RecurringDraft.birthdayRowHeight)
         }
-    }
-
-    private var reminderDaysBinding: Binding<Int> {
-        Binding(
-            get: { draft.reminderDays },
-            set: { draft.reminderDays = min(max($0, 1), 365) }
-        )
     }
 
     private var noteEditor: some View {
@@ -2415,6 +2677,7 @@ private struct RecurringEditorView: View {
 
     private func save() {
         let target = item ?? RecurringItem()
+        draft.normalizeBeforeSaving()
         draft.apply(to: target)
         if item == nil { modelContext.insert(target) }
         _ = PersistenceSafety.save(modelContext)
@@ -2454,6 +2717,8 @@ private struct RecurringLinkDraft: Codable {
 }
 
 private struct RecurringDraft {
+    static let birthdayRowHeight: CGFloat = 28
+
     var title = ""
     var categoryID = RecurringCategoryStore.generalID
     var kind = RecurrenceKind.interval
@@ -2467,10 +2732,12 @@ private struct RecurringDraft {
     var notes = ""
     var birthdayYearUncertain = true
     var birthdayYearText = ""
+    var currentAgeText = ""
     var birthdayMonth = 1
     var birthdayDay = 1
     var hasReminder = false
     var reminderDays = 7
+    var reminderDaysText = "7"
     var links = [RecurringLinkDraft()]
 
     init(item: RecurringItem?, initialCategoryID: String? = nil) {
@@ -2501,12 +2768,12 @@ private struct RecurringDraft {
         if let storedBirthDate = item.birthDate {
             birthdayMonth = AppCalendar.calendar.component(.month, from: storedBirthDate)
             birthdayDay = AppCalendar.calendar.component(.day, from: storedBirthDate)
-            if !item.birthdayYearUncertain {
-                birthdayYearText = String(AppCalendar.calendar.component(.year, from: storedBirthDate))
-            }
+            birthdayYearText = String(AppCalendar.calendar.component(.year, from: storedBirthDate))
+            currentAgeText = String(RecurrenceEngine.currentAge(for: storedBirthDate))
         }
         hasReminder = item.reminderDaysBefore != nil
         reminderDays = item.reminderDaysBefore ?? 7
+        reminderDaysText = String(reminderDays)
     }
 
     var canSave: Bool {
@@ -2547,6 +2814,118 @@ private struct RecurringDraft {
         guard let date = calendar.date(from: DateComponents(year: year, month: birthdayMonth, day: 1)),
               let range = calendar.range(of: .day, in: .month, for: date) else { return 31 }
         return range.count
+    }
+
+    var ageYearLabel: String {
+        usesDutchLanguage ? "Leeftijd/jaar" : "Age/Year"
+    }
+
+    var dayMonthLabel: String {
+        usesDutchLanguage ? "Dag/Maand" : "Day/Month"
+    }
+
+    var ageYearUncertainLabel: String {
+        usesDutchLanguage ? "Leeftijd/jaar onzeker" : "Age/year uncertain"
+    }
+
+    var currentAgeAccessibilityLabel: String {
+        usesDutchLanguage ? "Huidige leeftijd" : "Current age"
+    }
+
+    var shouldDimAgeYearFields: Bool {
+        birthdayYearUncertain && !birthdayYearText.isEmpty
+    }
+
+    var reminderDaysFieldWidth: CGFloat {
+        reminderDaysText.count >= 3 ? 32 : 22
+    }
+
+    var currentAgePlaceholder: String {
+        let calendar = AppCalendar.calendar
+        let placeholderYear: Int
+        if birthdayYearText.count == 4,
+           let year = Int(birthdayYearText),
+           (1...calendar.component(.year, from: .now)).contains(year) {
+            placeholderYear = year
+        } else {
+            placeholderYear = 2000
+        }
+        guard let date = calendar.date(from: DateComponents(
+            year: placeholderYear,
+            month: birthdayMonth,
+            day: min(birthdayDay, daysInBirthdayMonth)
+        )) else {
+            return String(max(0, calendar.component(.year, from: .now) - 2000))
+        }
+        return String(RecurrenceEngine.currentAge(for: AppCalendar.startOfDay(date)))
+    }
+
+    var zodiacSignTitle: String {
+        zodiacSign.title
+    }
+
+    var zodiacSignSymbol: String {
+        zodiacSign.symbol
+    }
+
+    private var zodiacSign: (symbol: String, title: String) {
+        let signs: [(month: Int, day: Int, symbol: String, nl: String, en: String)] = [
+            (1, 20, "♒", "Waterman", "Aquarius"),
+            (2, 19, "♓", "Vissen", "Pisces"),
+            (3, 21, "♈", "Ram", "Aries"),
+            (4, 20, "♉", "Stier", "Taurus"),
+            (5, 21, "♊", "Tweelingen", "Gemini"),
+            (6, 21, "♋", "Kreeft", "Cancer"),
+            (7, 23, "♌", "Leeuw", "Leo"),
+            (8, 23, "♍", "Maagd", "Virgo"),
+            (9, 23, "♎", "Weegschaal", "Libra"),
+            (10, 23, "♏", "Schorpioen", "Scorpio"),
+            (11, 22, "♐", "Boogschutter", "Sagittarius"),
+            (12, 22, "♑", "Steenbok", "Capricorn")
+        ]
+
+        let sign = signs.last {
+            birthdayMonth > $0.month || (birthdayMonth == $0.month && birthdayDay >= $0.day)
+        } ?? signs[11]
+        return (sign.symbol, usesDutchLanguage ? sign.nl : sign.en)
+    }
+
+    private var usesDutchLanguage: Bool {
+        AppCalendar.locale.language.languageCode?.identifier == "nl"
+    }
+
+    mutating func updateBirthdayYearFromCurrentAge() {
+        guard let age = Int(currentAgeText), age >= 0 else { return }
+        guard let birthDate = RecurrenceEngine.birthDate(
+            month: birthdayMonth,
+            day: birthdayDay,
+            currentAge: age
+        ) else { return }
+        birthdayYearText = String(AppCalendar.calendar.component(.year, from: birthDate))
+        birthdayYearUncertain = false
+        birthdayDay = min(birthdayDay, daysInBirthdayMonth)
+    }
+
+    mutating func updateCurrentAgeFromCompleteBirthdayYear() {
+        guard birthdayYearText.count == 4 else { return }
+        guard let birthDate = resolvedBirthDate else { return }
+        currentAgeText = String(RecurrenceEngine.currentAge(for: birthDate))
+    }
+
+    mutating func updateReminderDaysFromText() {
+        guard let days = Int(reminderDaysText) else { return }
+        let clampedDays = min(max(days, 1), 365)
+        reminderDays = clampedDays
+        if clampedDays != days {
+            reminderDaysText = String(clampedDays)
+        }
+    }
+
+    mutating func normalizeBeforeSaving() {
+        if reminderDaysText.isEmpty {
+            reminderDaysText = String(reminderDays)
+        }
+        updateReminderDaysFromText()
     }
 
     mutating func ensureTrailingLinkField() {

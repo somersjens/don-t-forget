@@ -189,9 +189,7 @@ enum RecurringScheduler {
                days > 0,
                let reminderDate = AppCalendar.calendar.date(byAdding: .day, value: -days, to: date),
                reminderDate >= AppCalendar.startOfDay(startDate) {
-                let reminderTitle = age.map {
-                    "\(item.title) wordt over \(days) dagen \($0)"
-                } ?? "Verjaardag \(item.title) over \(days) dagen"
+                let reminderTitle = "\(item.title) 🎂 over \(days) \(days == 1 ? "dag" : "dagen")"
 
                 result.append(DesiredEntry(
                     key: "reminder:\(dateKey):\(days)",

@@ -216,6 +216,7 @@ enum SettingsKeys {
     static let weatherLatitude = "settings.weatherLatitude"
     static let weatherLongitude = "settings.weatherLongitude"
     static let weatherLastError = "settings.weatherLastError"
+    static let weatherLastErrorDetails = "settings.weatherLastErrorDetails"
     static let weatherReloadToken = "settings.weatherReloadToken"
     static let recurringLastSyncSignature = "settings.recurringLastSyncSignature"
     static let recurringHorizon = "settings.recurringHorizon"

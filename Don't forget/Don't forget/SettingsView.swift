@@ -71,6 +71,9 @@ struct SettingsView: View {
     @AppStorage(SettingsKeys.weatherLastError)
     private var weatherLastError = ""
 
+    @AppStorage(SettingsKeys.weatherLastErrorDetails)
+    private var weatherLastErrorDetails = ""
+
     @AppStorage(SettingsKeys.weatherReloadToken)
     private var weatherReloadToken = 0
 
@@ -326,6 +329,13 @@ struct SettingsView: View {
                                 .font(.footnote)
                                 .foregroundStyle(.orange)
 
+                                if !weatherLastErrorDetails.isEmpty {
+                                    Text(weatherLastErrorDetails)
+                                        .font(.caption2.monospaced())
+                                        .foregroundStyle(.secondary)
+                                        .textSelection(.enabled)
+                                }
+
                                 if weatherLastError == AppleWeatherForecastStore.authenticationError,
                                    let helpURL = URL(string: "https://developer.apple.com/help/account/services/weatherkit") {
                                     Link(
@@ -337,6 +347,7 @@ struct SettingsView: View {
 
                                 Button(locale.localized("Probeer weer opnieuw")) {
                                     weatherLastError = ""
+                                    weatherLastErrorDetails = ""
                                     weatherReloadToken += 1
                                 }
                                 .font(.footnote.weight(.semibold))
@@ -456,6 +467,7 @@ struct SettingsView: View {
                     weatherLongitude = location.coordinate.longitude
                     weatherLocationName = name
                     weatherLastError = ""
+                    weatherLastErrorDetails = ""
                     weatherInAgendaEnabled = true
                     weatherReloadToken += 1
                 }
@@ -576,6 +588,7 @@ struct SettingsView: View {
                 } else {
                     weatherInAgendaEnabled = false
                     weatherLastError = ""
+                    weatherLastErrorDetails = ""
                 }
             }
         )
