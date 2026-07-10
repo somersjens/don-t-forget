@@ -2003,12 +2003,6 @@ private struct RecurringEditorView: View {
         case linkName(Int)
     }
 
-    private var isNumberFieldFocused: Bool {
-        focusedField == .currentAge
-            || focusedField == .birthdayYear
-            || focusedField == .reminderDays
-    }
-
     init(
         item: RecurringItem?,
         categories: [RecurringCategory],
@@ -2040,14 +2034,6 @@ private struct RecurringEditorView: View {
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Bewaar") { save() }.disabled(!draft.canSave)
-                }
-                ToolbarItemGroup(placement: .keyboard) {
-                    Spacer()
-                    Button(locale.localized("Gereed")) {
-                        dismissKeyboard()
-                    }
-                    .opacity(isNumberFieldFocused ? 1 : 0)
-                    .disabled(!isNumberFieldFocused)
                 }
             }
             .onAppear {
