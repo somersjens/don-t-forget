@@ -257,10 +257,10 @@ private struct UpcomingCalendarWidgetView: View {
                     forceTitle: true
                 )
             }
-        } else if family == .systemMedium {
+        } else if family == .systemMedium || family == .systemLarge {
             HStack(spacing: 10) {
                 Link(destination: URL(string: "dontforget://calendar")!) {
-                    calendarHomeColumn(maximum: 5)
+                    calendarHomeColumn(maximum: combinedRowCapacity)
                 }
                 .frame(maxWidth: .infinity)
 
@@ -273,7 +273,7 @@ private struct UpcomingCalendarWidgetView: View {
                         title: String(localized: "Taken"),
                         items: homeTodoItems,
                         kind: .todo,
-                        maximum: 5
+                        maximum: combinedRowCapacity
                     )
                 }
                 .frame(maxWidth: .infinity)
@@ -281,7 +281,7 @@ private struct UpcomingCalendarWidgetView: View {
         } else {
             VStack(alignment: .leading, spacing: 7) {
                 Link(destination: URL(string: "dontforget://calendar")!) {
-                    calendarHomeColumn(maximum: 2)
+                    calendarHomeColumn(maximum: wrapsHomeText ? 1 : 2)
                 }
                 Divider().opacity(0.5)
                 Link(destination: URL(string: "dontforget://todo")!) {
@@ -289,7 +289,7 @@ private struct UpcomingCalendarWidgetView: View {
                         title: String(localized: "Taken"),
                         items: homeTodoItems,
                         kind: .todo,
-                        maximum: 2
+                        maximum: wrapsHomeText ? 1 : 2
                     )
                 }
             }
@@ -297,7 +297,17 @@ private struct UpcomingCalendarWidgetView: View {
     }
 
     private var homeRowCapacity: Int {
-        family == .systemSmall ? (showsHomeTitle ? 5 : 6) : (showsHomeTitle ? 5 : 6)
+        if wrapsHomeText {
+            return family == .systemLarge ? (showsHomeTitle ? 7 : 8) : (showsHomeTitle ? 3 : 4)
+        }
+        return family == .systemLarge ? (showsHomeTitle ? 12 : 13) : (showsHomeTitle ? 5 : 6)
+    }
+
+    private var combinedRowCapacity: Int {
+        if wrapsHomeText {
+            return family == .systemLarge ? (showsHomeTitle ? 7 : 8) : (showsHomeTitle ? 3 : 4)
+        }
+        return family == .systemLarge ? (showsHomeTitle ? 12 : 13) : (showsHomeTitle ? 5 : 6)
     }
 
     private var showsHomeTitle: Bool {
@@ -558,7 +568,7 @@ struct UpcomingCalendarWidget: Widget {
         }
         .configurationDisplayName("widget.gallery.name")
         .description("widget.gallery.description")
-        .supportedFamilies([.systemSmall, .systemMedium, .accessoryRectangular])
+        .supportedFamilies([.systemSmall, .systemMedium, .systemLarge, .accessoryRectangular])
         .contentMarginsDisabled()
     }
 }

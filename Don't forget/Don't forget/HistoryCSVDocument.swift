@@ -51,7 +51,7 @@ struct HistoryCSVDocument: FileDocument {
         formatter.locale = Locale(identifier: "en_US_POSIX")
         formatter.timeZone = .current
         formatter.dateFormat = "yyyy-MM-dd_HH-mm-ss-SSS"
-        return "Dont-forget_historie_\(formatter.string(from: date))"
+        return "Forget-It_historie_\(formatter.string(from: date))"
     }
 
     static func recurringCategoryNames(from encodedCategories: String) -> [String: String] {

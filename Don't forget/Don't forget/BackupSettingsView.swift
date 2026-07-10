@@ -91,7 +91,7 @@ struct BackupSettingsView: View {
         let formatter = DateFormatter()
         formatter.locale = Locale(identifier: "en_US_POSIX")
         formatter.dateFormat = "yyyy-MM-dd_HH-mm-ss"
-        return "Dont-forget_backup_\(formatter.string(from: .now))"
+        return "Forget-It_backup_\(formatter.string(from: .now))"
     }
 
     private func exportBackup() {

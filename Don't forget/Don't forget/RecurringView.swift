@@ -2510,10 +2510,11 @@ private struct RecurringEditorView: View {
                     placeholder: "7",
                     text: $draft.reminderDaysText,
                     accessibilityLabel: "Aantal dagen vooraf",
-                    textAlignment: .center
-                ) { isEditing in
-                    focusedField = isEditing ? .reminderDays : nil
-                }
+                    textAlignment: .center,
+                    editingChanged: { isEditing in
+                        focusedField = isEditing ? .reminderDays : nil
+                    }
+                )
                 .frame(width: draft.reminderDaysFieldWidth, height: 24)
                 .padding(.horizontal, 9)
                 .background(Color(.tertiarySystemFill), in: RoundedRectangle(cornerRadius: 8))

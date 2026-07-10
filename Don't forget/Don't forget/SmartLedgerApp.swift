@@ -85,7 +85,7 @@ private struct StoreRootView: View {
             isPresented: $isExportingRecoveryBackup,
             document: recoveryDocument,
             contentType: .json,
-            defaultFilename: "Dont-forget_recovery-backup"
+            defaultFilename: "Forget-It_recovery-backup"
         ) { result in
             if case .failure(let error) = result {
                 recoveryMessage = error.localizedDescription

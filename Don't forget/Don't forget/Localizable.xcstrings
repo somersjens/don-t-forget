@@ -1,6 +1,146 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
+    "widget.preview.calendar.jobInterview" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "10:00 Job interview" } },
+        "nl" : { "stringUnit" : { "state" : "translated", "value" : "10:00 Sollicitatiegesprek" } }
+      }
+    },
+    "widget.preview.calendar.dinnerWithFriends" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "19:30 Dinner with friends" } },
+        "nl" : { "stringUnit" : { "state" : "translated", "value" : "19:30 Uit eten met vrienden" } }
+      }
+    },
+    "widget.preview.calendar.tattooAppointment" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "15:30 Tattoo appointment" } },
+        "nl" : { "stringUnit" : { "state" : "translated", "value" : "15:30 Tattooafspraak" } }
+      }
+    },
+    "widget.preview.calendar.justinBieber" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "16:30 Hang out with Justin Bieber" } },
+        "nl" : { "stringUnit" : { "state" : "translated", "value" : "16:30 Afspreken met Justin Bieber" } }
+      }
+    },
+    "widget.preview.calendar.blindDate" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "18:00 Blind date" } },
+        "nl" : { "stringUnit" : { "state" : "translated", "value" : "18:00 Blind date" } }
+      }
+    },
+    "widget.preview.calendar.gymSession" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "16:00 Gym session" } },
+        "nl" : { "stringUnit" : { "state" : "translated", "value" : "16:00 Sportsessie" } }
+      }
+    },
+    "widget.preview.calendar.karaokeBattle" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "21:00 Karaoke battle" } },
+        "nl" : { "stringUnit" : { "state" : "translated", "value" : "21:00 Karaokewedstrijd" } }
+      }
+    },
+    "widget.preview.calendar.bungeeJumping" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "14:30 Bungee jumping" } },
+        "nl" : { "stringUnit" : { "state" : "translated", "value" : "14:30 Bungeejumpen" } }
+      }
+    },
+    "widget.preview.calendar.rooftopParty" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "22:00 Secret rooftop party" } },
+        "nl" : { "stringUnit" : { "state" : "translated", "value" : "22:00 Geheim dakfeest" } }
+      }
+    },
+    "widget.preview.calendar.pizzaTasting" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "17:00 Pizza tasting" } },
+        "nl" : { "stringUnit" : { "state" : "translated", "value" : "17:00 Pizzaproeverij" } }
+      }
+    },
+    "widget.preview.task.cleanHouse" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Clean the house" } },
+        "nl" : { "stringUnit" : { "state" : "translated", "value" : "Het huis schoonmaken" } }
+      }
+    },
+    "widget.preview.task.deleteSocialMedia" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Delete all social media apps from my phone" } },
+        "nl" : { "stringUnit" : { "state" : "translated", "value" : "Alle social media van telefoon verwijderen" } }
+      }
+    },
+    "widget.preview.task.annualShower" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Take my annual shower" } },
+        "nl" : { "stringUnit" : { "state" : "translated", "value" : "Jaarlijkse douche nemen" } }
+      }
+    },
+    "widget.preview.task.printPhotos" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Print photos at the store" } },
+        "nl" : { "stringUnit" : { "state" : "translated", "value" : "Foto’s afdrukken in de winkel" } }
+      }
+    },
+    "widget.preview.task.finishPlaylist" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Finish the playlist" } },
+        "nl" : { "stringUnit" : { "state" : "translated", "value" : "De afspeellijst afmaken" } }
+      }
+    },
+    "widget.preview.task.replyFanMail" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Reply to fan mail" } },
+        "nl" : { "stringUnit" : { "state" : "translated", "value" : "Fanmail beantwoorden" } }
+      }
+    },
+    "widget.preview.task.planRoadTrip" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Plan the road trip" } },
+        "nl" : { "stringUnit" : { "state" : "translated", "value" : "De roadtrip plannen" } }
+      }
+    },
+    "widget.preview.task.newRecipe" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Try a new recipe" } },
+        "nl" : { "stringUnit" : { "state" : "translated", "value" : "Een nieuw recept proberen" } }
+      }
+    },
+    "widget.preview.task.newHobby" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Find a new hobby" } },
+        "nl" : { "stringUnit" : { "state" : "translated", "value" : "Nieuwe hobby zoeken" } }
+      }
+    },
+    "widget.preview.task.sellClothes" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Sell old clothes online" } },
+        "nl" : { "stringUnit" : { "state" : "translated", "value" : "Oude kleding online verkopen" } }
+      }
+    },
     "" : {
       "localizations" : {
         "en" : {
@@ -9962,6 +10102,9 @@
           }
         }
       }
+    },
+    "Widgetformaat" : {
+
     },
     "Wie" : {
       "localizations" : {

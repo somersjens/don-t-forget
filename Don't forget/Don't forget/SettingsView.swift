@@ -1182,6 +1182,186 @@ private struct ActionButtonSettingsView: View {
     }
 }
 
+private enum WidgetPreviewData {
+    struct CalendarItem: Identifiable {
+        let id: Int
+        let titleKey: String
+        let dayOffset: Int
+        let color: Color
+    }
+
+    struct TaskItem: Identifiable {
+        let id: Int
+        let titleKey: String
+        let ageInDays: Int
+        let categoryIndex: Int
+        let color: Color
+    }
+
+    static let calendar: [CalendarItem] = [
+        CalendarItem(id: 1, titleKey: "widget.preview.calendar.jobInterview", dayOffset: 0, color: .blue),
+        CalendarItem(id: 2, titleKey: "widget.preview.calendar.dinnerWithFriends", dayOffset: 0, color: .pink),
+        CalendarItem(id: 3, titleKey: "widget.preview.calendar.tattooAppointment", dayOffset: 1, color: .orange),
+        CalendarItem(id: 4, titleKey: "widget.preview.calendar.justinBieber", dayOffset: 1, color: .indigo),
+        CalendarItem(id: 5, titleKey: "widget.preview.calendar.blindDate", dayOffset: 2, color: .purple),
+        CalendarItem(id: 6, titleKey: "widget.preview.calendar.gymSession", dayOffset: 2, color: .green),
+        CalendarItem(id: 7, titleKey: "widget.preview.calendar.karaokeBattle", dayOffset: 3, color: .pink),
+        CalendarItem(id: 8, titleKey: "widget.preview.calendar.bungeeJumping", dayOffset: 3, color: .orange),
+        CalendarItem(id: 9, titleKey: "widget.preview.calendar.rooftopParty", dayOffset: 4, color: .indigo),
+        CalendarItem(id: 10, titleKey: "widget.preview.calendar.pizzaTasting", dayOffset: 4, color: .red)
+    ]
+
+    static let tasks: [TaskItem] = [
+        TaskItem(id: 1, titleKey: "widget.preview.task.cleanHouse", ageInDays: 0, categoryIndex: 0, color: .orange),
+        TaskItem(id: 2, titleKey: "widget.preview.task.deleteSocialMedia", ageInDays: 4, categoryIndex: 0, color: .orange),
+        TaskItem(id: 3, titleKey: "widget.preview.task.annualShower", ageInDays: 7, categoryIndex: 0, color: .orange),
+        TaskItem(id: 4, titleKey: "widget.preview.task.printPhotos", ageInDays: 8, categoryIndex: 0, color: .orange),
+        TaskItem(id: 5, titleKey: "widget.preview.task.finishPlaylist", ageInDays: 14, categoryIndex: 1, color: .indigo),
+        TaskItem(id: 6, titleKey: "widget.preview.task.replyFanMail", ageInDays: 22, categoryIndex: 1, color: .indigo),
+        TaskItem(id: 7, titleKey: "widget.preview.task.planRoadTrip", ageInDays: 34, categoryIndex: 1, color: .indigo),
+        TaskItem(id: 8, titleKey: "widget.preview.task.newRecipe", ageInDays: 34, categoryIndex: 1, color: .indigo),
+        TaskItem(id: 9, titleKey: "widget.preview.task.newHobby", ageInDays: 40, categoryIndex: 1, color: .indigo),
+        TaskItem(id: 10, titleKey: "widget.preview.task.sellClothes", ageInDays: 80, categoryIndex: 1, color: .indigo)
+    ]
+}
+
+private enum HomeWidgetPreviewFamily: String, CaseIterable, Identifiable {
+    case small, medium, large
+
+    var id: String { rawValue }
+
+    func title(for locale: Locale) -> String {
+        switch self {
+        case .small: locale.localized("Klein")
+        case .medium: locale.localized("Rechthoek")
+        case .large: locale.localized("Groot")
+        }
+    }
+
+    var size: CGSize {
+        switch self {
+        case .small: CGSize(width: 148, height: 148)
+        case .medium: CGSize(width: 310, height: 145)
+        case .large: CGSize(width: 300, height: 300)
+        }
+    }
+
+    var rowCount: Int { self == .large ? 9 : (self == .small ? 2 : 5) }
+}
+
+private struct HomeWidgetSettingsPreview: View {
+    let family: HomeWidgetPreviewFamily
+    let content: HomeWidgetContentOption
+    let calendarRange: HomeWidgetCalendarRangeOption
+    let datePrefix: ActionButtonDatePrefixOption
+    let dateFormat: DateFormatOption
+    let todoCategoryID: String
+    let todoGroups: [TodoGroup]
+    let locale: Locale
+    let wrapsText: Bool
+    let showsTitle: Bool
+    let usesLightBlueBackground: Bool
+    let showsOtherWhenEmpty: Bool
+
+    private var calendarItems: [(String, String, Color)] {
+        let maximumOffset = calendarRange == .today ? 0 : (calendarRange == .todayAndTomorrow ? 1 : Int.max)
+        return WidgetPreviewData.calendar.filter { $0.dayOffset <= maximumOffset }.map {
+            (calendarPrefix(dayOffset: $0.dayOffset), locale.localized($0.titleKey), $0.color)
+        }
+    }
+
+    private var todoItems: [(String, String, Color)] {
+        let selectedIndex = todoGroups.firstIndex { $0.id == todoCategoryID }
+        return WidgetPreviewData.tasks.filter { selectedIndex == nil || $0.categoryIndex == selectedIndex }.map {
+            ("\($0.ageInDays)d", locale.localized($0.titleKey), $0.color)
+        }
+    }
+
+    var body: some View {
+        Group {
+            if showsOtherWhenEmpty, todoItems.isEmpty, content != .calendar, !calendarItems.isEmpty {
+                previewColumn(
+                    title: locale.localized("Geen open taken ✓"),
+                    items: calendarItems,
+                    maximum: previewRowCount,
+                    calendar: true,
+                    forceTitle: true
+                )
+            } else if family == .small && content == .combined {
+                VStack(alignment: .leading, spacing: 7) {
+                    previewColumn(title: "Kalender", items: calendarItems, maximum: wrapsText ? 1 : 2, calendar: true)
+                    Divider().opacity(0.45)
+                    previewColumn(title: "Taken", items: todoItems, maximum: wrapsText ? 1 : 2, calendar: false)
+                }
+            } else if content == .combined {
+                HStack(spacing: 10) {
+                    previewColumn(title: "Kalender", items: calendarItems, maximum: previewRowCount, calendar: true)
+                    Divider()
+                    previewColumn(title: "Taken", items: todoItems, maximum: previewRowCount, calendar: false)
+                }
+            } else if content == .calendar {
+                previewColumn(title: "Kalender", items: calendarItems, maximum: previewRowCount, calendar: true)
+            } else {
+                previewColumn(title: "Taken", items: todoItems, maximum: previewRowCount, calendar: false)
+            }
+        }
+        .padding(14)
+        .frame(width: family.size.width, height: family.size.height, alignment: .topLeading)
+        .background(usesLightBlueBackground ? Color(red: 207 / 255, green: 224 / 255, blue: 247 / 255) : .white)
+        .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
+        .shadow(color: .black.opacity(0.14), radius: 12, y: 5)
+        .id(family)
+        .transition(.opacity.combined(with: .scale(scale: 0.96)))
+    }
+
+    private var previewRowCount: Int {
+        if wrapsText {
+            return family == .large ? 7 : 3
+        }
+        return family.rowCount
+    }
+
+    private func previewColumn(
+        title: String,
+        items: [(String, String, Color)],
+        maximum: Int,
+        calendar _: Bool,
+        forceTitle: Bool = false
+    ) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            if showsTitle || forceTitle {
+                Text(title)
+                    .font(.system(size: 12, weight: .bold))
+                    .foregroundStyle(Color(red: 59 / 255, green: 134 / 255, blue: 247 / 255))
+            }
+            ForEach(Array(items.prefix(maximum).enumerated()), id: \.offset) { _, item in
+                HStack(alignment: .firstTextBaseline, spacing: 5) {
+                    Text(item.0)
+                        .font(.system(size: 10, weight: .bold, design: .rounded))
+                        .foregroundStyle(item.2)
+                        .fixedSize()
+                    Text(item.1)
+                        .font(.system(size: 11.5, weight: .medium))
+                        .lineLimit(wrapsText ? 2 : 1)
+                        .fixedSize(horizontal: false, vertical: wrapsText)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                }
+            }
+            Spacer(minLength: 0)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+    }
+
+    private func calendarPrefix(dayOffset: Int) -> String {
+        guard datePrefix == .date else { return "\(dayOffset)" }
+        let date = Calendar.current.date(byAdding: .day, value: dayOffset, to: .now) ?? .now
+        let formatter = DateFormatter()
+        formatter.locale = locale
+        formatter.dateFormat = dateFormat.dateFormat ?? DateFormatOption.localeDefault(for: locale).dateFormat ?? "dd/MM"
+        return formatter.string(from: date)
+    }
+}
+
 private struct LockScreenWidgetSettingsPreview: View {
     let content: ActionButtonContentOption
     let datePrefix: ActionButtonDatePrefixOption
@@ -1197,35 +1377,20 @@ private struct LockScreenWidgetSettingsPreview: View {
     }
 
     private var items: [PreviewItem] {
-        let todayItems = [
-            PreviewItem(title: locale.localized("Teamoverleg"), dayOffset: 0),
-            PreviewItem(title: locale.localized("Tandarts afspraak voorbereiden"), dayOffset: 0),
-            PreviewItem(title: locale.localized("Lunch met Sam"), dayOffset: 0),
-            PreviewItem(title: locale.localized("Apotheek ophalen"), dayOffset: 0),
-            PreviewItem(title: locale.localized("Bel afspraak bevestigen"), dayOffset: 0)
-        ]
-        let calendarItems = [
-            PreviewItem(title: locale.localized("Teamoverleg"), dayOffset: 0),
-            PreviewItem(title: locale.localized("Tandarts afspraak voorbereiden"), dayOffset: 0),
-            PreviewItem(title: locale.localized("Verjaardag Noor"), dayOffset: 1),
-            PreviewItem(title: locale.localized("Sporttas klaarzetten"), dayOffset: 1),
-            PreviewItem(title: locale.localized("Keti Koti"), dayOffset: 1)
-        ]
-        let todoItems = [
-            PreviewItem(title: locale.localized("Boodschappenlijst afronden"), dayOffset: 0),
-            PreviewItem(title: locale.localized("Treinkaartjes boeken"), dayOffset: 0),
-            PreviewItem(title: locale.localized("Factuur controleren"), dayOffset: 0),
-            PreviewItem(title: locale.localized("Plant water geven"), dayOffset: 0),
-            PreviewItem(title: locale.localized("Mail beantwoorden"), dayOffset: 0)
-        ]
+        let calendarItems = WidgetPreviewData.calendar.map {
+            PreviewItem(title: locale.localized($0.titleKey), dayOffset: $0.dayOffset)
+        }
+        let todoItems = WidgetPreviewData.tasks.map {
+            PreviewItem(title: locale.localized($0.titleKey), dayOffset: 0)
+        }
 
         if content == .todo {
             return Array(todoItems.prefix(itemCount))
         }
         if content == .today {
-            return Array(todayItems.prefix(itemCount))
+            return Array(calendarItems.filter { $0.dayOffset == 0 }.prefix(itemCount))
         }
-        return Array(calendarItems.prefix(itemCount))
+        return Array(calendarItems.filter { $0.dayOffset <= 1 }.prefix(itemCount))
     }
 
     var body: some View {
@@ -1337,6 +1502,7 @@ private struct HomeWidgetSettingsView: View {
     private var todoCategoryID = ""
     @AppStorage(SettingsKeys.todoGroups)
     private var todoGroupsData = ""
+    @State private var previewFamily = HomeWidgetPreviewFamily.medium
 
     private var todoGroups: [TodoGroup] {
         TodoGroupStore.decode(todoGroupsData)
@@ -1364,6 +1530,33 @@ private struct HomeWidgetSettingsView: View {
 
     var body: some View {
         Form {
+            Section("Voorbeeld") {
+                Picker("Widgetformaat", selection: $previewFamily) {
+                    ForEach(HomeWidgetPreviewFamily.allCases) { family in
+                        Text(family.title(for: locale)).tag(family)
+                    }
+                }
+                .pickerStyle(.segmented)
+
+                HomeWidgetSettingsPreview(
+                    family: previewFamily,
+                    content: HomeWidgetContentOption(rawValue: content) ?? .combined,
+                    calendarRange: HomeWidgetCalendarRangeOption(rawValue: calendarRange) ?? .today,
+                    datePrefix: ActionButtonDatePrefixOption(rawValue: datePrefix) ?? .date,
+                    dateFormat: DateFormatOption.resolved(from: dateFormat),
+                    todoCategoryID: todoCategoryID,
+                    todoGroups: todoGroups,
+                    locale: locale,
+                    wrapsText: textFlow == HomeWidgetTextFlowOption.wrap.rawValue,
+                    showsTitle: showsTitle,
+                    usesLightBlueBackground: background != HomeWidgetBackgroundOption.white.rawValue,
+                    showsOtherWhenEmpty: showsOtherWhenEmpty
+                )
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 8)
+                .animation(.easeInOut(duration: 0.2), value: previewFamily)
+            }
+
             Section {
                 Picker("Inhoud", selection: $content) {
                     ForEach(HomeWidgetContentOption.allCases) { option in
