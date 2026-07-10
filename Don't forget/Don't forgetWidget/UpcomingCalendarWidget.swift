@@ -135,26 +135,24 @@ private struct UpcomingCalendarWidgetView: View {
     }
 
     private var visibleItems: [WidgetCalendarItem] {
-        let calendar = Calendar.current
-        let today = calendar.startOfDay(for: entry.date)
         if family == .accessoryRectangular, let configuredItems = entry.snapshot.lockScreenItems {
             return configuredItems
         }
-        return Array(entry.snapshot.items.filter { $0.date >= today }.prefix(5))
+        return Array(entry.snapshot.items.prefix(5))
     }
 
     private var homeCalendarItems: [WidgetCalendarItem] {
         let calendar = Calendar.current
         let today = calendar.startOfDay(for: entry.date)
-        let futureItems = entry.snapshot.items.filter { $0.date >= today }
         switch entry.snapshot.homeWidgetCalendarRange ?? "upcoming" {
         case "today":
-            return futureItems.filter { calendar.isDate($0.date, inSameDayAs: today) }
+            let tomorrow = calendar.date(byAdding: .day, value: 1, to: today) ?? today
+            return entry.snapshot.items.filter { $0.date < tomorrow }
         case "todayAndTomorrow":
             let end = calendar.date(byAdding: .day, value: 2, to: today) ?? today
-            return futureItems.filter { $0.date < end }
+            return entry.snapshot.items.filter { $0.date < end }
         default:
-            return futureItems
+            return entry.snapshot.items
         }
     }
 
@@ -298,16 +296,16 @@ private struct UpcomingCalendarWidgetView: View {
 
     private var homeRowCapacity: Int {
         if wrapsHomeText {
-            return family == .systemLarge ? (showsHomeTitle ? 7 : 8) : (showsHomeTitle ? 3 : 4)
+            return family == .systemLarge ? (showsHomeTitle ? 9 : 10) : (showsHomeTitle ? 3 : 4)
         }
-        return family == .systemLarge ? (showsHomeTitle ? 12 : 13) : (showsHomeTitle ? 5 : 6)
+        return family == .systemLarge ? (showsHomeTitle ? 15 : 16) : (showsHomeTitle ? 5 : 6)
     }
 
     private var combinedRowCapacity: Int {
         if wrapsHomeText {
-            return family == .systemLarge ? (showsHomeTitle ? 7 : 8) : (showsHomeTitle ? 3 : 4)
+            return family == .systemLarge ? (showsHomeTitle ? 9 : 10) : (showsHomeTitle ? 3 : 4)
         }
-        return family == .systemLarge ? (showsHomeTitle ? 12 : 13) : (showsHomeTitle ? 5 : 6)
+        return family == .systemLarge ? (showsHomeTitle ? 15 : 16) : (showsHomeTitle ? 5 : 6)
     }
 
     private var showsHomeTitle: Bool {
@@ -413,7 +411,16 @@ private struct UpcomingCalendarWidgetView: View {
                 let calendar = Calendar.current
                 let today = calendar.startOfDay(for: entry.date)
                 let itemDay = calendar.startOfDay(for: item.date)
-                Text("\(max(0, calendar.dateComponents([.day], from: today, to: itemDay).day ?? 0))")
+                RelativeDayPrefixText(
+                    value: calendar.dateComponents([.day], from: today, to: itemDay).day ?? 0,
+                    visibleValues: displayedItems.map {
+                        calendar.dateComponents(
+                            [.day],
+                            from: today,
+                            to: calendar.startOfDay(for: $0.date)
+                        ).day ?? 0
+                    }
+                )
                     .font(.system(size: 10, weight: .bold, design: .rounded))
                     .foregroundStyle(color(item.colorRawValue))
                     .fixedSize(horizontal: true, vertical: false)
@@ -460,7 +467,12 @@ private struct UpcomingCalendarWidgetView: View {
                     .fixedSize(horizontal: true, vertical: false)
                     .widgetAccentable()
             } else if let prefix = displayedTextPrefix(for: item, accessory: accessory) {
-                Text(prefix)
+                RelativeDayPrefixText(
+                    value: Int(prefix) ?? 0,
+                    visibleValues: visibleItems.compactMap {
+                        displayedTextPrefix(for: $0, accessory: accessory).flatMap(Int.init)
+                    }
+                )
                     .font(.system(
                         size: accessory ? accessoryPrefixFontSize : 10,
                         weight: .semibold,
@@ -557,6 +569,26 @@ private struct UpcomingCalendarWidgetView: View {
         case "gray": Color(red: 142 / 255, green: 142 / 255, blue: 147 / 255)
         default: .secondary
         }
+    }
+}
+
+private struct RelativeDayPrefixText: View {
+    let value: Int
+    let visibleValues: [Int]
+
+    var body: some View {
+        ZStack(alignment: .trailing) {
+            Text(reservedText)
+                .opacity(0)
+            Text("\(value)")
+        }
+        .accessibilityLabel(Text("\(value)"))
+    }
+
+    private var reservedText: String {
+        let values = visibleValues.isEmpty ? [value] : visibleValues
+        let digitCount = values.map { String(abs($0)).count }.max() ?? 1
+        return "-" + String(repeating: "0", count: digitCount)
     }
 }
 

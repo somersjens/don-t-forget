@@ -67,7 +67,6 @@ enum CalendarWidgetSnapshotPublisher {
         let categoryColors = decodeCategoryColors(categoriesData)
 
         let items = entries
-            .filter { $0.date >= today }
             .sorted { lhs, rhs in
                 if lhs.date != rhs.date { return lhs.date < rhs.date }
                 let lhsMinutes = lhs.startMinutes ?? Int.max
@@ -202,13 +201,13 @@ enum CalendarWidgetSnapshotPublisher {
         let visibleEntries = entries
             .filter { entry in
                 if content == .today {
-                    return AppCalendar.isSameDay(entry.date, today)
+                    return entry.date < (AppCalendar.calendar.date(byAdding: .day, value: 1, to: today) ?? today)
                 }
                 guard content == .todayAndTomorrow,
                       let endOfTomorrow = AppCalendar.calendar.date(byAdding: .day, value: 2, to: today) else {
                     return false
                 }
-                return entry.date >= today && entry.date < endOfTomorrow
+                return entry.date < endOfTomorrow
             }
             .sorted { lhs, rhs in
                 if lhs.date != rhs.date { return lhs.date < rhs.date }
@@ -246,7 +245,7 @@ enum CalendarWidgetSnapshotPublisher {
         case .date:
             return AppCalendar.localizedShortDayMonth(date)
         case .dayCount:
-            return "\(max(0, AppCalendar.calendar.dateComponents([.day], from: today, to: date).day ?? 0))"
+            return "\(AppCalendar.calendar.dateComponents([.day], from: today, to: date).day ?? 0)"
         }
     }
 
