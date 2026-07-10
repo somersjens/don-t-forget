@@ -1481,6 +1481,15 @@ private struct ActionButtonCaptureSettingsView: View {
     var body: some View {
         Form {
             Section {
+                ActionButtonCapturePreview(
+                    launchMode: selectedLaunchMode,
+                    destination: destination,
+                    taskCategoryID: taskCategoryID,
+                    groups: groups,
+                    startsVoiceRecording: startsVoiceRecording
+                )
+                .listRowInsets(EdgeInsets(top: 12, leading: 12, bottom: 12, trailing: 12))
+
                 Text(locale.localized("De Actieknop is alleen beschikbaar op iPhone 15 Pro en nieuwere modellen. Stel op je iPhone bij Instellingen › Actieknop › Opdracht de opdracht ‘Nieuwe taak’ in."))
                     .font(.footnote)
                     .foregroundStyle(.secondary)
@@ -1536,5 +1545,421 @@ private struct ActionButtonCaptureSettingsView: View {
         .onChange(of: locale.identifier) { _, _ in
             QuickCapturePreparation.prepareConfirmation()
         }
+    }
+}
+
+private struct ActionButtonCapturePreview: View {
+    private enum Phase: Int { case waiting, pressed, opened, typing, saving, saved }
+
+    @Environment(\.locale) private var locale
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    let launchMode: ActionButtonLaunchMode
+    let destination: String
+    let taskCategoryID: String
+    let groups: [TodoGroup]
+    let startsVoiceRecording: Bool
+    @State private var phase = Phase.waiting
+    @State private var typedText = ""
+    @State private var loopTask: Task<Void, Never>?
+
+    private var exampleText: String { locale.localized("Dit is een voorbeeld") }
+    private var selectedGroup: TodoGroup {
+        groups.first(where: { $0.id == taskCategoryID }) ?? groups.first ?? TodoGroupStore.defaults[0]
+    }
+    private var isCalendar: Bool { destination == ActionButtonDefaultDestination.calendarToday.rawValue }
+    private var destinationTitle: String { isCalendar ? locale.localized("Kalender vandaag") : selectedGroup.title }
+    private var destinationIcon: String { isCalendar ? "calendar" : selectedGroup.icon }
+    private var destinationColor: Color { isCalendar ? .brandHardBlue : selectedGroup.color }
+    private var savedText: String { locale.localizedFormat("quick.addedTo", destinationTitle) }
+
+    var body: some View {
+        ZStack {
+            RoundedRectangle(cornerRadius: 8).fill(Color.primary.opacity(0.035))
+            phone
+
+            if phase.rawValue < Phase.opened.rawValue {
+                Image(systemName: "hand.point.right.fill")
+                    .font(.system(size: 22)).foregroundStyle(Color.brandHardBlue)
+                    .offset(x: phase == .pressed ? -155 : -164, y: 57)
+                .animation(.easeInOut(duration: 0.35), value: phase)
+            }
+        }
+        .frame(height: 202)
+        .clipped()
+        .animation(reduceMotion ? nil : .snappy(duration: 0.4), value: phase)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(locale.localized("Voorbeeld van de Actieknop"))
+        .onAppear { restart(at: .waiting) }
+        .onDisappear { loopTask?.cancel() }
+        .onChange(of: launchMode) { _, _ in restart(at: .pressed) }
+        .onChange(of: destination) { _, _ in restart(at: .saving) }
+        .onChange(of: taskCategoryID) { _, _ in restart(at: .saving) }
+        .onChange(of: startsVoiceRecording) { _, _ in restart(at: .opened) }
+        .onChange(of: locale.identifier) { _, _ in restart(at: .opened) }
+    }
+
+    private var phone: some View {
+        ZStack(alignment: .leading) {
+            UnevenRoundedRectangle(
+                topLeadingRadius: 44,
+                bottomLeadingRadius: 0,
+                bottomTrailingRadius: 0,
+                topTrailingRadius: 44
+            )
+            .fill(Color.primary.opacity(0.9))
+            .frame(width: 292, height: 188)
+
+            UnevenRoundedRectangle(
+                topLeadingRadius: 39,
+                bottomLeadingRadius: 0,
+                bottomTrailingRadius: 0,
+                topTrailingRadius: 39
+            )
+            .fill(Color(uiColor: .systemBackground))
+            .frame(width: 282, height: 183)
+            .offset(x: 5, y: 5)
+            .overlay(alignment: .topLeading) {
+                phoneScreen
+                    .frame(width: 274, height: 175)
+                    .clipShape(UnevenRoundedRectangle(
+                        topLeadingRadius: 35,
+                        bottomLeadingRadius: 0,
+                        bottomTrailingRadius: 0,
+                        topTrailingRadius: 35
+                    ))
+                    .offset(x: 9, y: 9)
+            }
+
+            Capsule()
+                .fill(phase == .pressed ? Color.brandHardBlue : Color.primary.opacity(0.65))
+                .frame(width: phase == .pressed ? 8 : 5, height: 38)
+                .offset(x: -4, y: 57)
+                .shadow(color: phase == .pressed ? Color.brandHardBlue.opacity(0.65) : .clear, radius: 6)
+                .animation(.spring(response: 0.24, dampingFraction: 0.55), value: phase)
+        }
+        .frame(width: 300, height: 190)
+    }
+
+    @ViewBuilder private var phoneScreen: some View {
+        ZStack(alignment: .top) {
+            if launchMode == .fullApp && phase.rawValue >= Phase.opened.rawValue {
+                appScreen
+            } else {
+                lockScreen
+            }
+
+            statusBar
+
+            if phase.rawValue >= Phase.opened.rawValue
+                && !(launchMode == .fullApp && phase == .saved) {
+                capturePanel
+                    .frame(width: 264)
+                    .padding(.top, launchMode == .quickField ? 46 : 45)
+                    .transition(.asymmetric(
+                        insertion: .scale(scale: 0.88, anchor: .top).combined(with: .opacity),
+                        removal: .identity
+                    ))
+            }
+        }
+    }
+
+    private var statusBar: some View {
+        ZStack(alignment: .top) {
+            HStack(spacing: 5) {
+                TimelineView(.periodic(from: .now, by: 30)) { context in
+                    Text(context.date.formatted(.dateTime.hour().minute()))
+                        .font(.system(size: 8, weight: .semibold))
+                        .monospacedDigit()
+                }
+                Spacer()
+                Image(systemName: "cellularbars").font(.system(size: 7))
+                Image(systemName: "wifi").font(.system(size: 7))
+                Image(systemName: "battery.100percent").font(.system(size: 9))
+            }
+            .padding(.horizontal, 20)
+            .padding(.top, 9)
+
+            Capsule()
+                .fill(Color.black)
+                .frame(width: 74, height: 21)
+                .padding(.top, 5)
+                .overlay(alignment: .leading) {
+                    if phase.rawValue >= Phase.opened.rawValue {
+                        Image("OnboardingLogo")
+                            .resizable().scaledToFit()
+                            .frame(width: 15, height: 15)
+                            .background(Color.brandLightBlue, in: RoundedRectangle(cornerRadius: 4))
+                            .padding(.leading, 4)
+                            .padding(.top, 5)
+                    }
+                }
+                .overlay(alignment: .trailing) {
+                    if launchMode == .fullApp && startsVoiceRecording && phase == .opened {
+                        Circle().fill(.orange).frame(width: 5, height: 5)
+                            .padding(.trailing, 10).padding(.top, 5)
+                    }
+                }
+        }
+        .foregroundStyle(.primary)
+    }
+
+    private var appScreen: some View {
+        VStack(spacing: 0) {
+            Color.clear.frame(height: 29)
+
+            ZStack {
+                Text(isCalendar ? locale.localized("Kalender") : locale.localized("Taken"))
+                    .font(.system(size: 15, weight: .bold))
+                HStack {
+                    Image(systemName: "arrow.uturn.backward")
+                        .font(.system(size: 11, weight: .bold))
+                        .foregroundStyle(.secondary)
+                        .frame(width: 27, height: 27)
+                        .background(.ultraThinMaterial, in: Circle())
+                    Spacer()
+                    Image(systemName: "checkmark")
+                        .font(.system(size: 12, weight: .bold))
+                        .foregroundStyle(.secondary)
+                        .frame(width: 27, height: 27)
+                        .background(.ultraThinMaterial, in: Circle())
+                }
+            }
+            .frame(height: 38)
+            .padding(.horizontal, 10)
+
+            if isCalendar {
+                calendarResult
+            } else {
+                todoResult
+            }
+        }
+        .transition(.move(edge: .trailing).combined(with: .opacity))
+    }
+
+    private var calendarResult: some View {
+        VStack(spacing: 5) {
+            Text(calendarWeekTitle)
+                .font(.system(size: 8, weight: .semibold))
+                .foregroundStyle(.secondary)
+
+            HStack(alignment: .top, spacing: 7) {
+                Text(Date.now.formatted(.dateTime.day().month(.twoDigits)))
+                    .font(.system(size: 10, weight: .medium))
+                    .foregroundStyle(.secondary)
+                Text(Date.now.formatted(.dateTime.weekday(.narrow)))
+                    .font(.system(size: 10, weight: .medium))
+                    .foregroundStyle(.secondary)
+                Rectangle().fill(Color.secondary.opacity(0.55)).frame(width: 0.7, height: 31)
+                Text(exampleText)
+                    .font(.system(size: 11))
+                    .lineLimit(1)
+                Spacer(minLength: 0)
+                Circle().stroke(Color.primary, lineWidth: 1.4).frame(width: 14, height: 14)
+            }
+            .padding(.horizontal, 10)
+            .padding(.vertical, 8)
+            .background(Color.primary.opacity(0.055), in: RoundedRectangle(cornerRadius: 9))
+        }
+        .padding(.horizontal, 10)
+    }
+
+    private var todoResult: some View {
+        VStack(spacing: 0) {
+            HStack(spacing: 8) {
+                Image(systemName: destinationIcon)
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundStyle(destinationColor)
+                    .frame(width: 27, height: 27)
+                    .background(destinationColor.opacity(0.14), in: RoundedRectangle(cornerRadius: 7))
+                VStack(alignment: .leading, spacing: 0) {
+                    Text(destinationTitle).font(.system(size: 12, weight: .bold)).lineLimit(1)
+                    Text(locale.localized("1 open")).font(.system(size: 8)).foregroundStyle(.secondary)
+                }
+                Spacer()
+                Image(systemName: "chevron.up.chevron.down")
+                    .font(.system(size: 9, weight: .bold)).foregroundStyle(destinationColor)
+            }
+            .padding(.horizontal, 9)
+            .padding(.vertical, 6)
+
+            Divider().padding(.leading, 44)
+
+            HStack(spacing: 7) {
+                Text(locale.localized("todo.age.now"))
+                    .font(.system(size: 7, weight: .semibold))
+                    .foregroundStyle(destinationColor)
+                    .padding(.horizontal, 5).padding(.vertical, 3)
+                    .background(destinationColor.opacity(0.14), in: Capsule())
+                Text(exampleText).font(.system(size: 11)).lineLimit(1)
+                Spacer(minLength: 0)
+                Circle().stroke(Color.primary, lineWidth: 1.4).frame(width: 14, height: 14)
+            }
+            .padding(.horizontal, 9)
+            .padding(.vertical, 7)
+        }
+        .background(Color.primary.opacity(0.055), in: RoundedRectangle(cornerRadius: 9))
+        .padding(.horizontal, 10)
+    }
+
+    private var calendarWeekTitle: String {
+        let calendar = AppCalendar.calendar
+        let week = calendar.component(.weekOfYear, from: .now)
+        return "week #\(week)"
+    }
+
+    private var lockScreen: some View {
+            ZStack {
+                Color.brandLightBlue.opacity(0.72)
+                VStack(spacing: 0) {
+                Color.clear.frame(height: 31)
+                TimelineView(.periodic(from: .now, by: 30)) { context in
+                    Text(context.date.formatted(.dateTime.hour().minute()))
+                        .font(.system(size: 42, weight: .medium))
+                        .monospacedDigit()
+                }
+                Text(Date.now.formatted(.dateTime.weekday(.wide).day().month(.wide)))
+                    .font(.system(size: 10, weight: .medium))
+                    .foregroundStyle(.secondary)
+                Spacer(minLength: 0)
+                }
+            }
+    }
+
+    @ViewBuilder private var capturePanel: some View {
+        if launchMode == .quickField {
+            quickFieldPanel
+        } else {
+            fullAppPanel
+        }
+    }
+
+    private var quickFieldPanel: some View {
+        VStack(alignment: .leading, spacing: 9) {
+            if phase == .saved {
+                HStack(spacing: 7) {
+                    Image(systemName: "checkmark")
+                        .font(.system(size: 10, weight: .bold))
+                        .foregroundStyle(Color.brandHardBlue)
+                        .frame(width: 20, height: 20)
+                        .background(Color.brandLightBlue, in: Circle())
+                    Text(savedText).font(.system(size: 11, weight: .semibold)).lineLimit(1)
+                }
+                .frame(maxWidth: .infinity, alignment: .center)
+            } else {
+                Text(locale.localized("Wat wil je niet vergeten?"))
+                    .font(.system(size: 12, weight: .semibold))
+                previewInputField
+            }
+
+            HStack(spacing: 8) {
+                if phase != .saved {
+                    Text(locale.localized("Annuleer"))
+                        .foregroundStyle(.primary)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 8)
+                        .background(Color.primary.opacity(0.08), in: Capsule())
+                }
+                Text(locale.localized("Gereed"))
+                    .foregroundStyle(.white)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 8)
+                    .background(Color.brandHardBlue, in: Capsule())
+            }
+            .font(.system(size: 11, weight: .semibold))
+        }
+        .padding(11)
+        .background(.thickMaterial, in: RoundedRectangle(cornerRadius: 18))
+        .overlay(RoundedRectangle(cornerRadius: 16).stroke(Color.white.opacity(0.3), lineWidth: 0.5))
+        .shadow(color: .black.opacity(0.22), radius: 14, y: 7)
+    }
+
+    private var fullAppPanel: some View {
+        VStack(spacing: 9) {
+            HStack {
+                Text(locale.localized("Annuleer"))
+                Spacer()
+                Text(locale.localized("Snel toevoegen")).fontWeight(.bold)
+                Spacer()
+                Text(locale.localized("Voeg toe"))
+                    .fontWeight(.semibold)
+                    .foregroundStyle(typedText.isEmpty ? Color.secondary : Color.brandHardBlue)
+                    .scaleEffect(phase == .saving ? 0.86 : 1)
+                    .animation(.spring(response: 0.22, dampingFraction: 0.55), value: phase)
+            }
+            .font(.system(size: 9))
+
+            HStack(spacing: 6) {
+                previewInputField
+                Image(systemName: startsVoiceRecording && phase == .opened ? "waveform.circle.fill" : "mic.circle")
+                    .font(.system(size: 20))
+                    .foregroundStyle(startsVoiceRecording && phase == .opened ? .red : .secondary)
+                    .contentTransition(.symbolEffect(.replace))
+            }
+
+            HStack(spacing: 7) {
+                previewChoice(title: destinationTitle, icon: destinationIcon, selected: true)
+                previewChoice(title: locale.localized("Datum"), icon: "calendar", selected: false)
+            }
+        }
+        .padding(11)
+        .background(.thickMaterial, in: RoundedRectangle(cornerRadius: 18))
+        .overlay(RoundedRectangle(cornerRadius: 18).stroke(Color.white.opacity(0.35), lineWidth: 0.5))
+        .shadow(color: .black.opacity(0.2), radius: 12, y: 6)
+    }
+
+    private var previewInputField: some View {
+        HStack(spacing: 4) {
+            Text(typedText.isEmpty ? locale.localized("Wat wil je niet vergeten?") : typedText)
+                .foregroundStyle(typedText.isEmpty ? .secondary : .primary)
+                .font(.system(size: 11)).lineLimit(1)
+            if phase == .typing { Rectangle().fill(Color.brandHardBlue).frame(width: 1.5, height: 15) }
+            Spacer(minLength: 0)
+            if !typedText.isEmpty { Image(systemName: "xmark.circle.fill").foregroundStyle(.secondary) }
+        }
+        .padding(.horizontal, 9)
+        .frame(maxWidth: .infinity, minHeight: 35)
+        .background(Color.primary.opacity(0.065), in: RoundedRectangle(cornerRadius: 11))
+    }
+
+    private func previewChoice(title: String, icon: String, selected: Bool) -> some View {
+        HStack(spacing: 5) {
+            Image(systemName: icon)
+            Text(title).lineLimit(1)
+            Spacer(minLength: 0)
+            Image(systemName: "chevron.down").font(.system(size: 6, weight: .bold))
+        }
+        .font(.system(size: 8, weight: .semibold))
+        .foregroundStyle(selected ? destinationColor : .primary)
+        .padding(.horizontal, 8)
+        .frame(maxWidth: .infinity, minHeight: 29)
+        .background(selected ? destinationColor.opacity(0.13) : Color.primary.opacity(0.06), in: RoundedRectangle(cornerRadius: 9))
+    }
+
+    private func restart(at startPhase: Phase) {
+        loopTask?.cancel()
+        typedText = startPhase.rawValue >= Phase.saving.rawValue ? exampleText : ""
+        phase = startPhase
+        loopTask = Task { @MainActor in
+            if startPhase == .waiting { await pause(875); phase = .pressed; await pause(563) }
+            else if startPhase == .pressed { await pause(438) }
+            guard !Task.isCancelled else { return }
+            if startPhase.rawValue <= Phase.pressed.rawValue { phase = .opened; await pause(813) }
+            if startPhase.rawValue <= Phase.opened.rawValue {
+                phase = .typing; typedText = ""
+                for character in exampleText {
+                    guard !Task.isCancelled else { return }
+                    typedText.append(character); await pause(reduceMotion ? 25 : 94)
+                }
+                await pause(625)
+            }
+            guard !Task.isCancelled else { return }
+            phase = .saving; await pause(813); phase = .saved; await pause(3_000)
+            guard !Task.isCancelled else { return }
+            restart(at: .waiting)
+        }
+    }
+
+    private func pause(_ milliseconds: UInt64) async {
+        try? await Task.sleep(nanoseconds: milliseconds * 1_000_000)
     }
 }

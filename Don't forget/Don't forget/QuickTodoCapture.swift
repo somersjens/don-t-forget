@@ -69,7 +69,7 @@ struct CaptureTodoIntent: AppIntent {
     var text: String?
 
     @MainActor
-    func perform() async throws -> some IntentResult & ShowsSnippetView {
+    func perform() async throws -> some IntentResult {
         let launchMode = ActionButtonLaunchMode(
             rawValue: UserDefaults.standard.string(forKey: SettingsKeys.actionButtonLaunchMode) ?? ""
         ) ?? .quickField
@@ -80,7 +80,7 @@ struct CaptureTodoIntent: AppIntent {
                 try await continueInForeground(alwaysConfirm: false)
             }
             NotificationCenter.default.post(name: .quickTodoCaptureRequested, object: nil)
-            return .result(view: CaptureCompletedSnippetView(message: nil))
+            return .result()
         }
 
         let suppliedText = text?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
@@ -89,7 +89,7 @@ struct CaptureTodoIntent: AppIntent {
             : suppliedText
         let cleaned = requestedText.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !cleaned.isEmpty else {
-            return .result(view: CaptureCompletedSnippetView(message: "Geen tekst ingevoerd"))
+            return .result()
         }
 
         let configuredDestination = ActionButtonDefaultDestination(
@@ -97,12 +97,12 @@ struct CaptureTodoIntent: AppIntent {
                 forKey: SettingsKeys.actionButtonDefaultDestination
             ) ?? ""
         ) ?? .topTodoCategory
-        let confirmation = QuickCapturePreparation.prepareConfirmation()
+        QuickCapturePreparation.prepareConfirmation()
         try saveQuickCapture(
             cleaned,
             usesCalendar: configuredDestination == .calendarToday
         )
-        return .result(view: CaptureCompletedSnippetView(message: confirmation))
+        return .result()
     }
 
     @MainActor
@@ -127,33 +127,6 @@ struct CaptureTodoIntent: AppIntent {
             todo.bucketRawValue = destinationGroup.id
             context.insert(todo)
             try context.save()
-        }
-    }
-}
-
-private struct CaptureCompletedSnippetView: View {
-    let message: String?
-
-    var body: some View {
-        if let message {
-            HStack(spacing: 8) {
-                Image(systemName: "checkmark")
-                    .font(.system(size: 13, weight: .bold))
-                    .foregroundStyle(.blue)
-                    .frame(width: 28, height: 28)
-                    .background(Color.blue.opacity(0.14), in: Circle())
-
-                Text(message)
-                    .font(.system(size: 16, weight: .semibold))
-                    .foregroundStyle(.primary)
-                    .lineLimit(1)
-                    .allowsTightening(true)
-                    .minimumScaleFactor(0.7)
-                    .layoutPriority(1)
-            }
-            .frame(maxWidth: .infinity, alignment: .center)
-            .padding(.horizontal, 12)
-            .padding(.vertical, 11)
         }
     }
 }
