@@ -6,6 +6,7 @@ struct UndoFeedbackBar: View {
     let message: String
     let undoTitle: String
     let action: () -> Void
+    var preferredMessageLineLimit: Int = 1
 
     private let textFont = Font.system(size: 14, weight: .medium)
     private let buttonFont = Font.system(size: 14, weight: .semibold)
@@ -13,7 +14,7 @@ struct UndoFeedbackBar: View {
     var body: some View {
         ViewThatFits(in: .horizontal) {
             content(
-                messageLineLimit: 1,
+                messageLineLimit: preferredMessageLineLimit,
                 messageNeedsIdealWidth: true,
                 undoLineLimit: 1,
                 undoNeedsIdealWidth: true,

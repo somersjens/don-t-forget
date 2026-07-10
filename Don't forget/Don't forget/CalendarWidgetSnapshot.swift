@@ -111,7 +111,6 @@ enum CalendarWidgetSnapshotPublisher {
             ? homeWidgetTodoCategoryID
             : ""
         let todoItems = todos
-            .filter(\.showOnWidget)
             .filter { selectedTodoCategoryID.isEmpty || $0.bucketRawValue == selectedTodoCategoryID }
             .sorted { first, second in
                 let left = groupOrder[first.bucketRawValue] ?? Int.max

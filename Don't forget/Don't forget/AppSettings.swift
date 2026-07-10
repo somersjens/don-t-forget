@@ -264,6 +264,7 @@ enum SettingsKeys {
     static let agendaTutorialStep = "onboarding.agenda.tutorialStep"
     static let hasCompletedAgendaTutorial = "onboarding.agenda.hasCompletedTutorial"
     static let hasSeededAgendaExamples = "onboarding.agenda.hasSeededExamples"
+    static let hasUsedMacAgendaInput = "onboarding.macAgenda.hasUsedInput"
     static let agendaSportsExampleID = "onboarding.agenda.sportsExampleID"
     static let agendaDinnerExampleID = "onboarding.agenda.dinnerExampleID"
     static let hasOpenedTodoHelp = "onboarding.todo.hasOpened"

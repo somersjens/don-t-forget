@@ -20,6 +20,7 @@ struct SmartLedgerApp: App {
         WindowGroup {
             StoreRootView()
         }
+        .defaultSize(width: 480, height: 700)
         .commands {
             CommandGroup(replacing: .newItem) {
                 Button("Nieuw item") {

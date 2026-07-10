@@ -1,8 +1,11 @@
 import Foundation
 
 /// Mirrors portable preferences to the user's private iCloud key-value store.
-/// Device-specific state (Calendar permission, transient requests and sync
-/// timestamps) deliberately remains local.
+///
+/// Values are synchronized independently. This prevents an unrelated local
+/// preference change from writing an old copy of every other preference back
+/// to iCloud. If iOS and macOS edit the same setting almost simultaneously,
+/// the iOS edit wins; outside that short conflict window the newest edit wins.
 @MainActor
 final class CloudSettingsSynchronizer {
     static let shared = CloudSettingsSynchronizer()
@@ -11,7 +14,11 @@ final class CloudSettingsSynchronizer {
     private let localStore = UserDefaults.standard
     private var observerTokens: [NSObjectProtocol] = []
     private var hasStarted = false
-    private var isApplyingCloudValues = false
+    private var localSnapshot: [String: NSObject] = [:]
+    private var uploadTask: Task<Void, Never>?
+
+    private static let metadataPrefix = "settings.syncMetadata.v2."
+    private static let conflictWindow: TimeInterval = 10
 
     private let syncedKeys = [
         SettingsKeys.weekStart,
@@ -57,15 +64,17 @@ final class CloudSettingsSynchronizer {
     func start() {
         guard !hasStarted else { return }
         hasStarted = true
+        localSnapshot = snapshotLocalValues()
 
         observerTokens.append(
             NotificationCenter.default.addObserver(
                 forName: NSUbiquitousKeyValueStore.didChangeExternallyNotification,
                 object: cloudStore,
                 queue: .main
-            ) { _ in
+            ) { notification in
+                let changedKeys = notification.userInfo?[NSUbiquitousKeyValueStoreChangedKeysKey] as? [String]
                 Task { @MainActor in
-                    CloudSettingsSynchronizer.shared.applyCloudValues()
+                    CloudSettingsSynchronizer.shared.applyCloudValues(changedKeys: changedKeys)
                 }
             }
         )
@@ -77,7 +86,7 @@ final class CloudSettingsSynchronizer {
                 queue: .main
             ) { _ in
                 Task { @MainActor in
-                    CloudSettingsSynchronizer.shared.uploadLocalValues()
+                    CloudSettingsSynchronizer.shared.scheduleLocalUpload()
                 }
             }
         )
@@ -88,7 +97,8 @@ final class CloudSettingsSynchronizer {
 
     func stop() {
         guard hasStarted else { return }
-
+        uploadTask?.cancel()
+        uploadTask = nil
         for token in observerTokens {
             NotificationCenter.default.removeObserver(token)
         }
@@ -100,51 +110,163 @@ final class CloudSettingsSynchronizer {
     /// immediately restore the previous settings.
     func removeSyncedSettings() {
         stop()
-
         for key in syncedKeys {
             cloudStore.removeObject(forKey: key)
+            cloudStore.removeObject(forKey: metadataKey(for: key))
             localStore.removeObject(forKey: key)
+            localStore.removeObject(forKey: metadataKey(for: key))
         }
-
         cloudStore.synchronize()
     }
 
-    /// Cloud wins when both sides contain a value. This makes a reinstall
-    /// restore existing preferences instead of replacing them with defaults.
+    /// Existing cloud values win only during the legacy/first-install merge.
+    /// Once metadata exists, normal conflict resolution is used.
     private func mergeInitialValues() {
-        isApplyingCloudValues = true
-
         for key in syncedKeys {
-            if let cloudValue = cloudStore.object(forKey: key) {
-                localStore.set(cloudValue, forKey: key)
-            } else if let localValue = localStore.object(forKey: key) {
-                cloudStore.set(localValue, forKey: key)
+            if let cloudValue = cloudStore.object(forKey: key) as? NSObject {
+                let cloudMetadata = metadata(in: cloudStore, for: key)
+                let localMetadata = metadata(in: localStore, for: key)
+                if cloudMetadata == nil || shouldAccept(cloudMetadata, over: localMetadata) {
+                    setLocal(cloudValue, metadata: cloudMetadata, for: key)
+                }
+            } else if let localValue = localStore.object(forKey: key) as? NSObject {
+                upload(localValue, for: key, metadata: newMetadata())
             }
         }
-
-        isApplyingCloudValues = false
+        localSnapshot = snapshotLocalValues()
         cloudStore.synchronize()
     }
 
-    private func applyCloudValues() {
-        isApplyingCloudValues = true
-
-        for key in syncedKeys {
-            guard let cloudValue = cloudStore.object(forKey: key) else { continue }
-            localStore.set(cloudValue, forKey: key)
+    private func applyCloudValues(changedKeys: [String]?) {
+        let keys: [String]
+        if let changedKeys {
+            let changed = Set(changedKeys)
+            keys = syncedKeys.filter {
+                changed.contains($0) || changed.contains(metadataKey(for: $0))
+            }
+        } else {
+            keys = syncedKeys
         }
 
-        isApplyingCloudValues = false
+        for key in keys {
+            guard let cloudValue = cloudStore.object(forKey: key) as? NSObject else { continue }
+            let cloudMetadata = metadata(in: cloudStore, for: key)
+            let localMetadata = metadata(in: localStore, for: key)
+            guard cloudMetadata == nil || shouldAccept(cloudMetadata, over: localMetadata) else { continue }
+            setLocal(cloudValue, metadata: cloudMetadata, for: key)
+        }
+        localSnapshot = snapshotLocalValues()
     }
 
-    private func uploadLocalValues() {
-        guard !isApplyingCloudValues else { return }
-
-        for key in syncedKeys {
-            guard let localValue = localStore.object(forKey: key) else { continue }
-            cloudStore.set(localValue, forKey: key)
+    /// UserDefaults notifications do not identify their changed key. Comparing
+    /// with a snapshot lets us upload only the portable settings that changed.
+    private func scheduleLocalUpload() {
+        uploadTask?.cancel()
+        uploadTask = Task { @MainActor in
+            try? await Task.sleep(for: .milliseconds(250))
+            guard !Task.isCancelled, hasStarted else { return }
+            uploadChangedLocalValues()
         }
+    }
 
+    private func uploadChangedLocalValues() {
+        let current = snapshotLocalValues()
+        for key in syncedKeys where !Self.valuesEqual(current[key], localSnapshot[key]) {
+            guard let value = current[key] else { continue }
+            upload(value, for: key, metadata: newMetadata())
+        }
+        localSnapshot = current
         cloudStore.synchronize()
+    }
+
+    private func upload(_ value: NSObject, for key: String, metadata: SyncMetadata) {
+        localStore.set(metadata.dictionary, forKey: metadataKey(for: key))
+        cloudStore.set(value, forKey: key)
+        cloudStore.set(metadata.dictionary, forKey: metadataKey(for: key))
+    }
+
+    private func setLocal(_ value: NSObject, metadata: SyncMetadata?, for key: String) {
+        localStore.set(value, forKey: key)
+        if let metadata {
+            localStore.set(metadata.dictionary, forKey: metadataKey(for: key))
+        }
+    }
+
+    private func snapshotLocalValues() -> [String: NSObject] {
+        Dictionary(uniqueKeysWithValues: syncedKeys.compactMap { key in
+            (localStore.object(forKey: key) as? NSObject).map { (key, $0) }
+        })
+    }
+
+    private func metadataKey(for key: String) -> String {
+        Self.metadataPrefix + key
+    }
+
+    private func metadata(in store: UserDefaults, for key: String) -> SyncMetadata? {
+        SyncMetadata(dictionary: store.dictionary(forKey: metadataKey(for: key)))
+    }
+
+    private func metadata(in store: NSUbiquitousKeyValueStore, for key: String) -> SyncMetadata? {
+        SyncMetadata(dictionary: store.dictionary(forKey: metadataKey(for: key)))
+    }
+
+    private func newMetadata() -> SyncMetadata {
+        SyncMetadata(modifiedAt: Date().timeIntervalSince1970, platform: Self.platform)
+    }
+
+    private func shouldAccept(_ incoming: SyncMetadata?, over local: SyncMetadata?) -> Bool {
+        guard let incoming else { return true }
+        guard let local else { return true }
+        let distance = abs(incoming.modifiedAt - local.modifiedAt)
+        if distance <= Self.conflictWindow, incoming.platform != local.platform {
+            return incoming.platform == .iOS
+        }
+        return incoming.modifiedAt > local.modifiedAt
+    }
+
+    private static func valuesEqual(_ lhs: NSObject?, _ rhs: NSObject?) -> Bool {
+        switch (lhs, rhs) {
+        case (nil, nil): true
+        case let (lhs?, rhs?): lhs.isEqual(rhs)
+        default: false
+        }
+    }
+
+    private static var platform: SyncPlatform {
+#if os(macOS)
+        .macOS
+#else
+        .iOS
+#endif
+    }
+}
+
+private enum SyncPlatform: String {
+    case iOS
+    case macOS
+}
+
+private struct SyncMetadata: Equatable {
+    let modifiedAt: TimeInterval
+    let platform: SyncPlatform
+
+    init(modifiedAt: TimeInterval, platform: SyncPlatform) {
+        self.modifiedAt = modifiedAt
+        self.platform = platform
+    }
+
+    init?(dictionary: [String: Any]?) {
+        guard
+            let dictionary,
+            let modifiedAt = dictionary["modifiedAt"] as? NSNumber,
+            let platformValue = dictionary["platform"] as? String,
+            let platform = SyncPlatform(rawValue: platformValue)
+        else { return nil }
+        self.modifiedAt = modifiedAt.doubleValue
+        self.platform = platform
+    }
+
+    var dictionary: [String: Any] {
+        ["modifiedAt": modifiedAt, "platform": platform.rawValue]
     }
 }

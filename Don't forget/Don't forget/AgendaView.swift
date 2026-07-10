@@ -82,6 +82,12 @@ private struct AgendaRecurringMoveOffer {
     var isApplied = false
 }
 
+private struct AgendaDateMoveUndo {
+    let entry: DayEntry
+    let originalDate: Date
+    let targetDate: Date
+}
+
 private enum AgendaEntryOrdering {
     nonisolated static func areInIncreasingOrder(_ first: DayEntry, _ second: DayEntry) -> Bool {
         switch (first.startMinutes, second.startMinutes) {
@@ -164,6 +170,8 @@ struct AgendaView: View {
     @State private var dismissRemovalUndoTask: Task<Void, Never>?
     @State private var recentlyCompletedEntry: DayEntry?
     @State private var recentlyMovedToTodo: AgendaTodoMoveUndo?
+    @State private var recentlyMovedToDate: AgendaDateMoveUndo?
+    @State private var dismissDateMoveUndoTask: Task<Void, Never>?
     @State private var recurringMoveOffer: AgendaRecurringMoveOffer?
     @State private var dismissRecurringMoveOfferTask: Task<Void, Never>?
     @State private var isHelpExpanded = false
@@ -444,7 +452,11 @@ struct AgendaView: View {
             }
             .safeAreaInset(edge: .bottom, spacing: 8) {
                 Group {
-                    if recurringMoveOffer == nil, recentlyMovedToTodo != nil {
+                    if recurringMoveOffer == nil, recentlyMovedToDate != nil {
+                        dateMoveUndoBar
+                            .padding(.horizontal, 14)
+                            .transition(.move(edge: .bottom).combined(with: .opacity))
+                    } else if recurringMoveOffer == nil, recentlyMovedToTodo != nil {
                         moveToTodoUndoBar
                             .padding(.horizontal, 14)
                             .transition(.move(edge: .bottom).combined(with: .opacity))
@@ -502,6 +514,7 @@ struct AgendaView: View {
                 scrollTask?.cancel()
                 visibilityCache.futureLoadTask?.cancel()
                 dismissRecurringMoveOfferTask?.cancel()
+                dismissDateMoveUndoTask?.cancel()
             }
         }
     }
@@ -751,7 +764,7 @@ struct AgendaView: View {
             recentlyCompletedEntry = entry
         }
         dismissRemovalUndoTask = Task { @MainActor in
-            try? await Task.sleep(for: .seconds(6))
+            try? await Task.sleep(for: .seconds(3))
             guard !Task.isCancelled else { return }
             withAnimation(.easeOut(duration: 0.2)) {
                 recentlyCompletedEntry = nil
@@ -776,7 +789,8 @@ struct AgendaView: View {
             iconColor: .blue,
             message: completionUndoText,
             undoTitle: locale.localized("Ongedaan maken"),
-            action: undoCompletion
+            action: undoCompletion,
+            preferredMessageLineLimit: 2
         )
     }
 
@@ -833,10 +847,56 @@ struct AgendaView: View {
         }
         if originalDay != day {
             showRecurringMoveOfferIfNeeded(for: entry, from: originalDay, to: day)
+            showDateMoveUndo(for: entry, from: originalDay, to: day)
             requestScroll(to: day)
         }
         _ = PersistenceSafety.save(modelContext)
         recordAgendaTutorialMove()
+    }
+
+    private func showDateMoveUndo(for entry: DayEntry, from originalDate: Date, to targetDate: Date) {
+        dismissDateMoveUndoTask?.cancel()
+        withAnimation(.snappy(duration: 0.25)) {
+            recentlyMovedToDate = AgendaDateMoveUndo(
+                entry: entry,
+                originalDate: originalDate,
+                targetDate: targetDate
+            )
+        }
+        dismissDateMoveUndoTask = Task { @MainActor in
+            try? await Task.sleep(for: .seconds(3))
+            guard !Task.isCancelled else { return }
+            withAnimation(.easeOut(duration: 0.2)) { recentlyMovedToDate = nil }
+        }
+    }
+
+    private func undoDateMove() {
+        guard let move = recentlyMovedToDate else { return }
+        move.entry.date = move.originalDate
+        if move.entry.recurringItemIdentifier != nil {
+            move.entry.recurringDateOverride = move.originalDate
+        }
+        _ = PersistenceSafety.save(modelContext)
+        dismissDateMoveUndoTask?.cancel()
+        withAnimation(.easeOut(duration: 0.2)) { recentlyMovedToDate = nil }
+        requestScroll(to: move.originalDate)
+    }
+
+    private var dateMoveUndoBar: some View {
+        UndoFeedbackBar(
+            iconSystemName: "calendar.badge.checkmark",
+            iconColor: .brandHardBlue,
+            message: dateMoveUndoText,
+            undoTitle: locale.localized("Ongedaan maken"),
+            action: undoDateMove,
+            preferredMessageLineLimit: 2
+        )
+    }
+
+    private var dateMoveUndoText: String {
+        guard let move = recentlyMovedToDate else { return "" }
+        let date = move.targetDate.formatted(date: .abbreviated, time: .omitted)
+        return "‘\(move.entry.rawText)’\nverplaatst naar \(date)"
     }
 
     private func showRecurringMoveOfferIfNeeded(for entry: DayEntry, from originalDate: Date, to targetDate: Date) {
@@ -1989,6 +2049,7 @@ struct AgendaEntryLine: View {
                 AgendaLinePrefix(
                     dateLabel: dateLabel,
                     weekdayLetter: weekdayLetter,
+                    date: entry.date,
                     isMoveActive: isMoveActive,
                     isMoveTargetHighlighted: isMoveTargetHighlighted,
                     isOnboardingHighlighted: highlightsMoveHandle
@@ -2347,6 +2408,7 @@ struct AgendaInputLine: View {
             AgendaLinePrefix(
                 dateLabel: dateLabel,
                 weekdayLetter: weekdayLetter,
+                date: date,
                 isMoveTargetHighlighted: isMoveTargetHighlighted
             )
                 .contentShape(Rectangle())
@@ -2589,7 +2651,12 @@ private struct AgendaMoveControls: View {
                         Button {
                             moveToTodo(group.id)
                         } label: {
-                            Label(group.title, systemImage: group.icon)
+                            Label {
+                                Text(group.title)
+                            } icon: {
+                                Image(systemName: group.icon)
+                                    .foregroundStyle(group.color)
+                            }
                         }
                     }
                 }
@@ -2700,6 +2767,7 @@ private struct AgendaMoveControls: View {
 private struct AgendaLinePrefix: View {
     let dateLabel: String
     let weekdayLetter: String
+    let date: Date
     var isMoveActive = false
     var isMoveTargetHighlighted = false
     var isOnboardingHighlighted = false
@@ -2707,7 +2775,11 @@ private struct AgendaLinePrefix: View {
     var body: some View {
         HStack(spacing: AgendaLayout.dateWeekdaySpacing) {
             Text(dateLabel.isEmpty ? "     " : dateLabel)
-                .foregroundStyle(dateLabel.isEmpty ? Color.clear : Color.secondary)
+                .foregroundStyle(
+                    dateLabel.isEmpty
+                        ? Color.clear
+                        : (AppCalendar.isSameDay(date, .now) ? Color.brandHardBlue : Color.secondary)
+                )
                 .monospacedDigit()
                 .frame(width: AgendaLayout.dateWidth, alignment: .leading)
 

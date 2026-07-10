@@ -1,10 +1,12 @@
 #if os(macOS)
+import AppKit
 import CloudKit
 import SwiftData
 import SwiftUI
 
 extension Notification.Name {
     static let macCreateItem = Notification.Name("mac.createItem")
+    static let macUndoAgendaAction = Notification.Name("mac.undoAgendaAction")
 }
 
 enum MacSection: String, CaseIterable, Identifiable {
@@ -36,40 +38,26 @@ struct MacRootView: View {
     @Query private var todos: [TodoItem]
     @Query private var recurringItems: [RecurringItem]
 
-    @State private var section: MacSection? = .agenda
+    @State private var section: MacSection = .agenda
     @State private var selection: UUID?
     @State private var searchText = ""
     @State private var persistenceError: String?
+    @State private var hasAppliedInitialWindowSize = false
 
     var body: some View {
-        NavigationSplitView {
-            List(MacSection.allCases, selection: $section) { item in
-                Label(item.title, systemImage: item.icon).tag(item)
-            }
-            .navigationTitle(locale.appDisplayName)
-            .navigationSplitViewColumnWidth(min: 170, ideal: 210, max: 260)
-        } content: {
-            itemList
-                .navigationTitle(section?.title ?? locale.appDisplayName)
-                .searchable(text: $searchText, placement: .toolbar, prompt: "Zoeken")
-                .toolbar {
-                    ToolbarItemGroup {
-                        Button(action: createItem) {
-                            Label("Nieuw", systemImage: "plus")
-                        }
-                        .keyboardShortcut("n", modifiers: .command)
-                        .disabled(section == .history)
+        VStack(spacing: 0) {
+            topBar
 
-                        Button(action: removeSelection) {
-                            Label("Verwijder", systemImage: "trash")
-                        }
-                        .disabled(selection == nil)
-                    }
-                }
-        } detail: {
-            detail
+            itemList
+
+            bottomNavigation
         }
-        .frame(minWidth: 900, minHeight: 580)
+        .frame(minWidth: 480, minHeight: 520)
+        .onAppear(perform: applyInitialWindowSize)
+        .inspector(isPresented: inspectorPresented) {
+            detail
+                .inspectorColumnWidth(min: 300, ideal: 350, max: 440)
+        }
         .onChange(of: section) { _, _ in selection = nil }
         .onReceive(NotificationCenter.default.publisher(for: .macCreateItem)) { _ in
             createItem()
@@ -87,14 +75,91 @@ struct MacRootView: View {
         }
     }
 
+    private var inspectorPresented: Binding<Bool> {
+        Binding(
+            get: { selection != nil },
+            set: { if !$0 { selection = nil } }
+        )
+    }
+
+    private func applyInitialWindowSize() {
+        guard !hasAppliedInitialWindowSize else { return }
+        hasAppliedInitialWindowSize = true
+        Task { @MainActor in
+            await Task.yield()
+            guard let window = NSApp.keyWindow else { return }
+            window.setContentSize(NSSize(width: 480, height: max(520, window.contentLayoutRect.height)))
+        }
+    }
+
+    private var topBar: some View {
+        HStack(spacing: 14) {
+            Text(section.title)
+                .font(.title2.bold())
+
+            Spacer()
+
+            TextField("Zoeken", text: $searchText)
+                .textFieldStyle(.roundedBorder)
+                .frame(maxWidth: 440)
+
+            Button(action: finishEditing) {
+                Label("Bewerken afsluiten", systemImage: "return")
+            }
+            .labelStyle(.iconOnly)
+            .buttonStyle(.bordered)
+            .help("Bewerken afsluiten")
+        }
+        .padding(.horizontal, 20)
+        .padding(.vertical, 12)
+        .background(.bar)
+        .overlay(alignment: .bottom) { Divider() }
+    }
+
+    private func finishEditing() {
+        NSApp.keyWindow?.makeFirstResponder(nil)
+        if section == .agenda {
+            NotificationCenter.default.post(name: .macUndoAgendaAction, object: nil)
+        } else {
+            selection = nil
+        }
+    }
+
+    private var bottomNavigation: some View {
+        HStack(spacing: 8) {
+            ForEach(MacSection.allCases) { item in
+                Button {
+                    section = item
+                } label: {
+                    VStack(spacing: 4) {
+                        Image(systemName: item.icon)
+                            .font(.system(size: 18, weight: .semibold))
+                        Text(item.title)
+                            .font(.caption.weight(.medium))
+                    }
+                    .foregroundStyle(section == item ? Color.white : Color.primary.opacity(0.72))
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 8)
+                    .contentShape(RoundedRectangle(cornerRadius: 10))
+                    .background(
+                        section == item ? Color.brandHardBlue : Color.clear,
+                        in: RoundedRectangle(cornerRadius: 10)
+                    )
+                }
+                .buttonStyle(.plain)
+            }
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 9)
+        .background(.bar)
+        .overlay(alignment: .top) { Divider() }
+    }
+
     @ViewBuilder
     private var itemList: some View {
-        switch section ?? .agenda {
+        switch section {
         case .agenda:
-            List(agendaItems, selection: $selection) { entry in
-                MacAgendaRow(entry: entry).tag(entry.id)
-            }
-            .overlay { emptyState(agendaItems.isEmpty, "Geen agenda-items", "calendar") }
+            MacCalendarView(entries: agendaItems, selection: $selection)
         case .todo:
             List(todoItems, selection: $selection) { todo in
                 MacTodoRow(todo: todo).tag(todo.id)
@@ -137,7 +202,7 @@ struct MacRootView: View {
         } else if let item = recurringItems.first(where: { $0.id == selection }) {
             MacRecurringEditor(item: item)
         } else {
-            ContentUnavailableView("Selecteer een item", systemImage: section?.icon ?? "square.grid.2x2")
+            EmptyView()
         }
     }
 
@@ -193,7 +258,7 @@ struct MacRootView: View {
     }
 
     private func createItem() {
-        switch section ?? .agenda {
+        switch section {
         case .agenda:
             let item = DayEntry(date: .now)
             modelContext.insert(item)
@@ -283,7 +348,6 @@ private struct MacDayEntryEditor: View {
                 TextField("Omschrijving", text: $entry.rawText, axis: .vertical)
                 DatePicker("Datum", selection: $entry.date, displayedComponents: .date)
                 Toggle("Afgerond", isOn: $entry.isDone)
-                Toggle("Toon in widget", isOn: $entry.showOnWidget)
             }
             Section("Details") {
                 LabeledContent("Aangemaakt", value: entry.createdAt.formatted())
@@ -295,7 +359,6 @@ private struct MacDayEntryEditor: View {
         .onChange(of: entry.rawText) { _, _ in entry.refreshParsedFields(); save() }
         .onChange(of: entry.date) { _, newValue in entry.date = AppCalendar.startOfDay(newValue); save() }
         .onChange(of: entry.isDone) { _, done in entry.completedAt = done ? .now : nil; save() }
-        .onChange(of: entry.showOnWidget) { _, _ in save() }
     }
     private func save() { PersistenceSafety.save(modelContext) }
 }
@@ -314,7 +377,6 @@ private struct MacTodoEditor: View {
                     Text("Later").tag(TodoBucket.longTerm.rawValue)
                 }
                 Toggle("Afgerond", isOn: $todo.isDone)
-                Toggle("Toon in widget", isOn: $todo.showOnWidget)
             }
             Section("Details") {
                 LabeledContent("Aangemaakt", value: todo.createdAt.formatted())
@@ -325,7 +387,6 @@ private struct MacTodoEditor: View {
         .onChange(of: todo.text) { _, _ in save() }
         .onChange(of: todo.bucketRawValue) { _, _ in save() }
         .onChange(of: todo.isDone) { _, done in todo.completedAt = done ? .now : nil; save() }
-        .onChange(of: todo.showOnWidget) { _, _ in save() }
     }
     private func save() { PersistenceSafety.save(modelContext) }
 }
@@ -345,7 +406,6 @@ private struct MacRecurringEditor: View {
                     Text("Algemeen").tag(RecurringTheme.general.rawValue)
                     Text("Persoonlijk").tag(RecurringTheme.personal.rawValue)
                 }
-                Toggle("Toon in widget", isOn: $item.showOnWidget)
             }
             Section("Notities") {
                 TextEditor(text: $item.notes).frame(minHeight: 120)
@@ -357,7 +417,6 @@ private struct MacRecurringEditor: View {
         .onChange(of: item.nextDate) { _, value in item.nextDate = AppCalendar.startOfDay(value); save() }
         .onChange(of: item.frequencyText) { _, _ in save() }
         .onChange(of: item.themeRawValue) { _, _ in save() }
-        .onChange(of: item.showOnWidget) { _, _ in save() }
         .onChange(of: item.notes) { _, _ in save() }
     }
     private func save() { PersistenceSafety.save(modelContext) }
