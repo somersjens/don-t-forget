@@ -127,6 +127,7 @@ private enum AgendaEntryOrdering {
 @MainActor
 private final class AgendaVisibilityCache {
     var dates: Set<Date> = []
+    var entryIDs: Set<UUID> = []
     var isScrollIdle = true
     var pendingFutureLoadLimit: Int?
     var futureLoadTask: Task<Void, Never>?
@@ -177,6 +178,14 @@ struct AgendaView: View {
     @State private var isHelpExpanded = false
     @State private var hasPerformedAgendaTutorialMove = false
     @State private var weatherStore = AppleWeatherForecastStore()
+    @State private var isSearchPresented = false
+    @State private var isKeyboardVisible = false
+    @State private var searchText = ""
+    @State private var currentSearchMatch = 0
+    @State private var searchScrollRequest = 0
+    @State private var searchScrollTask: Task<Void, Never>?
+    @State private var lastSearchScrollTargetID: UUID?
+    @FocusState private var isSearchFocused: Bool
 
     @AppStorage(SettingsKeys.hasPresentedAgendaHelp)
     private var hasPresentedAgendaHelp = false
@@ -229,6 +238,30 @@ struct AgendaView: View {
         Dictionary(grouping: entries) { AppCalendar.startOfDay($0.date) }
     }
 
+    private var searchMatches: [DayEntry] {
+        let query = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !query.isEmpty else { return [] }
+        return entries
+            .filter { $0.rawText.localizedStandardContains(query) }
+            .sorted { first, second in
+                let firstDay = AppCalendar.startOfDay(first.date)
+                let secondDay = AppCalendar.startOfDay(second.date)
+                if firstDay != secondDay {
+                    return firstDay < secondDay
+                }
+                return AgendaEntryOrdering.areInIncreasingOrder(first, second)
+            }
+    }
+
+    private var searchMatchIDs: [UUID] {
+        searchMatches.map(\.id)
+    }
+
+    private var currentSearchMatchEntry: DayEntry? {
+        guard searchMatches.indices.contains(currentSearchMatch) else { return nil }
+        return searchMatches[currentSearchMatch]
+    }
+
     private var onboardingMoveExampleEntry: DayEntry? {
         let today = AppCalendar.startOfDay(.now)
         let todayEntries = entries
@@ -254,7 +287,10 @@ struct AgendaView: View {
             value: loadedFutureWeeks,
             to: today
         ) ?? today
-        let endDate = max(defaultEndDate, AppCalendar.startOfDay(moveDraftDate))
+        let endDate = max(
+            max(defaultEndDate, AppCalendar.startOfDay(moveDraftDate)),
+            currentSearchMatchEntry.map { AppCalendar.startOfDay($0.date) } ?? today
+        )
         let startOfFirstWeek = AppCalendar.calendar.dateInterval(of: .weekOfYear, for: startDate)?.start ?? startDate
         let startOfLastWeek = AppCalendar.calendar.dateInterval(of: .weekOfYear, for: endDate)?.start ?? endDate
         let weekCount = (AppCalendar.calendar.dateComponents(
@@ -320,6 +356,7 @@ struct AgendaView: View {
                                 toggleMoveControls: toggleMoveControls,
                                 removed: showRemovalUndo,
                                 dayVisibilityChanged: updateDayVisibility,
+                                entryVisibilityChanged: updateEntryVisibility,
                                 onboardingStep: visibleOnboardingStep,
                                 onboardingExampleIDs: Set([
                                     UUID(uuidString: agendaSportsExampleID),
@@ -338,7 +375,10 @@ struct AgendaView: View {
                                 },
                                 onboardingMoveCancelled: {
                                     returnToAgendaTutorialMoveStep()
-                                }
+                                },
+                                searchMatchIDs: Set(searchMatchIDs),
+                                currentSearchMatchID: searchMatchIDs.indices.contains(currentSearchMatch)
+                                    ? searchMatchIDs[currentSearchMatch] : nil
                             )
                             .id(AgendaScrollTarget.week(week.startDate))
                             .onAppear {
@@ -359,6 +399,7 @@ struct AgendaView: View {
                     .padding(.vertical, 12)
                     .adaptiveReadableWidth()
                 }
+                .contentMargins(.bottom, isSearchPresented ? 96 : 0, for: .scrollContent)
                 .scrollDisabled(isLoadingMoreFuture)
                 .agendaScrollCompatibility(
                     isScrolled: Binding(
@@ -392,6 +433,11 @@ struct AgendaView: View {
                         scrollTask = nil
                     }
                 }
+                .onChange(of: searchText) { _, _ in
+                    currentSearchMatch = 0
+                    searchScrollRequest &+= 1
+                }
+                .onChange(of: searchScrollRequest) { _, _ in scrollToAgendaMatch(proxy) }
             }
             .background(Color.appCanvasBackground)
             .toolbar(.hidden, for: .navigationBar)
@@ -421,10 +467,24 @@ struct AgendaView: View {
                             Spacer()
 
                             Button {
-                                finishAgendaEditing()
+                                if isKeyboardVisible {
+                                    isSearchFocused = false
+                                    finishAgendaEditing()
+                                    AppKeyboard.dismiss()
+                                } else if isSearchPresented {
+                                    searchText = ""
+                                    isSearchFocused = false
+                                    isSearchPresented = false
+                                } else if activeMoveEntryID != nil {
+                                    finishAgendaEditing()
+                                } else {
+                                    isSearchPresented = true
+                                    Task { @MainActor in isSearchFocused = true }
+                                }
                             } label: {
-                                Image(systemName: "checkmark")
+                                Image(systemName: (isKeyboardVisible || isSearchPresented || activeMoveEntryID != nil) ? "checkmark" : "magnifyingglass")
                                     .font(.system(size: 20, weight: .semibold))
+                                    .foregroundStyle(Color.brandHardBlue)
                                     .frame(width: 44, height: 44)
                             }
                             .compatibleAgendaGlassEffect()
@@ -434,8 +494,11 @@ struct AgendaView: View {
                                     : Color.clear,
                                 in: Circle()
                             )
-                            .disabled(focusedField == nil && activeMoveEntryID == nil)
-                            .accessibilityLabel("Bewerken afsluiten")
+                            .accessibilityLabel(
+                                isKeyboardVisible
+                                    ? "Toetsenbord sluiten"
+                                    : (isSearchPresented ? "Zoeken sluiten" : ((activeMoveEntryID != nil) ? "Bewerken afsluiten" : "Zoeken"))
+                            )
                             .overlay {
                                 if visibleOnboardingStep == 2 && hasPerformedAgendaTutorialMove {
                                     Circle()
@@ -449,6 +512,18 @@ struct AgendaView: View {
                     .padding(.trailing, 18)
                     .padding(.vertical, 6)
                     .adaptiveReadableWidth()
+
+                    if isSearchPresented {
+                        InlineMatchSearchBar(
+                            text: $searchText,
+                            isFocused: $isSearchFocused,
+                            matchCount: searchMatchIDs.count,
+                            currentMatch: currentSearchMatch,
+                            next: advanceAgendaMatch,
+                            clear: clearAgendaSearch
+                        )
+                        .adaptiveReadableWidth()
+                    }
 
                 }
             }
@@ -494,6 +569,18 @@ struct AgendaView: View {
                     isHelpExpanded = true
                 }
             }
+            .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillShowNotification)) { _ in
+                isKeyboardVisible = true
+            }
+            .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillHideNotification)) { _ in
+                isKeyboardVisible = false
+                if searchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                    isSearchPresented = false
+                }
+            }
+            .onDisappear {
+                searchScrollTask?.cancel()
+            }
             .task(id: "\(weatherInAgendaEnabled)|\(weatherLatitude)|\(weatherLongitude)|\(weatherReloadToken)") {
                 await weatherStore.reload()
             }
@@ -518,6 +605,83 @@ struct AgendaView: View {
                 dismissRecurringMoveOfferTask?.cancel()
                 dismissDateMoveUndoTask?.cancel()
             }
+        }
+    }
+
+    private func advanceAgendaMatch() {
+        guard searchMatchIDs.count > 1 else { return }
+        currentSearchMatch = (currentSearchMatch + 1) % searchMatchIDs.count
+        searchScrollRequest &+= 1
+    }
+
+    private func clearAgendaSearch() {
+        searchScrollTask?.cancel()
+        lastSearchScrollTargetID = nil
+        searchText = ""
+        if !isKeyboardVisible {
+            isSearchFocused = false
+            isSearchPresented = false
+        }
+    }
+
+    private func scrollToAgendaMatch(_ proxy: ScrollViewProxy) {
+        guard let target = currentSearchMatchEntry else {
+            searchScrollTask?.cancel()
+            lastSearchScrollTargetID = nil
+            return
+        }
+        let targetID = target.id
+        guard targetID != lastSearchScrollTargetID else { return }
+
+        let targetDate = AppCalendar.startOfDay(target.date)
+        let targetWeek = AppCalendar.calendar.dateInterval(
+            of: .weekOfYear,
+            for: targetDate
+        )?.start ?? targetDate
+
+        searchScrollTask?.cancel()
+        lastSearchScrollTargetID = targetID
+        searchScrollTask = Task { @MainActor in
+            // Coalesce successive keystrokes, but retain an in-flight scroll
+            // when refining the query still points at this exact entry.
+            try? await Task.sleep(for: .milliseconds(60))
+            guard !Task.isCancelled else { return }
+
+            if visibilityCache.entryIDs.contains(targetID) {
+                // The matching row is already within a visible day. Keeping
+                // the current position avoids a small recentering bump while
+                // the search bar and keyboard finish changing the viewport.
+                searchScrollTask = nil
+                return
+            } else {
+                // Materialize a distant lazy week first. The final, usually
+                // very small row alignment also animates so it cannot present
+                // as a one-frame correction at the end of the movement.
+                withAnimation(.smooth(duration: 0.28, extraBounce: 0)) {
+                    proxy.scrollTo(AgendaScrollTarget.week(targetWeek), anchor: .center)
+                }
+                try? await Task.sleep(for: .milliseconds(240))
+                guard !Task.isCancelled else { return }
+                withAnimation(.easeOut(duration: 0.16)) {
+                    proxy.scrollTo(targetID, anchor: .center)
+                }
+            }
+            searchScrollTask = nil
+        }
+    }
+
+    private func scrollAgenda(
+        _ targetID: UUID,
+        with proxy: ScrollViewProxy,
+        animated: Bool
+    ) {
+        let action = {
+            proxy.scrollTo(targetID, anchor: .center)
+        }
+        if animated {
+            withAnimation(.smooth(duration: 0.24, extraBounce: 0), action)
+        } else {
+            action()
         }
     }
 
@@ -1405,6 +1569,14 @@ struct AgendaView: View {
         }
     }
 
+    private func updateEntryVisibility(_ id: UUID, isVisible: Bool) {
+        if isVisible {
+            visibilityCache.entryIDs.insert(id)
+        } else {
+            visibilityCache.entryIDs.remove(id)
+        }
+    }
+
     private func sortEntries(_ first: DayEntry, _ second: DayEntry) -> Bool {
         AgendaEntryOrdering.areInIncreasingOrder(first, second)
     }
@@ -1702,6 +1874,7 @@ struct WeekCard: View {
     let toggleMoveControls: (DayEntry) -> Void
     let removed: (DayEntry, String?) -> Void
     let dayVisibilityChanged: (Date, Bool) -> Void
+    let entryVisibilityChanged: (UUID, Bool) -> Void
     let onboardingStep: Int?
     let onboardingExampleIDs: Set<UUID>
     let hasPerformedOnboardingMove: Bool
@@ -1709,6 +1882,8 @@ struct WeekCard: View {
     let completed: (DayEntry) -> Void
     let onboardingMoveEditingFinished: () -> Void
     let onboardingMoveCancelled: () -> Void
+    let searchMatchIDs: Set<UUID>
+    let currentSearchMatchID: UUID?
 
     private var visibleDays: [DayInfo] {
         let today = AppCalendar.startOfDay(.now)
@@ -1733,7 +1908,7 @@ struct WeekCard: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text(verbatim: "week #\(week.weekNumber) · start \(startDateLabel) · \(startYear)")
-                .font(.system(size: 14, weight: .medium))
+                .font(.system(size: 14, weight: .semibold))
                 .foregroundStyle(
                     DefaultColorCombination.isEnabled
                         ? Color.brandHardBlue.opacity(0.70)
@@ -1758,13 +1933,16 @@ struct WeekCard: View {
                         toggleMoveControls: toggleMoveControls,
                         removed: removed,
                         dayVisibilityChanged: dayVisibilityChanged,
+                        entryVisibilityChanged: entryVisibilityChanged,
                         onboardingStep: onboardingStep,
                         onboardingExampleIDs: onboardingExampleIDs,
                         hasPerformedOnboardingMove: hasPerformedOnboardingMove,
                         onboardingEntryAdded: onboardingEntryAdded,
                         completed: completed,
                         onboardingMoveEditingFinished: onboardingMoveEditingFinished,
-                        onboardingMoveCancelled: onboardingMoveCancelled
+                        onboardingMoveCancelled: onboardingMoveCancelled,
+                        searchMatchIDs: searchMatchIDs,
+                        currentSearchMatchID: currentSearchMatchID
                     )
                 }
             }
@@ -1828,6 +2006,7 @@ struct DayBlock: View {
     let toggleMoveControls: (DayEntry) -> Void
     let removed: (DayEntry, String?) -> Void
     let dayVisibilityChanged: (Date, Bool) -> Void
+    let entryVisibilityChanged: (UUID, Bool) -> Void
     let onboardingStep: Int?
     let onboardingExampleIDs: Set<UUID>
     let hasPerformedOnboardingMove: Bool
@@ -1835,6 +2014,8 @@ struct DayBlock: View {
     let completed: (DayEntry) -> Void
     let onboardingMoveEditingFinished: () -> Void
     let onboardingMoveCancelled: () -> Void
+    let searchMatchIDs: Set<UUID>
+    let currentSearchMatchID: UUID?
 
     private var sortedEntries: [DayEntry] {
         entries.sorted(by: AgendaEntryOrdering.areInIncreasingOrder)
@@ -1935,8 +2116,13 @@ struct DayBlock: View {
                                 highlightsCompletion: onboardingStep == 3
                                     && index == onboardingCompletionIndex,
                                 completed: completed,
-                                onboardingMoveCancelled: onboardingMoveCancelled
+                                onboardingMoveCancelled: onboardingMoveCancelled,
+                                isSearchMatch: searchMatchIDs.contains(entry.id),
+                                isCurrentSearchMatch: currentSearchMatchID == entry.id
                             )
+                            .agendaVisibilityCompatibility { isVisible in
+                                entryVisibilityChanged(entry.id, isVisible)
+                            }
                         }
 
                         AgendaInputLine(
@@ -2047,6 +2233,8 @@ struct AgendaEntryLine: View {
     let highlightsCompletion: Bool
     let completed: (DayEntry) -> Void
     let onboardingMoveCancelled: () -> Void
+    let isSearchMatch: Bool
+    let isCurrentSearchMatch: Bool
 
     @Environment(\.modelContext)
     private var modelContext
@@ -2105,6 +2293,8 @@ struct AgendaEntryLine: View {
                 )
             }
         }
+        .modifier(SearchMatchHighlight(isMatch: isSearchMatch, isCurrent: isCurrentSearchMatch))
+        .id(entry.id)
         .onChange(of: focusedField.wrappedValue) { oldValue, newValue in
             if !isDeleting, oldValue == .entry(entry.id), newValue != oldValue {
                 commitDraft()

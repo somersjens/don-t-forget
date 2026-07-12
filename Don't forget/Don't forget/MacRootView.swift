@@ -8,6 +8,19 @@ import SwiftUI
 extension Notification.Name {
     static let macCreateItem = Notification.Name("mac.createItem")
     static let macUndoAgendaAction = Notification.Name("mac.undoAgendaAction")
+    static let macSearchScrollRequest = Notification.Name("mac.searchScrollRequest")
+    static let macAgendaUndoAvailability = Notification.Name("mac.agendaUndoAvailability")
+}
+
+private extension View {
+    @ViewBuilder
+    func macInteractiveGlass<S: Shape>(in shape: S) -> some View {
+        if #available(macOS 26.0, *) {
+            glassEffect(.regular.interactive(), in: shape)
+        } else {
+            background(.regularMaterial, in: shape)
+        }
+    }
 }
 
 enum MacSection: String, CaseIterable, Identifiable {
@@ -44,7 +57,11 @@ struct MacRootView: View {
 
     @State private var section: MacSection = .agenda
     @State private var selection: UUID?
+    @State private var isSearchPresented = false
     @State private var searchText = ""
+    @State private var currentSearchMatch = 0
+    @State private var macAgendaCanUndo = false
+    @FocusState private var isSearchFocused: Bool
     @State private var persistenceError: String?
     @State private var hasAppliedInitialWindowSize = false
 
@@ -53,8 +70,11 @@ struct MacRootView: View {
             topBar
 
             itemList
-
+        }
+        .overlay(alignment: .bottom) {
             bottomNavigation
+                .padding(.horizontal, 18)
+                .padding(.bottom, 14)
         }
         .frame(minWidth: 480, minHeight: 520)
         .background(Color.appCanvasBackground)
@@ -63,9 +83,22 @@ struct MacRootView: View {
             detail
                 .inspectorColumnWidth(min: 300, ideal: 350, max: 440)
         }
-        .onChange(of: section) { _, _ in selection = nil }
+        .onChange(of: section) { _, _ in
+            selection = nil
+            currentSearchMatch = 0
+        }
+        .onChange(of: searchText) { _, _ in
+            currentSearchMatch = 0
+            requestSearchScroll()
+        }
+        .onChange(of: isSearchFocused) { _, focused in
+            if !focused && normalizedSearch.isEmpty && isSearchPresented { closeSearch() }
+        }
         .onReceive(NotificationCenter.default.publisher(for: .macCreateItem)) { _ in
             createItem()
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .macAgendaUndoAvailability)) { note in
+            macAgendaCanUndo = note.object as? Bool ?? false
         }
         .onReceive(NotificationCenter.default.publisher(for: .persistenceSaveFailed)) { note in
             persistenceError = note.userInfo?[PersistenceSafety.errorUserInfoKey] as? String
@@ -98,27 +131,97 @@ struct MacRootView: View {
     }
 
     private var topBar: some View {
-        HStack(spacing: 14) {
+        let canReturn = selection != nil || (section == .agenda && macAgendaCanUndo)
+        return VStack(spacing: 0) {
+        ZStack {
             Text(section.title)
-                .font(.title2.bold())
-
-            Spacer()
-
-            TextField("Zoeken", text: $searchText)
-                .textFieldStyle(.roundedBorder)
-                .frame(maxWidth: 440)
-
-            Button(action: finishEditing) {
-                Label("Bewerken afsluiten", systemImage: "return")
+                .font(.system(size: 22, weight: .semibold))
+            HStack {
+                Button(action: finishEditing) {
+                    Image(systemName: "return")
+                        .font(.system(size: 14, weight: .semibold))
+                        .frame(width: 32, height: 32)
+                        .background(headerButtonBackground(isActive: canReturn), in: Circle())
+                        .overlay { Circle().stroke(headerButtonBorder(isActive: canReturn), lineWidth: 1.5) }
+                }
+                .buttonStyle(.plain)
+                .foregroundStyle(canReturn ? Color.brandHardBlue : Color.secondary.opacity(0.65))
+                .help("Terug")
+                Spacer()
+                Button(action: toggleSearch) {
+                    Image(systemName: "magnifyingglass")
+                        .font(.system(size: 14, weight: .semibold))
+                        .frame(width: 32, height: 32)
+                        .background(headerButtonBackground(isActive: isSearchPresented), in: Circle())
+                        .overlay { Circle().stroke(headerButtonBorder(isActive: isSearchPresented), lineWidth: 1.5) }
+                }
+                .buttonStyle(.plain)
+                .foregroundStyle(Color.brandHardBlue)
+                .help(isSearchPresented ? "Zoeken sluiten" : "Zoeken")
             }
-            .labelStyle(.iconOnly)
-            .buttonStyle(.bordered)
-            .help("Bewerken afsluiten")
         }
-        .padding(.horizontal, 20)
+        .padding(.horizontal, 29)
+        .frame(maxWidth: 900)
+        .frame(maxWidth: .infinity)
         .padding(.vertical, 12)
-        .background(.bar)
-        .overlay(alignment: .bottom) { Divider() }
+        .background(Color.appCanvasBackground)
+        if isSearchPresented {
+            InlineMatchSearchBar(
+                text: $searchText,
+                isFocused: $isSearchFocused,
+                matchCount: searchMatchIDs.count,
+                currentMatch: currentSearchMatch,
+                next: showNextSearchMatch,
+                clear: clearSearch
+            )
+            .padding(.top, 8)
+            .frame(maxWidth: 936)
+            .frame(maxWidth: .infinity)
+            .background(Color.appCanvasBackground)
+        }
+        }
+    }
+
+    private func headerButtonBackground(isActive: Bool) -> Color {
+        .white
+    }
+
+    private func headerButtonBorder(isActive: Bool) -> Color {
+        isActive ? Color.brandHardBlue : Color.primary.opacity(0.10)
+    }
+
+    private func toggleSearch() {
+        if isSearchPresented { closeSearch() }
+        else {
+            isSearchPresented = true
+            Task { @MainActor in isSearchFocused = true }
+        }
+    }
+
+    private func closeSearch() {
+        searchText = ""
+        currentSearchMatch = 0
+        isSearchFocused = false
+        isSearchPresented = false
+    }
+
+    private func clearSearch() {
+        searchText = ""
+        currentSearchMatch = 0
+        Task { @MainActor in isSearchFocused = true }
+    }
+
+    private func showNextSearchMatch() {
+        guard !searchMatchIDs.isEmpty else { return }
+        currentSearchMatch = (currentSearchMatch + 1) % searchMatchIDs.count
+        requestSearchScroll()
+    }
+
+    private func requestSearchScroll() {
+        Task { @MainActor in
+            await Task.yield()
+            NotificationCenter.default.post(name: .macSearchScrollRequest, object: currentSearchMatchID)
+        }
     }
 
     private func finishEditing() {
@@ -131,44 +234,48 @@ struct MacRootView: View {
     }
 
     private var bottomNavigation: some View {
-        HStack(spacing: 8) {
+        HStack(spacing: 5) {
             ForEach(MacSection.allCases) { item in
                 Button {
-                    section = item
+                    withAnimation(.snappy(duration: 0.24, extraBounce: 0)) {
+                        section = item
+                    }
                 } label: {
                     Image(systemName: item.icon)
-                        .font(.system(size: 18, weight: .semibold))
-                    .foregroundStyle(section == item ? Color.white : Color.primary.opacity(0.72))
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 8)
-                    .contentShape(RoundedRectangle(cornerRadius: 10))
-                    .background(
-                        section == item ? Color.brandHardBlue : Color.clear,
-                        in: RoundedRectangle(cornerRadius: 10)
-                    )
+                        .font(.system(size: 17, weight: .semibold))
+                        .symbolVariant(section == item ? .fill : .none)
+                        .foregroundStyle(section == item ? Color.brandHardBlue : Color.primary.opacity(0.72))
+                        .frame(width: 58, height: 40)
+                        .contentShape(Capsule())
+                        .background {
+                            if section == item {
+                                Capsule()
+                                    .fill(Color.brandHardBlue.opacity(0.14))
+                                    .macInteractiveGlass(in: Capsule())
+                            }
+                        }
                 }
                 .buttonStyle(.plain)
                 .accessibilityLabel(item.title)
                 .help(item.title)
             }
         }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 9)
-        .background(.bar)
-        .overlay(alignment: .top) { Divider() }
+        .padding(6)
+        .macInteractiveGlass(in: Capsule())
+        .shadow(color: .black.opacity(0.14), radius: 14, y: 7)
     }
 
     @ViewBuilder
     private var itemList: some View {
         switch section {
         case .agenda:
-            MacCalendarView(entries: agendaItems, selection: $selection)
+            MacCalendarView(entries: agendaItems, searchText: searchText, currentMatchID: currentSearchMatchID, selection: $selection)
         case .todo:
-            MacTodoBoard(searchText: searchText, selection: $selection)
+            MacTodoBoard(searchText: searchText, currentMatchID: currentSearchMatchID, selection: $selection)
         case .recurring:
-            MacRecurringBoard(searchText: searchText, selection: $selection)
+            MacRecurringBoard(searchText: searchText, currentMatchID: currentSearchMatchID, selection: $selection)
         case .history:
-            MacHistoryBoard(searchText: searchText)
+            MacHistoryBoard(searchText: searchText, currentMatchID: currentSearchMatchID)
         }
     }
 
@@ -187,6 +294,20 @@ struct MacRootView: View {
 
     private var normalizedSearch: String {
         searchText.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    private var searchMatchIDs: [UUID] {
+        guard !normalizedSearch.isEmpty else { return [] }
+        switch section {
+        case .agenda: return agendaItems.map(\.id)
+        case .todo: return todoItems.map(\.id)
+        case .recurring: return activeRecurringItems.map(\.id)
+        case .history: return historyDayEntries.map(\.id) + historyTodos.map(\.id)
+        }
+    }
+
+    private var currentSearchMatchID: UUID? {
+        searchMatchIDs.indices.contains(currentSearchMatch) ? searchMatchIDs[currentSearchMatch] : nil
     }
 
     private var agendaItems: [DayEntry] {
@@ -274,7 +395,7 @@ struct MacRootView: View {
 }
 
 private enum MacHistoryFilter: String, CaseIterable, Identifiable {
-    case all = "Alles", agenda = "Agenda", recurring = "Herhalingen", todo = "Taken"
+    case all = "Alles", agenda = "Agenda", todo = "Taken", recurring = "Herhalingen"
     var id: Self { self }
     var icon: String {
         switch self { case .all: "square.grid.2x2"; case .agenda: "calendar"; case .recurring: "repeat"; case .todo: "checklist" }
@@ -331,6 +452,7 @@ private struct MacHistoryBoard: View {
     @AppStorage(SettingsKeys.historyShowsDeletedItems) private var showsDeletedItems = true
 
     let searchText: String
+    let currentMatchID: UUID?
     @State private var filter = MacHistoryFilter.all
     @State private var restored: MacHistoryItem?
     @State private var pendingDeletion: MacHistoryItem?
@@ -383,16 +505,34 @@ private struct MacHistoryBoard: View {
     }
 
     var body: some View {
-        VStack(spacing: 0) {
-            controls
-            ScrollView {
-                LazyVStack(spacing: 14) {
-                    summary
-                    if visibleItems.isEmpty { ContentUnavailableView(searchText.isEmpty ? "Nog niets afgerond" : "Geen zoekresultaten", systemImage: searchText.isEmpty ? "clock.arrow.circlepath" : "magnifyingglass") }
-                    ForEach(sections, id: \.0) { date, rows in dayCard(date: date, rows: rows) }
-                }
-                .padding(18).frame(maxWidth: 900).frame(maxWidth: .infinity)
+        ScrollViewReader { proxy in
+        ScrollView {
+            LazyVStack(spacing: 14) {
+                controls
+                summary
+                if visibleItems.isEmpty { ContentUnavailableView(searchText.isEmpty ? "Nog niets afgerond" : "Geen zoekresultaten", systemImage: searchText.isEmpty ? "clock.arrow.circlepath" : "magnifyingglass") }
+                ForEach(sections, id: \.0) { date, rows in dayCard(date: date, rows: rows) }
             }
+            .padding(18).frame(maxWidth: 900).frame(maxWidth: .infinity)
+        }
+        .onChange(of: currentMatchID) { _, id in
+            guard let id else { return }
+            withAnimation(.easeInOut(duration: 0.24)) { proxy.scrollTo(id, anchor: .center) }
+        }
+        .onChange(of: searchText) { _, _ in
+            guard let id = currentMatchID else { return }
+            Task { @MainActor in
+                await Task.yield()
+                withAnimation(.easeInOut(duration: 0.24)) { proxy.scrollTo(id, anchor: .center) }
+            }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .macSearchScrollRequest)) { note in
+            guard let id = note.object as? UUID else { return }
+            Task { @MainActor in
+                await Task.yield()
+                withAnimation(.easeInOut(duration: 0.24)) { proxy.scrollTo(id, anchor: .center) }
+            }
+        }
         }
         .background(Color.appCanvasBackground)
         .animation(.easeInOut(duration: 0.18), value: filter)
@@ -408,7 +548,10 @@ private struct MacHistoryBoard: View {
         HStack(spacing: 8) {
             ForEach(MacHistoryFilter.allCases) { item in
                 Button { filter = item } label: {
-                    Label(item.rawValue, systemImage: item.icon)
+                    HStack(spacing: 6) {
+                        if item == .all { Image(systemName: item.icon) }
+                        Text(item.rawValue)
+                    }
                         .font(.system(size: 13, weight: .semibold))
                         .foregroundStyle(filter == item ? Color.white : Color.secondary)
                         .frame(maxWidth: .infinity).frame(height: 32)
@@ -430,13 +573,11 @@ private struct MacHistoryBoard: View {
                         }
                 }
                 .buttonStyle(.plain)
+                .accessibilityLabel(item.rawValue)
+                .help(item.rawValue)
                 .accessibilityAddTraits(filter == item ? .isSelected : [])
             }
-            if sections.isEmpty {
-                Toggle("Verwijderde items", isOn: $showsDeletedItems)
-                    .toggleStyle(.checkbox).font(.caption)
-            }
-        }.padding(.horizontal, 18).padding(.vertical, 12).background(.bar)
+        }
     }
 
     private var summary: some View {
@@ -447,31 +588,39 @@ private struct MacHistoryBoard: View {
                 HStack(spacing: 12) {
                     Image(systemName: "checkmark")
                         .font(.system(size: 16, weight: .bold)).foregroundStyle(Color.brandHardBlue)
-                        .frame(width: 40, height: 40)
+                        .frame(width: 34, height: 34)
                         .background(
                             DefaultColorCombination.isEnabled
                                 ? Color.brandCanvasBlue
                                 : Color.brandHardBlue.opacity(0.12),
-                            in: RoundedRectangle(cornerRadius: 10)
+                            in: RoundedRectangle(cornerRadius: 9)
                         )
                     VStack(alignment: .leading, spacing: 3) {
                         Text("\(completedItems.count) afgerond").font(.headline)
-                        Text("\(recent) afgerond in de afgelopen 7 dagen").font(.caption).foregroundStyle(.secondary)
+                        Text("\(recent) in afgelopen 7 dagen").font(.caption).foregroundStyle(.secondary)
                     }
                     Spacer()
-                    Image(systemName: "chevron.down")
-                        .font(.system(size: 12, weight: .semibold)).foregroundStyle(.secondary)
-                        .rotationEffect(.degrees(isChartExpanded ? 180 : 0))
-                        .frame(width: 28, height: 28).background(Color.primary.opacity(0.06), in: Circle())
+                    HStack(spacing: 12) {
+                        Image(systemName: "chart.bar.fill")
+                            .font(.system(size: 17, weight: .medium))
+                            .frame(width: 32, height: 32)
+                        Image(systemName: "chevron.down")
+                            .font(.system(size: 11, weight: .semibold))
+                            .rotationEffect(.degrees(isChartExpanded ? 180 : 0))
+                            .frame(width: 32, height: 32)
+                    }
+                    .foregroundStyle(Color.brandHardBlue)
+                    .frame(height: 42)
                 }.contentShape(Rectangle())
             }
             .buttonStyle(.plain).padding(14)
             if isChartExpanded {
                 Divider().padding(.horizontal, 14)
-                VStack(alignment: .leading, spacing: 10) {
-                    Text("Afgerond per dag").font(.headline)
-                    weekChart.frame(maxWidth: .infinity).frame(height: 190)
-                }.padding(14).transition(.opacity.combined(with: .move(edge: .top)))
+                weekChart
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 225)
+                    .padding(14)
+                    .transition(.opacity.combined(with: .move(edge: .top)))
             }
         }
         .background(Color.appCardBackground, in: RoundedRectangle(cornerRadius: 14))
@@ -479,26 +628,30 @@ private struct MacHistoryBoard: View {
     }
 
     private var weekChart: some View {
-        Chart(chartDays, id: \.date) { day in
-            BarMark(x: .value("Dag", day.date, unit: .day), y: .value("Aantal", day.count))
-                .foregroundStyle(filter.color.gradient)
-                .cornerRadius(5)
-                .annotation(position: .top, spacing: 2) {
-                    if day.count > 0 { Text("\(day.count)").font(.caption2).foregroundStyle(.secondary) }
-                }
-        }
-        .chartYScale(domain: 0...max(1, (chartDays.map(\.count).max() ?? 0) + 1))
-        .chartXAxis {
-            AxisMarks(values: .stride(by: .day)) { value in
-                AxisValueLabel { if let date = value.as(Date.self) { Text(shortWeekday(date)) } }
-                AxisTick().foregroundStyle(Color.secondary.opacity(0.35))
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Afgelopen 7 dagen")
+                .font(.system(size: 14, weight: .semibold))
+            Chart(chartDays, id: \.date) { day in
+                BarMark(x: .value("Dag", day.date, unit: .day), y: .value("Aantal", day.count))
+                    .foregroundStyle(filter.color.gradient)
+                    .cornerRadius(5)
+                    .annotation(position: .top, spacing: 2) {
+                        if day.count > 0 { Text("\(day.count)").font(.caption2).foregroundStyle(.secondary) }
+                    }
             }
-        }
-        .chartYAxis {
-            AxisMarks(position: .leading, values: .automatic(desiredCount: 4)) { value in
-                AxisGridLine().foregroundStyle(Color.secondary.opacity(0.18))
-                AxisTick().foregroundStyle(Color.secondary.opacity(0.35))
-                AxisValueLabel { if let number = value.as(Int.self) { Text("\(number)") } }
+            .chartYScale(domain: 0...max(1, (chartDays.map(\.count).max() ?? 0) + 1))
+            .chartXAxis {
+                AxisMarks(values: .stride(by: .day)) { value in
+                    AxisValueLabel(centered: true) { if let date = value.as(Date.self) { Text(shortWeekday(date)) } }
+                    AxisTick().foregroundStyle(Color.secondary.opacity(0.35))
+                }
+            }
+            .chartYAxis {
+                AxisMarks(position: .leading, values: .automatic(desiredCount: 4)) { value in
+                    AxisGridLine().foregroundStyle(Color.secondary.opacity(0.18))
+                    AxisTick().foregroundStyle(Color.secondary.opacity(0.35))
+                    AxisValueLabel { if let number = value.as(Int.self) { Text("\(number)") } }
+                }
             }
         }
         .padding(12)
@@ -510,29 +663,34 @@ private struct MacHistoryBoard: View {
     }
 
     private func dayCard(date: Date, rows: [MacHistoryItem]) -> some View {
-        VStack(alignment: .leading, spacing: 0) {
+        VStack(alignment: .leading, spacing: 6) {
             HStack {
-                Text(dayTitle(date)).font(.headline)
+                Text(dayTitle(date))
+                    .font(.headline)
+                    .padding(.horizontal, 4)
                 Spacer()
                 if date == sections.first?.0 {
-                    Text("Verwijderde items").font(.caption).foregroundStyle(.secondary)
-                    Spacer().frame(width: 40)
-                    Button { showsDeletedItems.toggle() } label: {
-                        Image(systemName: showsDeletedItems ? "checkmark.square.fill" : "square")
-                            .font(.system(size: 15, weight: .medium))
-                            .foregroundStyle(showsDeletedItems ? Color.brandHardBlue : Color.secondary)
-                            .frame(width: 32, height: 32)
-                    }.buttonStyle(.plain).help("Toon ook items die eerder zijn verwijderd")
+                    HStack(spacing: 3) {
+                        Text("Verwijderde items").font(.caption).foregroundStyle(.secondary)
+                        Button { showsDeletedItems.toggle() } label: {
+                            Image(systemName: showsDeletedItems ? "checkmark.square.fill" : "square")
+                                .font(.system(size: 15, weight: .medium))
+                                .foregroundStyle(showsDeletedItems ? Color.brandHardBlue : Color.secondary)
+                                .frame(width: 28, height: 28)
+                        }.buttonStyle(.plain).help("Toon ook items die eerder zijn verwijderd")
+                    }
+                    .padding(.trailing, 16)
                 }
-            }.padding(.horizontal, 14).padding(.vertical, 10)
-            Divider()
-            ForEach(Array(rows.enumerated()), id: \.element.id) { index, item in
-                historyRow(item)
-                if index < rows.count - 1 { Divider().padding(.leading, 64) }
             }
+            VStack(alignment: .leading, spacing: 0) {
+                ForEach(Array(rows.enumerated()), id: \.element.id) { index, item in
+                    historyRow(item)
+                    if index < rows.count - 1 { Divider().padding(.leading, 64) }
+                }
+            }
+            .background(Color.appCardBackground, in: RoundedRectangle(cornerRadius: 14))
+            .overlay { RoundedRectangle(cornerRadius: 14).stroke(Color.appCardOutline) }
         }
-        .background(Color.appCardBackground, in: RoundedRectangle(cornerRadius: 14))
-        .overlay { RoundedRectangle(cornerRadius: 14).stroke(Color.appCardOutline) }
     }
 
     private func historyRow(_ item: MacHistoryItem) -> some View {
@@ -552,12 +710,17 @@ private struct MacHistoryBoard: View {
                 .help("Terugzetten naar \(item.filter.rawValue)")
             Button { beginDeletion(item) } label: { Label("Definitief verwijderen", systemImage: "trash").labelStyle(.iconOnly) }
                 .buttonStyle(.plain)
-                .foregroundStyle(item.color)
+                .foregroundStyle(Color.red)
                 .frame(width: 32, height: 32)
-                .background(item.color.opacity(0.14), in: Circle())
-                .overlay { Circle().stroke(item.color.opacity(0.2)) }
+                .background(Color.red.opacity(0.12), in: Circle())
+                .overlay { Circle().stroke(Color.red.opacity(0.18)) }
                 .help("Definitief verwijderen")
         }.padding(.horizontal, 14).padding(.vertical, 10)
+            .id(item.id)
+            .modifier(SearchMatchHighlight(
+                isMatch: !searchText.isEmpty && (item.title + " " + item.category).localizedCaseInsensitiveContains(searchText),
+                isCurrent: currentMatchID == item.id
+            ))
             .contentShape(Rectangle())
             .contextMenu { actions(for: item) }
             .help("\(item.title) — \(item.completedAt.formatted(date: .long, time: .shortened))")
@@ -666,6 +829,7 @@ private struct MacTodoBoard: View {
     @AppStorage(SettingsKeys.todoGroups) private var todoGroupsData = ""
 
     let searchText: String
+    let currentMatchID: UUID?
     @Binding var selection: UUID?
     @State private var newGroupTitle = ""
     @State private var drafts: [String: String] = [:]
@@ -681,16 +845,36 @@ private struct MacTodoBoard: View {
     }
 
     var body: some View {
+        ScrollViewReader { proxy in
         ScrollView {
             LazyVStack(spacing: 14) {
-                ForEach(Array(groups.enumerated()), id: \.element.id) { index, group in
+                ForEach(visibleGroupEntries, id: \.element.id) { index, group in
                     groupCard(group, index: index)
                 }
-                if groups.count < MacTodoGroupStore.maxCount { newGroupRow }
+                if searchText.isEmpty && groups.count < MacTodoGroupStore.maxCount { newGroupRow }
             }
             .padding(18)
             .frame(maxWidth: 900)
             .frame(maxWidth: .infinity)
+        }
+        .onChange(of: currentMatchID) { _, id in
+            guard let id else { return }
+            withAnimation(.easeInOut(duration: 0.24)) { proxy.scrollTo(id, anchor: .center) }
+        }
+        .onChange(of: searchText) { _, _ in
+            guard let id = currentMatchID else { return }
+            Task { @MainActor in
+                await Task.yield()
+                withAnimation(.easeInOut(duration: 0.24)) { proxy.scrollTo(id, anchor: .center) }
+            }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .macSearchScrollRequest)) { note in
+            guard let id = note.object as? UUID else { return }
+            Task { @MainActor in
+                await Task.yield()
+                withAnimation(.easeInOut(duration: 0.24)) { proxy.scrollTo(id, anchor: .center) }
+            }
+        }
         }
         .background(Color.appCanvasBackground)
         .safeAreaInset(edge: .bottom) {
@@ -724,6 +908,14 @@ private struct MacTodoBoard: View {
             }
             .padding(20)
             .frame(width: 390)
+        }
+    }
+
+    private var visibleGroupEntries: [(offset: Int, element: MacTodoGroup)] {
+        let entries = Array(groups.enumerated())
+        guard !searchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return entries }
+        return entries.filter { _, group in
+            todos.contains { $0.bucketRawValue == group.id && $0.text.localizedCaseInsensitiveContains(searchText) }
         }
     }
 
@@ -862,6 +1054,11 @@ private struct MacTodoBoard: View {
         .padding(.horizontal, 12)
         .padding(.vertical, 2)
         .frame(minHeight: 24)
+        .id(todo.id)
+        .modifier(SearchMatchHighlight(
+            isMatch: !searchText.isEmpty && todo.text.localizedCaseInsensitiveContains(searchText),
+            isCurrent: currentMatchID == todo.id
+        ))
     }
 
     @ViewBuilder
@@ -917,6 +1114,7 @@ private struct MacTodoBoard: View {
         .menuStyle(.borderlessButton)
         .menuIndicator(.hidden)
         .tint(group.color)
+        .padding(.trailing, 20)
     }
 
     private var newGroupRow: some View {
@@ -1145,6 +1343,7 @@ private struct MacRecurringBoard: View {
     @AppStorage(SettingsKeys.recurringShowNextDate) private var showNextDate = true
     @AppStorage(SettingsKeys.recurringSoonestFirst) private var soonestFirst = true
     let searchText: String
+    let currentMatchID: UUID?
     @Binding var selection: UUID?
     @State private var newGroupTitle = ""
     @State private var recentlyRemovedItem: RecurringItem?
@@ -1158,16 +1357,36 @@ private struct MacRecurringBoard: View {
     }
 
     var body: some View {
+        ScrollViewReader { proxy in
         ScrollView {
             LazyVStack(spacing: 12) {
-                ForEach(Array(categories.enumerated()), id: \.element.id) { index, category in
+                ForEach(visibleCategoryEntries, id: \.element.id) { index, category in
                     categoryCard(category, index: index)
                 }
-                if categories.count < MacRecurringCategoryStore.maxCount { newGroupRow }
+                if searchText.isEmpty && categories.count < MacRecurringCategoryStore.maxCount { newGroupRow }
             }
             .padding(18)
             .frame(maxWidth: 900)
             .frame(maxWidth: .infinity)
+        }
+        .onChange(of: currentMatchID) { _, id in
+            guard let id else { return }
+            withAnimation(.easeInOut(duration: 0.24)) { proxy.scrollTo(id, anchor: .center) }
+        }
+        .onChange(of: searchText) { _, _ in
+            guard let id = currentMatchID else { return }
+            Task { @MainActor in
+                await Task.yield()
+                withAnimation(.easeInOut(duration: 0.24)) { proxy.scrollTo(id, anchor: .center) }
+            }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .macSearchScrollRequest)) { note in
+            guard let id = note.object as? UUID else { return }
+            Task { @MainActor in
+                await Task.yield()
+                withAnimation(.easeInOut(duration: 0.24)) { proxy.scrollTo(id, anchor: .center) }
+            }
+        }
         }
         .background(Color.appCanvasBackground)
         .overlay {
@@ -1214,6 +1433,12 @@ private struct MacRecurringBoard: View {
         .onAppear {
             repairUnknownCategories()
         }
+    }
+
+    private var visibleCategoryEntries: [(offset: Int, element: MacRecurringCategory)] {
+        let entries = Array(categories.enumerated())
+        guard !searchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return entries }
+        return entries.filter { !visibleItems(in: $0.element.id).isEmpty }
     }
 
     private func categoryCard(_ category: MacRecurringCategory, index: Int) -> some View {
@@ -1293,7 +1518,13 @@ private struct MacRecurringBoard: View {
                     .foregroundStyle(category.color)
                     .frame(width: 28, height: 28, alignment: .center)
             }.padding(.horizontal, 12).padding(.vertical, 9).contentShape(Rectangle())
-        }.buttonStyle(.plain)
+        }
+        .buttonStyle(.plain)
+        .id(item.id)
+        .modifier(SearchMatchHighlight(
+            isMatch: !searchText.isEmpty && (item.title + " " + item.notes).localizedCaseInsensitiveContains(searchText),
+            isCurrent: currentMatchID == item.id
+        ))
     }
 
     private func categoryActionsMenu(_ category: MacRecurringCategory, index: Int, isEmpty: Bool) -> some View {

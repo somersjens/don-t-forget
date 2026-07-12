@@ -142,6 +142,15 @@ struct SettingsView: View {
                     }
                     .tint(.primary)
 
+                    Picker(
+                        locale.localized("App Color"),
+                        selection: $defaultColorCombinationEnabled
+                    ) {
+                        Text(locale.localized("Light blue")).tag(true)
+                        Text(locale.localized("Grey")).tag(false)
+                    }
+                    .tint(.primary)
+
                     Picker("Week begint op", selection: $weekStart) {
                         ForEach(WeekStartOption.allCases) { option in
                             Text(option.title(for: locale)).tag(option.rawValue)
@@ -253,15 +262,6 @@ struct SettingsView: View {
                 }
 
                 Section {
-                    Picker(
-                        locale.localized("App Color"),
-                        selection: $defaultColorCombinationEnabled
-                    ) {
-                        Text(locale.localized("Light blue")).tag(true)
-                        Text(locale.localized("Grey")).tag(false)
-                    }
-                    .tint(.primary)
-
                     VStack(alignment: .leading, spacing: 8) {
                         Toggle(isOn: $iCloudSyncEnabled) {
                             Text(locale.localized("iCloud-synchronisatie"))
@@ -456,6 +456,7 @@ struct SettingsView: View {
                     }
                 }
             }
+            .appFormBackground(lightBlueEnabled: defaultColorCombinationEnabled)
             .tint(.brandHardBlue)
             .onAppear {
                 language = AppLanguage.resolved(from: language).rawValue

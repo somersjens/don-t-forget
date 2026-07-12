@@ -49,8 +49,8 @@ private struct HistoryRecurringCategoryAppearance: Decodable {
 enum HistoryFilter: String, CaseIterable, Identifiable {
     case all = "Alles"
     case agenda = "Agenda"
-    case recurring = "Recurring"
     case todo = "Taken"
+    case recurring = "Recurring"
 
     var id: String { rawValue }
 

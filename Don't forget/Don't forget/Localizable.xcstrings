@@ -232,9 +232,6 @@
         }
       }
     },
-    "%lld afgerond in de afgelopen 7 dagen" : {
-
-    },
     "%lld dagen vooraf" : {
 
     },
@@ -279,6 +276,16 @@
     },
     "%lld open" : {
 
+    },
+    "%lld/%lld" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$lld/%2$lld"
+          }
+        }
+      }
     },
     "%lld°" : {
       "extractionState" : "stale",
@@ -331,6 +338,9 @@
           }
         }
       }
+    },
+    "0" : {
+
     },
     "0 = vandaag, 1 = morgen" : {
       "localizations" : {
@@ -736,9 +746,6 @@
         }
       }
     },
-    "Afgerond per dag" : {
-
-    },
     "Afgerond verwijderen?" : {
       "localizations" : {
         "en" : {
@@ -1065,6 +1072,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Annuleer"
+          }
+        }
+      }
+    },
+    "App Color" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "App Color"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Appkleur"
           }
         }
       }
@@ -3528,6 +3551,22 @@
         }
       }
     },
+    "Grey" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Grey"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Grijs"
+          }
+        }
+      }
+    },
     "Grijs" : {
       "localizations" : {
         "en" : {
@@ -5915,6 +5954,22 @@
         }
       }
     },
+    "Light blue" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Light blue"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lichtblauw"
+          }
+        }
+      }
+    },
     "Lijst" : {
       "localizations" : {
         "en" : {
@@ -8241,54 +8296,6 @@
         }
       }
     },
-    "Grey" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Grey"
-          }
-        },
-        "nl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Grijs"
-          }
-        }
-      }
-    },
-    "Light blue" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Light blue"
-          }
-        },
-        "nl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Lichtblauw"
-          }
-        }
-      }
-    },
-    "App Color" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "App Color"
-          }
-        },
-        "nl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Appkleur"
-          }
-        }
-      }
-    },
     "Standaardbestemming" : {
       "localizations" : {
         "en" : {
@@ -8548,6 +8555,9 @@
           }
         }
       }
+    },
+    "Terug" : {
+
     },
     "Terughalen" : {
 
@@ -10706,6 +10716,9 @@
           }
         }
       }
+    },
+    "Zoeken sluiten" : {
+
     },
     "Zoekopdracht wissen" : {
       "localizations" : {

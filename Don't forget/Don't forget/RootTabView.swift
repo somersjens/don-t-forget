@@ -59,13 +59,17 @@ struct RootTabView: View {
 
     init() {
         let badgeColor = UIColor(Color.brandHardBlue)
+        let inactiveIconColor = UIColor.label.withAlphaComponent(0.72)
         UITabBarItem.appearance().badgeColor = badgeColor
 
         let tabBarAppearance = UITabBar.appearance().standardAppearance
+        tabBarAppearance.stackedLayoutAppearance.normal.iconColor = inactiveIconColor
         tabBarAppearance.stackedLayoutAppearance.normal.badgeBackgroundColor = badgeColor
         tabBarAppearance.stackedLayoutAppearance.selected.badgeBackgroundColor = badgeColor
+        tabBarAppearance.inlineLayoutAppearance.normal.iconColor = inactiveIconColor
         tabBarAppearance.inlineLayoutAppearance.normal.badgeBackgroundColor = badgeColor
         tabBarAppearance.inlineLayoutAppearance.selected.badgeBackgroundColor = badgeColor
+        tabBarAppearance.compactInlineLayoutAppearance.normal.iconColor = inactiveIconColor
         tabBarAppearance.compactInlineLayoutAppearance.normal.badgeBackgroundColor = badgeColor
         tabBarAppearance.compactInlineLayoutAppearance.selected.badgeBackgroundColor = badgeColor
         UITabBar.appearance().standardAppearance = tabBarAppearance

@@ -76,6 +76,18 @@ enum DefaultColorCombination {
     }
 }
 
+extension View {
+    @ViewBuilder
+    func appFormBackground(lightBlueEnabled: Bool) -> some View {
+        if lightBlueEnabled {
+            scrollContentBackground(.hidden)
+                .background(Color.brandCanvasBlue)
+        } else {
+            self
+        }
+    }
+}
+
 struct TutorialCardStyle: ViewModifier {
     @Environment(\.colorScheme) private var colorScheme
     @State private var replayFrame = CGRect.zero
@@ -926,5 +938,131 @@ extension Locale {
 
     func localizedFormat(_ key: String, _ arguments: CVarArg...) -> String {
         String(format: localized(key), locale: self, arguments: arguments)
+    }
+}
+
+struct InlineMatchSearchBar: View {
+    @Environment(\.locale) private var locale
+    @Binding var text: String
+    @FocusState.Binding var isFocused: Bool
+    let matchCount: Int
+    let currentMatch: Int
+    let next: () -> Void
+    let clear: () -> Void
+
+    private var contentInsets: EdgeInsets {
+        #if os(iOS)
+        EdgeInsets(top: 0, leading: 18, bottom: 0, trailing: 13)
+        #else
+        EdgeInsets(top: 0, leading: 20, bottom: 0, trailing: 20)
+        #endif
+    }
+
+    private var outerHorizontalPadding: CGFloat {
+        #if os(iOS)
+        18
+        #else
+        12
+        #endif
+    }
+
+    private var topPadding: CGFloat {
+        #if os(iOS)
+        4
+        #else
+        0
+        #endif
+    }
+
+    var body: some View {
+        HStack(spacing: 10) {
+            Image(systemName: "magnifyingglass")
+                .font(.system(size: 15, weight: .semibold))
+                .foregroundStyle(Color.brandHardBlue)
+
+            #if os(macOS)
+            TextField(locale.localized("Zoeken"), text: $text)
+                .font(.system(size: 15))
+                .focused($isFocused)
+                .textFieldStyle(.plain)
+                .frame(minWidth: 0)
+                .onSubmit(next)
+            #else
+            TextField(locale.localized("Zoeken"), text: $text)
+                .font(.system(size: 15))
+                .textInputAutocapitalization(.never)
+                .autocorrectionDisabled()
+                .submitLabel(.search)
+                .focused($isFocused)
+            #endif
+
+            if !text.isEmpty {
+                HStack(spacing: 10) {
+                    Text(matchCount == 0 ? "0" : "\(min(currentMatch + 1, matchCount))/\(matchCount)")
+                        .font(.system(size: 14.4, weight: .semibold))
+                        .foregroundStyle(Color.brandHardBlue)
+                        .monospacedDigit()
+
+                    Button(action: next) {
+                        Image(systemName: "chevron.down")
+                            .font(.system(size: 12, weight: .bold))
+                            .frame(width: 24, height: 24)
+                            .background(Color.brandHardBlue.opacity(0.10), in: Circle())
+                    }
+                    .frame(width: 36, height: 44)
+                    .contentShape(Rectangle())
+                    .buttonStyle(.plain)
+                    .foregroundStyle(Color.brandHardBlue)
+                    .disabled(matchCount <= 1)
+                    .accessibilityLabel(locale.localized("Volgende zoekresultaat"))
+                }
+                .fixedSize()
+
+                Button(action: clear) {
+                    Image(systemName: "xmark")
+                        .font(.system(size: 11, weight: .bold))
+                        .foregroundStyle(Color.brandHardBlue)
+                        .frame(width: 24, height: 24)
+                        .background(Color.brandHardBlue.opacity(0.10), in: Circle())
+                }
+                .frame(width: 36, height: 44)
+                .contentShape(Rectangle())
+                .buttonStyle(.plain)
+                .accessibilityLabel(locale.localized("Zoekopdracht wissen"))
+            }
+        }
+        .padding(contentInsets)
+        .frame(minHeight: 44)
+        .background(Color.appCardBackground, in: RoundedRectangle(cornerRadius: 14))
+        .overlay {
+            RoundedRectangle(cornerRadius: 14)
+                .stroke(DefaultColorCombination.isEnabled ? Color.appCardOutline : Color.primary.opacity(0.045))
+        }
+        .padding(.horizontal, outerHorizontalPadding)
+        .padding(.top, topPadding)
+        .padding(.bottom, 8)
+    }
+}
+
+struct SearchMatchHighlight: ViewModifier {
+    let isMatch: Bool
+    let isCurrent: Bool
+
+    func body(content: Content) -> some View {
+        content
+            .background {
+                RoundedRectangle(cornerRadius: 9)
+                    .fill(isMatch ? Color.brandLightBlue.opacity(isCurrent ? 0.72 : 0.38) : Color.clear)
+                    .padding(.horizontal, -4)
+                    .padding(.vertical, -2)
+            }
+            .overlay {
+                if isCurrent {
+                    RoundedRectangle(cornerRadius: 9)
+                        .stroke(Color.brandHardBlue, lineWidth: 2)
+                        .padding(.horizontal, -4)
+                        .padding(.vertical, -2)
+                }
+            }
     }
 }

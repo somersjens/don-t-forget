@@ -1575,6 +1575,7 @@ private struct RecurringSettingsView: View {
     @AppStorage(SettingsKeys.recurringSoonestFirst) private var soonestFirst = true
     @AppStorage(SettingsKeys.recurringShowHolidays) private var showHolidays = true
     @AppStorage(SettingsKeys.recurringHolidayCountry) private var holidayCountryCode = ""
+    @AppStorage(SettingsKeys.defaultColorCombinationEnabled) private var defaultColorCombinationEnabled = true
     @State private var showingHolidayManager = false
 
     private var categories: [RecurringCategory] {
@@ -1625,6 +1626,7 @@ private struct RecurringSettingsView: View {
                     Text("Tik op de gekleurde stip om de kleur te wijzigen. Compacte categorieën tonen alleen de titel en eerstvolgende datum.")
                 }
             }
+            .appFormBackground(lightBlueEnabled: defaultColorCombinationEnabled)
             .navigationTitle("Recurring")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -2032,6 +2034,10 @@ private struct RecurringEditorView: View {
                 editorSections
             }
             .font(.body)
+            // Keep the rows at their final iOS form height from the first layout
+            // pass, so controls resolving their intrinsic size do not cause a
+            // small vertical jump while the sheet is appearing.
+            .environment(\.defaultMinListRowHeight, 44)
             .navigationTitle(item == nil
                 ? locale.localized("Nieuwe herhaling")
                 : locale.localized("Wijzig herhaling"))
@@ -2061,7 +2067,11 @@ private struct RecurringEditorView: View {
                 }
                 if item == nil {
                     Task { @MainActor in
+                        // Wait until the presented sheet has installed its text
+                        // field, then make it first responder. Its height is fixed
+                        // below, so this no longer changes the Form row layout.
                         try? await Task.sleep(for: .milliseconds(250))
+                        guard !Task.isCancelled else { return }
                         focusedField = .title
                     }
                 }
@@ -2168,9 +2178,7 @@ private struct RecurringEditorView: View {
 
     private var whatSection: some View {
         Section {
-            TextField(titlePlaceholder, text: $draft.title)
-                .font(.body)
-                .focused($focusedField, equals: .title)
+            titleEditor
             Picker("Categorie", selection: $draft.categoryID) {
                 ForEach(categories) { category in
                     Label(
@@ -2198,6 +2206,19 @@ private struct RecurringEditorView: View {
                 ? locale.localized("Wie")
                 : locale.localized("Wat"))
         }
+    }
+
+    @ViewBuilder private var titleEditor: some View {
+        titleTextField
+    }
+
+    private var titleTextField: some View {
+        TextField(titlePlaceholder, text: $draft.title)
+            .font(.body)
+            .focused($focusedField, equals: .title)
+            // A UITextField's intrinsic height can change when it becomes first
+            // responder. Keep the Form row content at its final body-text size.
+            .frame(height: 22)
     }
 
     @ViewBuilder private var frequencySection: some View {

@@ -250,6 +250,12 @@ struct TodoView: View {
     @State private var todoTutorialDraftText = ""
     @State private var todoTutorialInputCommand: TodoTutorialInputCommand?
     @State private var todoTutorialInputCommandID = 0
+    @State private var isSearchPresented = false
+    @State private var searchText = ""
+    @State private var currentSearchMatch = 0
+    @State private var searchScrollRequest = 0
+    @State private var searchScrollTask: Task<Void, Never>?
+    @FocusState private var isSearchFocused: Bool
 
     @AppStorage(SettingsKeys.todoGroups) private var todoGroupsData = ""
 
@@ -271,6 +277,15 @@ struct TodoView: View {
         isHelpExpanded && !hasCompletedTodoTutorial ? todoTutorialStep : nil
     }
 
+    private var searchMatchIDs: [UUID] {
+        let query = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !query.isEmpty else { return [] }
+        let byGroup = Dictionary(grouping: todos, by: \.bucketRawValue)
+        return groups.flatMap { byGroup[$0.id] ?? [] }
+            .filter { $0.text.localizedStandardContains(query) }
+            .map(\.id)
+    }
+
     var body: some View {
         let activeTodosByGroup = Dictionary(
             grouping: todos,
@@ -279,6 +294,7 @@ struct TodoView: View {
         let hintSequence = groups.flatMap { activeTodosByGroup[$0.id] ?? [] }
 
         NavigationStack {
+            ScrollViewReader { proxy in
             ScrollView(.vertical, showsIndicators: true) {
                 LazyVStack(spacing: 12) {
                     if isHelpExpanded {
@@ -311,9 +327,17 @@ struct TodoView: View {
                 .adaptiveReadableWidth()
             }
             .background(Color.appCanvasBackground)
+            .contentMargins(.bottom, isSearchPresented ? 96 : 0, for: .scrollContent)
             .todoScrollCompatibility(isScrolled: $isScrolled)
+            .onChange(of: searchText) { _, _ in
+                currentSearchMatch = 0
+                searchScrollRequest &+= 1
+            }
+            .onChange(of: searchScrollRequest) { _, _ in scrollToTodoMatch(proxy) }
+            }
             .toolbar(.hidden, for: .navigationBar)
             .safeAreaInset(edge: .top, spacing: 0) {
+                VStack(spacing: 0) {
                 ZStack {
                     TodoTopTitle(
                         locale: locale,
@@ -352,11 +376,22 @@ struct TodoView: View {
                         Spacer()
 
                         Button {
-                            completeTodoTutorialAction(for: 2)
-                            AppKeyboard.dismiss()
+                            if isKeyboardVisible {
+                                completeTodoTutorialAction(for: 2)
+                                isSearchFocused = false
+                                AppKeyboard.dismiss()
+                            } else if isSearchPresented {
+                                searchText = ""
+                                isSearchFocused = false
+                                isSearchPresented = false
+                            } else {
+                                isSearchPresented = true
+                                Task { @MainActor in isSearchFocused = true }
+                            }
                         } label: {
-                            Image(systemName: "checkmark")
+                            Image(systemName: (isKeyboardVisible || isSearchPresented) ? "checkmark" : "magnifyingglass")
                                 .font(.system(size: 20, weight: .semibold))
+                                .foregroundStyle(Color.brandHardBlue)
                                 .frame(width: 44, height: 44)
                         }
                         .compatibleCircularGlassEffect()
@@ -364,8 +399,11 @@ struct TodoView: View {
                             visibleOnboardingStep == 2 ? Color.brandLightBlue : Color.clear,
                             in: Circle()
                         )
-                        .disabled(!isKeyboardVisible)
-                        .accessibilityLabel("Toetsenbord sluiten")
+                        .accessibilityLabel(
+                            isKeyboardVisible
+                                ? "Toetsenbord sluiten"
+                                : (isSearchPresented ? "Zoeken sluiten" : "Zoeken")
+                        )
                         .overlay {
                             if visibleOnboardingStep == 2 {
                                 Circle()
@@ -380,6 +418,17 @@ struct TodoView: View {
                 .padding(.trailing, 18)
                 .padding(.vertical, 6)
                 .adaptiveReadableWidth()
+                if isSearchPresented {
+                    InlineMatchSearchBar(
+                        text: $searchText,
+                        isFocused: $isSearchFocused,
+                        matchCount: searchMatchIDs.count,
+                        currentMatch: currentSearchMatch,
+                        next: advanceTodoMatch,
+                        clear: clearTodoSearch
+                    )
+                }
+                }
             }
             .safeAreaInset(edge: .bottom, spacing: 8) {
                 Group {
@@ -409,10 +458,62 @@ struct TodoView: View {
             }
             .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillHideNotification)) { _ in
                 isKeyboardVisible = false
+                if searchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                    isSearchPresented = false
+                }
             }
             .task {
                 await runReorderHintWave(itemIDs: hintSequence.map(\.id))
             }
+            .onDisappear {
+                searchScrollTask?.cancel()
+            }
+        }
+    }
+
+    private func advanceTodoMatch() {
+        guard !searchMatchIDs.isEmpty else { return }
+        currentSearchMatch = (currentSearchMatch + 1) % searchMatchIDs.count
+        searchScrollRequest &+= 1
+    }
+
+    private func clearTodoSearch() {
+        searchText = ""
+        if !isKeyboardVisible {
+            isSearchFocused = false
+            isSearchPresented = false
+        }
+    }
+
+    private func scrollToTodoMatch(_ proxy: ScrollViewProxy) {
+        guard searchMatchIDs.indices.contains(currentSearchMatch) else { return }
+        let targetID = searchMatchIDs[currentSearchMatch]
+        searchScrollTask?.cancel()
+        searchScrollTask = Task { @MainActor in
+            try? await Task.sleep(for: .milliseconds(60))
+            guard !Task.isCancelled else { return }
+            scrollTodo(targetID, with: proxy, animated: true)
+
+            // Keyboard and safe-area animations can change the viewport after
+            // the first scroll. Re-apply the same target once layout settles.
+            try? await Task.sleep(for: .milliseconds(260))
+            guard !Task.isCancelled else { return }
+            scrollTodo(targetID, with: proxy, animated: false)
+        }
+    }
+
+    private func scrollTodo(
+        _ targetID: UUID,
+        with proxy: ScrollViewProxy,
+        animated: Bool
+    ) {
+        let action = {
+            proxy.scrollTo(targetID, anchor: .center)
+        }
+        if animated {
+            withAnimation(.smooth(duration: 0.24, extraBounce: 0), action)
+        } else {
+            action()
         }
     }
 
@@ -455,6 +556,9 @@ struct TodoView: View {
             minimumTodoLength: usesFourCharacterMinimum ? 4 : 1,
             requiresPlusToSubmit: isFirstGroup && step == 1,
             activeReorderHintIDs: activeReorderHintIDs,
+            searchMatchIDs: Set(searchMatchIDs),
+            currentSearchMatchID: searchMatchIDs.indices.contains(currentSearchMatch)
+                ? searchMatchIDs[currentSearchMatch] : nil,
             completed: showCompletionUndo,
             removed: showRemovalUndo,
             movedToAgenda: showMoveToAgendaUndo
@@ -1082,6 +1186,8 @@ private struct TodoBucketCard: View {
     let minimumTodoLength: Int
     let requiresPlusToSubmit: Bool
     let activeReorderHintIDs: Set<UUID>
+    let searchMatchIDs: Set<UUID>
+    let currentSearchMatchID: UUID?
     let completed: (TodoItem) -> Void
     let removed: (TodoItem) -> Void
     let movedToAgenda: (TodoAgendaMoveUndo) -> Void
@@ -1149,6 +1255,8 @@ private struct TodoBucketCard: View {
                         isReorderHintActive: activeReorderHintIDs.contains(todo.id),
                         isOnboardingHighlighted: highlightedTodoID == todo.id,
                         isCompletionEnabled: !(isNewTodoFieldFocused && index == todos.count - 1),
+                        isSearchMatch: searchMatchIDs.contains(todo.id),
+                        isCurrentSearchMatch: currentSearchMatchID == todo.id,
                         movePerformed: todoMovePerformed,
                         completed: completed,
                         removed: removed,
@@ -1393,6 +1501,16 @@ private struct TodoGroupAppearancePicker: View {
     }
 }
 
+private enum TodoRowFirstLineCenter: AlignmentID {
+    static func defaultValue(in context: ViewDimensions) -> CGFloat {
+        context[VerticalAlignment.center]
+    }
+}
+
+private extension VerticalAlignment {
+    static let todoRowFirstLineCenter = VerticalAlignment(TodoRowFirstLineCenter.self)
+}
+
 private struct TodoLine: View {
     @Bindable var todo: TodoItem
     let groups: [TodoGroup]
@@ -1401,6 +1519,8 @@ private struct TodoLine: View {
     let isReorderHintActive: Bool
     let isOnboardingHighlighted: Bool
     let isCompletionEnabled: Bool
+    let isSearchMatch: Bool
+    let isCurrentSearchMatch: Bool
     let movePerformed: (UUID) -> Void
     let completed: (TodoItem) -> Void
     let removed: (TodoItem) -> Void
@@ -1418,11 +1538,14 @@ private struct TodoLine: View {
     @FocusState private var isTextFieldFocused: Bool
 
     var body: some View {
-        HStack(alignment: .top, spacing: 9) {
+        HStack(alignment: .todoRowFirstLineCenter, spacing: 9) {
             moveMenu
 
             todoTextField
                 .font(.system(size: 16))
+                .alignmentGuide(.todoRowFirstLineCenter) { dimensions in
+                    dimensions[VerticalAlignment.top] + 10
+                }
                 .textFieldStyle(.plain)
                 .lineLimit(1...)
                 .strikethrough(todo.isDone)
@@ -1468,6 +1591,8 @@ private struct TodoLine: View {
             .buttonStyle(.plain)
             .allowsHitTesting(isCompletionEnabled)
         }
+        .modifier(SearchMatchHighlight(isMatch: isSearchMatch, isCurrent: isCurrentSearchMatch))
+        .id(todo.id)
         .onDisappear {
             initialTapProtectionTask?.cancel()
         }
