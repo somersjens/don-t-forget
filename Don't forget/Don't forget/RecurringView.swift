@@ -241,6 +241,7 @@ struct RecurringView: View {
     @State private var showingHolidayManager = false
     @State private var editingItem: RecurringItem?
     @State private var syncTask: Task<Void, Never>?
+    @State private var requiresImmediateSync = false
     @State private var recentlyRemovedItem: RecurringItem?
     @State private var dismissRemovalUndoTask: Task<Void, Never>?
     @State private var newCategoryTitle = ""
@@ -493,7 +494,9 @@ struct RecurringView: View {
                     scheduleSync()
                 }
             }
-            .onChange(of: effectiveSyncSignature) { _, _ in scheduleSync() }
+            .onChange(of: effectiveSyncSignature) { _, _ in
+                scheduleSync(immediately: requiresImmediateSync)
+            }
             .onChange(of: recurringItems.map(\.id)) { oldIDs, newIDs in
                 guard visibleTutorialStep == 2,
                       let categoryID = tutorialCategoryID else { return }
@@ -507,13 +510,22 @@ struct RecurringView: View {
                 recurringExtendedThrough = 0
             }
             .onChange(of: isKeyboardVisible) { _, visible in
-                if visible { syncTask?.cancel() } else { scheduleSync() }
+                if visible && !requiresImmediateSync {
+                    syncTask?.cancel()
+                } else if !visible {
+                    scheduleSync(immediately: requiresImmediateSync)
+                }
             }
             .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillShowNotification)) { _ in
                 isKeyboardVisible = true
             }
             .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillHideNotification)) { _ in
                 isKeyboardVisible = false
+            }
+            .onReceive(NotificationCenter.default.publisher(for: .recurringSyncRequested)) { _ in
+                requiresImmediateSync = true
+                RecurringSyncState.shared.begin()
+                scheduleSync(immediately: true)
             }
         }
     }
@@ -682,14 +694,19 @@ struct RecurringView: View {
         return palette[index % palette.count].rawValue
     }
 
-    private func scheduleSync() {
+    private func scheduleSync(immediately: Bool = false) {
         syncTask?.cancel()
-        guard !isKeyboardVisible else { return }
+        guard immediately || !isKeyboardVisible else { return }
         syncTask = Task(priority: .background) { @MainActor in
-            try? await Task.sleep(for: .seconds(2))
+            // Yield briefly so SwiftData can publish a just-saved item to the query.
+            try? await Task.sleep(for: immediately ? .milliseconds(50) : .seconds(2))
             guard !Task.isCancelled,
-                  !isKeyboardVisible,
-                  effectiveSyncSignature != lastSyncSignature else { return }
+                  (immediately || !isKeyboardVisible) else { return }
+            guard effectiveSyncSignature != lastSyncSignature else {
+                requiresImmediateSync = false
+                RecurringSyncState.shared.finish()
+                return
+            }
             RecurringScheduler.syncAll(
                 items: recurringItems,
                 in: modelContext,
@@ -701,6 +718,8 @@ struct RecurringView: View {
             } catch {
                 // Keep the old signature so a later change/appearance retries.
             }
+            requiresImmediateSync = false
+            RecurringSyncState.shared.finish()
         }
     }
 
@@ -2693,10 +2712,14 @@ private struct RecurringEditorView: View {
 
     private func save() {
         let target = item ?? RecurringItem()
+        let isNewItem = item == nil
         draft.normalizeBeforeSaving()
         draft.apply(to: target)
-        if item == nil { modelContext.insert(target) }
-        _ = PersistenceSafety.save(modelContext)
+        if isNewItem { modelContext.insert(target) }
+        let didSave = PersistenceSafety.save(modelContext)
+        if didSave && isNewItem {
+            NotificationCenter.default.post(name: .recurringSyncRequested, object: target.id)
+        }
         dismiss()
     }
 }

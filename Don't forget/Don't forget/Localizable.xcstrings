@@ -2085,6 +2085,9 @@
         }
       }
     },
+    "Dag/Maand" : {
+
+    },
     "Dagelijks" : {
       "localizations" : {
         "en" : {
@@ -3433,12 +3436,6 @@
         }
       }
     },
-    "Geen overeenkomende herhalingen" : {
-
-    },
-    "Geen overeenkomende taken" : {
-
-    },
     "Geen toegang. Je kunt dit later wijzigen in iOS-instellingen." : {
       "localizations" : {
         "en" : {
@@ -3667,6 +3664,7 @@
       }
     },
     "Herhaling" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -3732,6 +3730,9 @@
           }
         }
       }
+    },
+    "Herhalingen worden geladen…" : {
+
     },
     "Heropen de app" : {
       "localizations" : {
@@ -5113,6 +5114,9 @@
         }
       }
     },
+    "Icoon en kleur wijzigen" : {
+
+    },
     "Iets afgerond? Tik op de cirkel rechts. Het verhuist naar Afgerond." : {
       "localizations" : {
         "en" : {
@@ -5308,7 +5312,6 @@
       }
     },
     "Jaar" : {
-      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -5906,6 +5909,15 @@
         }
       }
     },
+    "Leeftijd" : {
+
+    },
+    "Leeftijd/jaar" : {
+
+    },
+    "Leeftijd/jaar onzeker" : {
+
+    },
     "Leeg linkveld verwijderen" : {
       "localizations" : {
         "en" : {
@@ -6036,6 +6048,9 @@
           }
         }
       }
+    },
+    "Loading recurring items…" : {
+
     },
     "Locatie bepalen…" : {
       "localizations" : {
@@ -6717,6 +6732,7 @@
       }
     },
     "Notities" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -7084,9 +7100,6 @@
       }
     },
     "Ook toekomstige items verplaatsen" : {
-
-    },
-    "Open %@" : {
 
     },
     "Open kalender" : {
@@ -9359,9 +9372,6 @@
         }
       }
     },
-    "URL" : {
-
-    },
     "Vandaag" : {
       "localizations" : {
         "en" : {
@@ -9623,9 +9633,6 @@
         }
       }
     },
-    "Verwijder link" : {
-
-    },
     "Verwijderde items" : {
 
     },
@@ -9716,9 +9723,6 @@
 
     },
     "Voeg toe en maak nog een item" : {
-
-    },
-    "Volgende" : {
 
     },
     "Volgende 3 maanden laden…" : {

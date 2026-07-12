@@ -244,7 +244,6 @@ struct TodoView: View {
     @State private var recentlyRemovedTodo: TodoItem?
     @State private var recentlyRemovedTodoTitle = ""
     @State private var recentlyMovedToAgenda: TodoAgendaMoveUndo?
-    @State private var activeReorderHintIDs: Set<UUID> = []
     @State private var isHelpExpanded = false
     @State private var onboardingTodoID: UUID?
     @State private var todoTutorialDraftText = ""
@@ -287,53 +286,37 @@ struct TodoView: View {
     }
 
     var body: some View {
+        let currentGroups = groups
         let activeTodosByGroup = Dictionary(
             grouping: todos,
             by: \.bucketRawValue
         )
-        let hintSequence = groups.flatMap { activeTodosByGroup[$0.id] ?? [] }
+        let currentSearchMatchIDs = searchMatchIDs
+        let currentSearchMatchID = currentSearchMatchIDs.indices.contains(currentSearchMatch)
+            ? currentSearchMatchIDs[currentSearchMatch] : nil
+        let searchMatchIDSet = Set(currentSearchMatchIDs)
 
         NavigationStack {
-            ScrollViewReader { proxy in
-            ScrollView(.vertical, showsIndicators: true) {
-                LazyVStack(spacing: 12) {
-                    if isHelpExpanded {
-                        TodoHelpCard(
-                            locale: locale,
-                            step: todoTutorialStep,
-                            isCompleted: hasCompletedTodoTutorial,
-                            previous: showPreviousTodoTutorialStep,
-                            next: showNextTodoTutorialStep,
-                            replay: replayTodoTutorial,
-                            close: { isHelpExpanded = false }
-                        )
-                        .padding(.bottom, 2)
-                    }
-
-                    ForEach(Array(groups.enumerated()), id: \.element.id) { index, group in
-                        let groupTodos = activeTodosByGroup[group.id] ?? []
-                        todoBucketCard(group: group, index: index, groupTodos: groupTodos)
-                    }
-
-                    if groups.count < TodoGroupStore.maxCount {
-                        NewTodoGroupLine(
-                            text: $newGroupTitle,
-                            add: addGroup
+            Group {
+                if isSearchPresented {
+                    ScrollViewReader { proxy in
+                        todoScrollView(
+                            currentGroups: currentGroups,
+                            activeTodosByGroup: activeTodosByGroup,
+                            searchMatchIDs: searchMatchIDSet,
+                            currentSearchMatchID: currentSearchMatchID,
+                            searchProxy: proxy
                         )
                     }
+                } else {
+                    todoScrollView(
+                        currentGroups: currentGroups,
+                        activeTodosByGroup: activeTodosByGroup,
+                        searchMatchIDs: searchMatchIDSet,
+                        currentSearchMatchID: currentSearchMatchID,
+                        searchProxy: nil
+                    )
                 }
-                .padding(.horizontal, 14)
-                .padding(.vertical, 12)
-                .adaptiveReadableWidth()
-            }
-            .background(Color.appCanvasBackground)
-            .contentMargins(.bottom, isSearchPresented ? 96 : 0, for: .scrollContent)
-            .todoScrollCompatibility(isScrolled: $isScrolled)
-            .onChange(of: searchText) { _, _ in
-                currentSearchMatch = 0
-                searchScrollRequest &+= 1
-            }
-            .onChange(of: searchScrollRequest) { _, _ in scrollToTodoMatch(proxy) }
             }
             .toolbar(.hidden, for: .navigationBar)
             .safeAreaInset(edge: .top, spacing: 0) {
@@ -462,12 +445,68 @@ struct TodoView: View {
                     isSearchPresented = false
                 }
             }
-            .task {
-                await runReorderHintWave(itemIDs: hintSequence.map(\.id))
-            }
             .onDisappear {
                 searchScrollTask?.cancel()
             }
+        }
+    }
+
+    private func todoScrollView(
+        currentGroups: [TodoGroup],
+        activeTodosByGroup: [String: [TodoItem]],
+        searchMatchIDs: Set<UUID>,
+        currentSearchMatchID: UUID?,
+        searchProxy: ScrollViewProxy?
+    ) -> some View {
+        ScrollView(.vertical, showsIndicators: true) {
+            LazyVStack(spacing: 12) {
+                if isHelpExpanded {
+                    TodoHelpCard(
+                        locale: locale,
+                        step: todoTutorialStep,
+                        isCompleted: hasCompletedTodoTutorial,
+                        previous: showPreviousTodoTutorialStep,
+                        next: showNextTodoTutorialStep,
+                        replay: replayTodoTutorial,
+                        close: { isHelpExpanded = false }
+                    )
+                    .padding(.bottom, 2)
+                }
+
+                ForEach(currentGroups) { group in
+                    let index = currentGroups.firstIndex(where: { $0.id == group.id }) ?? 0
+                    let groupTodos = activeTodosByGroup[group.id] ?? []
+                    todoBucketCard(
+                        group: group,
+                        allGroups: currentGroups,
+                        index: index,
+                        groupTodos: groupTodos,
+                        searchMatchIDs: searchMatchIDs,
+                        currentSearchMatchID: currentSearchMatchID
+                    )
+                }
+
+                if currentGroups.count < TodoGroupStore.maxCount {
+                    NewTodoGroupLine(
+                        text: $newGroupTitle,
+                        add: addGroup
+                    )
+                }
+            }
+            .padding(.horizontal, 14)
+            .padding(.vertical, 12)
+            .adaptiveReadableWidth()
+        }
+        .background(Color.appCanvasBackground)
+        .contentMargins(.bottom, isSearchPresented ? 96 : 0, for: .scrollContent)
+        .todoScrollCompatibility(isScrolled: $isScrolled)
+        .onChange(of: searchText) { _, _ in
+            currentSearchMatch = 0
+            searchScrollRequest &+= 1
+        }
+        .onChange(of: searchScrollRequest) { _, _ in
+            guard let searchProxy else { return }
+            scrollToTodoMatch(searchProxy)
         }
     }
 
@@ -519,8 +558,11 @@ struct TodoView: View {
 
     private func todoBucketCard(
         group: TodoGroup,
+        allGroups: [TodoGroup],
         index: Int,
-        groupTodos: [TodoItem]
+        groupTodos: [TodoItem],
+        searchMatchIDs: Set<UUID>,
+        currentSearchMatchID: UUID?
     ) -> some View {
         let isFirstGroup = index == 0
         let step = visibleOnboardingStep
@@ -529,11 +571,11 @@ struct TodoView: View {
 
         return TodoBucketCard(
             group: group,
-            groups: groups,
+            groups: allGroups,
             todos: groupTodos,
             canMoveUp: index > 0,
-            canMoveDown: index < groups.count - 1,
-            canDeleteGroup: groups.count > 1 && !todos.contains { $0.bucketRawValue == group.id },
+            canMoveDown: index < allGroups.count - 1,
+            canDeleteGroup: allGroups.count > 1 && groupTodos.isEmpty,
             rename: { renameGroup(group.id, to: $0) },
             changeColor: { changeGroupColor(group.id, to: $0) },
             changeIcon: { changeGroupIcon(group.id, to: $0) },
@@ -555,10 +597,8 @@ struct TodoView: View {
             tutorialInputCommand: isFirstGroup ? todoTutorialInputCommand : nil,
             minimumTodoLength: usesFourCharacterMinimum ? 4 : 1,
             requiresPlusToSubmit: isFirstGroup && step == 1,
-            activeReorderHintIDs: activeReorderHintIDs,
-            searchMatchIDs: Set(searchMatchIDs),
-            currentSearchMatchID: searchMatchIDs.indices.contains(currentSearchMatch)
-                ? searchMatchIDs[currentSearchMatch] : nil,
+            searchMatchIDs: searchMatchIDs,
+            currentSearchMatchID: currentSearchMatchID,
             completed: showCompletionUndo,
             removed: showRemovalUndo,
             movedToAgenda: showMoveToAgendaUndo
@@ -747,45 +787,6 @@ struct TodoView: View {
             submitsCurrentText: false,
             focusesField: true
         )
-    }
-
-    private func runReorderHintWave(itemIDs: [UUID]) async {
-        var transaction = Transaction()
-        transaction.disablesAnimations = true
-        withTransaction(transaction) {
-            activeReorderHintIDs.removeAll()
-        }
-        guard !itemIDs.isEmpty else { return }
-
-        do {
-            try await Task.sleep(for: .seconds(6))
-            var previousID: UUID?
-
-            for id in itemIDs {
-                try Task.checkCancellation()
-                withAnimation(.smooth(duration: 0.34, extraBounce: 0)) {
-                    _ = activeReorderHintIDs.insert(id)
-                }
-                try await Task.sleep(for: .milliseconds(160))
-
-                if let previousID {
-                    withAnimation(.smooth(duration: 0.38, extraBounce: 0)) {
-                        _ = activeReorderHintIDs.remove(previousID)
-                    }
-                }
-                previousID = id
-                try await Task.sleep(for: .milliseconds(100))
-            }
-
-            try await Task.sleep(for: .milliseconds(160))
-            withAnimation(.smooth(duration: 0.38, extraBounce: 0)) {
-                activeReorderHintIDs.removeAll()
-            }
-        } catch {
-            withTransaction(transaction) {
-                activeReorderHintIDs.removeAll()
-            }
-        }
     }
 
     private func moveTodosFromRemovedDefaultGroups() {
@@ -1185,7 +1186,6 @@ private struct TodoBucketCard: View {
     let tutorialInputCommand: TodoTutorialInputCommand?
     let minimumTodoLength: Int
     let requiresPlusToSubmit: Bool
-    let activeReorderHintIDs: Set<UUID>
     let searchMatchIDs: Set<UUID>
     let currentSearchMatchID: UUID?
     let completed: (TodoItem) -> Void
@@ -1245,16 +1245,15 @@ private struct TodoBucketCard: View {
                 .overlay(Color.primary.opacity(0.07))
                 .padding(.leading, 62)
 
-            VStack(alignment: .leading, spacing: 7) {
-                ForEach(Array(todos.enumerated()), id: \.element.id) { index, todo in
+            LazyVStack(alignment: .leading, spacing: 7) {
+                ForEach(todos) { todo in
                     TodoLine(
                         todo: todo,
                         groups: groups,
                         color: group.color,
                         backgroundColor: group.backgroundColor,
-                        isReorderHintActive: activeReorderHintIDs.contains(todo.id),
                         isOnboardingHighlighted: highlightedTodoID == todo.id,
-                        isCompletionEnabled: !(isNewTodoFieldFocused && index == todos.count - 1),
+                        isCompletionEnabled: !(isNewTodoFieldFocused && todo.id == todos.last?.id),
                         isSearchMatch: searchMatchIDs.contains(todo.id),
                         isCurrentSearchMatch: currentSearchMatchID == todo.id,
                         movePerformed: todoMovePerformed,
@@ -1516,7 +1515,6 @@ private struct TodoLine: View {
     let groups: [TodoGroup]
     let color: Color
     let backgroundColor: Color
-    let isReorderHintActive: Bool
     let isOnboardingHighlighted: Bool
     let isCompletionEnabled: Bool
     let isSearchMatch: Bool
@@ -1532,6 +1530,7 @@ private struct TodoLine: View {
     @State private var showMoveToAgenda = false
     @State private var agendaDate = AppCalendar.startOfDay(.now)
     @State private var isDeleting = false
+    @State private var draftText: String?
     @State private var moveSelectionToEndToken = 0
     @State private var isProtectingInitialTap = false
     @State private var initialTapProtectionTask: Task<Void, Never>?
@@ -1551,27 +1550,27 @@ private struct TodoLine: View {
                 .strikethrough(todo.isDone)
                 .foregroundStyle(todo.isDone ? .secondary : .primary)
                 .submitLabel(.done)
-                .onChange(of: todo.text) { _, newValue in
+                .onChange(of: editableText) { _, newValue in
                     let normalizedText = newValue.replacingOccurrences(of: "\n", with: "")
                     if normalizedText != newValue {
                         var transaction = Transaction()
                         transaction.disablesAnimations = true
                         withTransaction(transaction) {
-                            todo.text = normalizedText
+                            draftText = normalizedText
                         }
+                        commitDraft()
                         dismissKeyboard()
-                    }
-                    if normalizedText.isEmpty {
-                        deleteTodo()
                     }
                 }
                 .onSubmit {
+                    commitDraft()
                     dismissKeyboard()
                 }
 
             Spacer(minLength: 2)
 
             Button {
+                commitDraft()
                 todo.toggleDone()
                 _ = PersistenceSafety.save(modelContext)
                 if todo.isDone {
@@ -1595,6 +1594,14 @@ private struct TodoLine: View {
         .id(todo.id)
         .onDisappear {
             initialTapProtectionTask?.cancel()
+            commitDraft()
+        }
+        .onChange(of: isTextFieldFocused) { wasFocused, focused in
+            if wasFocused, !focused {
+                commitDraft()
+            } else if focused, !wasFocused, draftText == nil {
+                draftText = todo.text
+            }
         }
         .sheet(isPresented: $showMoveToAgenda) {
             NavigationStack {
@@ -1631,12 +1638,13 @@ private struct TodoLine: View {
     }
 
     private func dismissKeyboard() {
+        commitDraft()
         isTextFieldFocused = false
         AppKeyboard.dismiss()
     }
 
     private var todoTextField: some View {
-        Text(todo.text.isEmpty ? " " : todo.text)
+        Text(editableText.isEmpty ? " " : editableText)
             .fixedSize(horizontal: false, vertical: true)
             .hidden()
             .accessibilityHidden(true)
@@ -1659,17 +1667,48 @@ private struct TodoLine: View {
     @ViewBuilder private var compatibleTodoTextField: some View {
         if #available(iOS 18.0, *) {
             TodoSelectionTextField(
-                text: $todo.text,
+                text: draftBinding,
                 moveSelectionToEndToken: moveSelectionToEndToken
             )
         } else {
-            TextField("", text: $todo.text, axis: .vertical)
+            TextField("", text: draftBinding, axis: .vertical)
         }
+    }
+
+    private var editableText: String {
+        draftText ?? todo.text
+    }
+
+    private var draftBinding: Binding<String> {
+        Binding(
+            get: { editableText },
+            set: { draftText = $0 }
+        )
+    }
+
+    private func commitDraft() {
+        guard !isDeleting, let draftText else { return }
+
+        initialTapProtectionTask?.cancel()
+        initialTapProtectionTask = nil
+        isProtectingInitialTap = false
+
+        if draftText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            deleteTodo()
+            return
+        }
+
+        if todo.text != draftText {
+            todo.text = draftText
+            _ = PersistenceSafety.save(modelContext)
+        }
+        self.draftText = nil
     }
 
     private func beginEditingAtEnd() {
         moveSelectionToEndToken &+= 1
         if !isTextFieldFocused {
+            draftText = todo.text
             protectInitialTap()
             isTextFieldFocused = true
         }
@@ -1744,47 +1783,22 @@ private struct TodoLine: View {
             }
             .tint(.red)
         } label: {
-            Group {
-                if isReorderHintActive {
-                    ZStack {
-                        Capsule()
-                            .fill(backgroundColor)
-                            .frame(width: 30, height: 20)
-
-                        Image(systemName: "arrow.left.arrow.right")
-                            .font(.system(size: 10, weight: .semibold))
+            Text(ageBadgeText)
+                .font(.system(size: 10, weight: .semibold, design: .rounded))
+                .monospacedDigit()
+                .padding(.horizontal, 5)
+                .padding(.vertical, 3)
+                .background(backgroundColor, in: Capsule())
+                .foregroundStyle(color)
+                .frame(width: 36, height: 24, alignment: .center)
+                .overlay {
+                    if isOnboardingHighlighted {
+                        RoundedRectangle(cornerRadius: 7)
+                            .stroke(Color.brandHardBlue, lineWidth: 3)
+                            .padding(-3)
+                            .allowsHitTesting(false)
                     }
-                    .transition(
-                        .asymmetric(
-                            insertion: .opacity.combined(with: .scale(scale: 0.72)),
-                            removal: .opacity.combined(with: .scale(scale: 1.12))
-                        )
-                    )
-                } else {
-                    Text(ageBadgeText)
-                        .font(.system(size: 10, weight: .semibold, design: .rounded))
-                        .monospacedDigit()
-                        .padding(.horizontal, 5)
-                        .padding(.vertical, 3)
-                        .background(backgroundColor, in: Capsule())
-                        .transition(
-                            .asymmetric(
-                                insertion: .opacity.combined(with: .scale(scale: 0.88)),
-                                removal: .opacity.combined(with: .scale(scale: 0.82))
-                            )
-                        )
                 }
-            }
-            .foregroundStyle(color)
-            .frame(width: 36, height: 24, alignment: .center)
-            .overlay {
-                if isOnboardingHighlighted {
-                    RoundedRectangle(cornerRadius: 7)
-                        .stroke(Color.brandHardBlue, lineWidth: 3)
-                        .padding(-3)
-                        .allowsHitTesting(false)
-                }
-            }
         }
         .accessibilityLabel("\(accessibleAgeText), taak verplaatsen")
         .simultaneousGesture(TapGesture().onEnded {
@@ -1877,7 +1891,6 @@ private struct NewTodoLine: View {
     private var modelContext
 
     @State private var text = ""
-    @State private var textFieldResetToken = 0
     @State private var suppressFocusCommit = false
     @FocusState private var isTextFieldFocused: Bool
 
@@ -1895,7 +1908,6 @@ private struct NewTodoLine: View {
             .accessibilityLabel("Nieuwe taak invoeren")
 
             TextField("typ iets", text: $text, axis: .vertical)
-                .id(textFieldResetToken)
                 .font(.system(size: 16))
                 .textFieldStyle(.plain)
                 .focused($isTextFieldFocused)
@@ -1929,7 +1941,7 @@ private struct NewTodoLine: View {
                         text = commandText
                     }
                     if command.submitsCurrentText {
-                        addTodo()
+                        addTodo(continueEditing: command.focusesField)
                     }
                     if command.focusesField {
                         beginEditing()
@@ -1940,14 +1952,13 @@ private struct NewTodoLine: View {
                 }
 
             Button {
-                addTodo()
+                addTodo(continueEditing: true)
             } label: {
                 Image(systemName: "plus")
                     .font(.system(size: 12, weight: .semibold))
                     .frame(width: 24, height: 24)
             }
             .buttonStyle(.plain)
-            .offset(x: -6)
             .opacity(cleanText.count >= minimumCharacterCount ? 1 : 0)
             .overlay {
                 if highlightsPlus {
@@ -1957,6 +1968,7 @@ private struct NewTodoLine: View {
                         .allowsHitTesting(false)
                 }
             }
+            .offset(x: -6)
         }
         .overlay {
             if highlightsField {
@@ -1971,7 +1983,7 @@ private struct NewTodoLine: View {
         }
     }
 
-    private func addTodo() {
+    private func addTodo(continueEditing: Bool = false) {
         let normalizedText = cleanText
 
         guard normalizedText.count >= minimumCharacterCount else {
@@ -1979,7 +1991,6 @@ private struct NewTodoLine: View {
         }
 
         suppressFocusCommit = true
-        let shouldRestoreFocus = isTextFieldFocused
         let todo = TodoItem(text: normalizedText)
         todo.bucketRawValue = groupID
 
@@ -1988,19 +1999,24 @@ private struct NewTodoLine: View {
 
         withTransaction(transaction) {
             text = ""
-            textFieldResetToken &+= 1
             modelContext.insert(todo)
-            _ = PersistenceSafety.save(modelContext)
         }
         todoAdded(todo.id)
 
         Task { @MainActor in
             await Task.yield()
-            text = ""
-            if shouldRestoreFocus {
+            if continueEditing {
                 isTextFieldFocused = true
             }
             suppressFocusCommit = false
+
+            // Let SwiftUI render the cleared field (and restore focus after a
+            // plus-tap) before the synchronous SwiftData save can occupy the
+            // main actor. The model is already inserted in the context, so it
+            // remains visible immediately while persistence follows one turn
+            // later.
+            await Task.yield()
+            _ = PersistenceSafety.save(modelContext)
         }
     }
 
@@ -2009,9 +2025,10 @@ private struct NewTodoLine: View {
     }
 
     private func finishTodoAndDismissKeyboard() {
+        suppressFocusCommit = true
         isTextFieldFocused = false
         AppKeyboard.dismiss()
-        addTodo()
+        addTodo(continueEditing: false)
     }
 
     private func beginEditing() {

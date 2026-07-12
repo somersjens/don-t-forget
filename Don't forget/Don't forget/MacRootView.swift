@@ -86,6 +86,7 @@ struct MacRootView: View {
         .onChange(of: section) { _, _ in
             selection = nil
             currentSearchMatch = 0
+            macAgendaCanUndo = false
         }
         .onChange(of: searchText) { _, _ in
             currentSearchMatch = 0
@@ -146,6 +147,7 @@ struct MacRootView: View {
                 }
                 .buttonStyle(.plain)
                 .foregroundStyle(canReturn ? Color.brandHardBlue : Color.secondary.opacity(0.65))
+                .disabled(!canReturn)
                 .help("Terug")
                 Spacer()
                 Button(action: toggleSearch) {
@@ -175,7 +177,7 @@ struct MacRootView: View {
                 clear: clearSearch
             )
             .padding(.top, 8)
-            .frame(maxWidth: 936)
+            .frame(maxWidth: 900)
             .frame(maxWidth: .infinity)
             .background(Color.appCanvasBackground)
         }
@@ -299,10 +301,17 @@ struct MacRootView: View {
     private var searchMatchIDs: [UUID] {
         guard !normalizedSearch.isEmpty else { return [] }
         switch section {
-        case .agenda: return agendaItems.map(\.id)
-        case .todo: return todoItems.map(\.id)
-        case .recurring: return activeRecurringItems.map(\.id)
-        case .history: return historyDayEntries.map(\.id) + historyTodos.map(\.id)
+        case .agenda:
+            return agendaItems.filter { matchesSearch($0.rawText) }.map(\.id)
+        case .todo:
+            return todoItems.filter { matchesSearch($0.text) }.map(\.id)
+        case .recurring:
+            return activeRecurringItems.filter { matchesSearch($0.title + " " + $0.notes) }.map(\.id)
+        case .history:
+            let dayIDs = historyDayEntries.filter { matchesSearch($0.rawText) }.map(\.id)
+            let todoIDs = historyTodos.filter { matchesSearch($0.text) }.map(\.id)
+            let recurringIDs = historyRecurringItems.filter { matchesSearch($0.title + " " + $0.notes) }.map(\.id)
+            return dayIDs + todoIDs + recurringIDs
         }
     }
 
@@ -312,36 +321,42 @@ struct MacRootView: View {
 
     private var agendaItems: [DayEntry] {
         dayEntries
-            .filter { !$0.isDone && !$0.isRemoved && matches($0.rawText) }
+            .filter { !$0.isDone && !$0.isRemoved }
             .sorted { ($0.date, $0.manualOrder) < ($1.date, $1.manualOrder) }
     }
 
     private var todoItems: [TodoItem] {
         todos
-            .filter { !$0.isDone && !$0.isRemoved && matches($0.text) }
+            .filter { !$0.isDone && !$0.isRemoved }
             .sorted { $0.createdAt > $1.createdAt }
     }
 
     private var activeRecurringItems: [RecurringItem] {
         recurringItems
-            .filter { !$0.isRemoved && matches($0.title + " " + $0.notes) }
+            .filter { !$0.isRemoved }
             .sorted { $0.nextDate < $1.nextDate }
     }
 
     private var historyDayEntries: [DayEntry] {
         dayEntries
-            .filter { ($0.isDone || $0.isRemoved) && matches($0.rawText) }
+            .filter { $0.isDone || $0.isRemoved }
             .sorted { ($0.completedAt ?? $0.date) > ($1.completedAt ?? $1.date) }
     }
 
     private var historyTodos: [TodoItem] {
         todos
-            .filter { ($0.isDone || $0.isRemoved) && matches($0.text) }
+            .filter { $0.isDone || $0.isRemoved }
             .sorted { ($0.completedAt ?? $0.createdAt) > ($1.completedAt ?? $1.createdAt) }
     }
 
-    private func matches(_ value: String) -> Bool {
-        normalizedSearch.isEmpty || value.localizedCaseInsensitiveContains(normalizedSearch)
+    private var historyRecurringItems: [RecurringItem] {
+        recurringItems
+            .filter(\.isRemoved)
+            .sorted { ($0.completedAt ?? $0.createdAt) > ($1.completedAt ?? $1.createdAt) }
+    }
+
+    private func matchesSearch(_ value: String) -> Bool {
+        value.localizedStandardContains(normalizedSearch)
     }
 
     @ViewBuilder
@@ -487,9 +502,11 @@ private struct MacHistoryBoard: View {
         return (dayItems + todoItems + removedRecurring).sorted { $0.completedAt > $1.completedAt }
     }
     private var visibleItems: [MacHistoryItem] {
-        let query = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
-        return items.filter { $0.id != pendingDeletion?.id && (showsDeletedItems || !$0.isRemoved) && (filter == .all || $0.filter == filter) &&
-            (query.isEmpty || $0.title.localizedCaseInsensitiveContains(query) || $0.category.localizedCaseInsensitiveContains(query)) }
+        items.filter {
+            $0.id != pendingDeletion?.id &&
+            (showsDeletedItems || !$0.isRemoved) &&
+            (filter == .all || $0.filter == filter)
+        }
     }
     private var sections: [(Date, [MacHistoryItem])] {
         Dictionary(grouping: visibleItems) { AppCalendar.startOfDay($0.completedAt) }.sorted { $0.key > $1.key }
@@ -510,11 +527,15 @@ private struct MacHistoryBoard: View {
             LazyVStack(spacing: 14) {
                 controls
                 summary
-                if visibleItems.isEmpty { ContentUnavailableView(searchText.isEmpty ? "Nog niets afgerond" : "Geen zoekresultaten", systemImage: searchText.isEmpty ? "clock.arrow.circlepath" : "magnifyingglass") }
-                ForEach(sections, id: \.0) { date, rows in dayCard(date: date, rows: rows) }
+                if visibleItems.isEmpty { ContentUnavailableView("Nog niets afgerond", systemImage: "clock.arrow.circlepath") }
+                ForEach(sections, id: \.0) { date, rows in
+                    dayCard(date: date, rows: rows)
+                        .id(date)
+                }
             }
             .padding(18).frame(maxWidth: 900).frame(maxWidth: .infinity)
         }
+        .scrollIndicators(.hidden)
         .onChange(of: currentMatchID) { _, id in
             guard let id else { return }
             withAnimation(.easeInOut(duration: 0.24)) { proxy.scrollTo(id, anchor: .center) }
@@ -529,8 +550,13 @@ private struct MacHistoryBoard: View {
         .onReceive(NotificationCenter.default.publisher(for: .macSearchScrollRequest)) { note in
             guard let id = note.object as? UUID else { return }
             Task { @MainActor in
-                await Task.yield()
+                if let item = visibleItems.first(where: { $0.id == id }) {
+                    proxy.scrollTo(AppCalendar.startOfDay(item.completedAt), anchor: .center)
+                }
+                try? await Task.sleep(for: .milliseconds(60))
                 withAnimation(.easeInOut(duration: 0.24)) { proxy.scrollTo(id, anchor: .center) }
+                try? await Task.sleep(for: .milliseconds(260))
+                proxy.scrollTo(id, anchor: .center)
             }
         }
         }
@@ -850,6 +876,7 @@ private struct MacTodoBoard: View {
             LazyVStack(spacing: 14) {
                 ForEach(visibleGroupEntries, id: \.element.id) { index, group in
                     groupCard(group, index: index)
+                        .id(group.id)
                 }
                 if searchText.isEmpty && groups.count < MacTodoGroupStore.maxCount { newGroupRow }
             }
@@ -857,6 +884,7 @@ private struct MacTodoBoard: View {
             .frame(maxWidth: 900)
             .frame(maxWidth: .infinity)
         }
+        .scrollIndicators(.hidden)
         .onChange(of: currentMatchID) { _, id in
             guard let id else { return }
             withAnimation(.easeInOut(duration: 0.24)) { proxy.scrollTo(id, anchor: .center) }
@@ -871,8 +899,13 @@ private struct MacTodoBoard: View {
         .onReceive(NotificationCenter.default.publisher(for: .macSearchScrollRequest)) { note in
             guard let id = note.object as? UUID else { return }
             Task { @MainActor in
-                await Task.yield()
+                if let todo = todos.first(where: { $0.id == id }) {
+                    proxy.scrollTo(todo.bucketRawValue, anchor: .center)
+                }
+                try? await Task.sleep(for: .milliseconds(60))
                 withAnimation(.easeInOut(duration: 0.24)) { proxy.scrollTo(id, anchor: .center) }
+                try? await Task.sleep(for: .milliseconds(260))
+                proxy.scrollTo(id, anchor: .center)
             }
         }
         }
@@ -912,23 +945,35 @@ private struct MacTodoBoard: View {
     }
 
     private var visibleGroupEntries: [(offset: Int, element: MacTodoGroup)] {
-        let entries = Array(groups.enumerated())
-        guard !searchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return entries }
-        return entries.filter { _, group in
-            todos.contains { $0.bucketRawValue == group.id && $0.text.localizedCaseInsensitiveContains(searchText) }
-        }
+        Array(groups.enumerated())
     }
 
     private func groupCard(_ group: MacTodoGroup, index: Int) -> some View {
-        let items = todos.filter {
-            $0.bucketRawValue == group.id && (searchText.isEmpty || $0.text.localizedCaseInsensitiveContains(searchText))
-        }
+        let items = todos.filter { $0.bucketRawValue == group.id }
         return VStack(spacing: 0) {
             HStack(spacing: 10) {
-                Image(systemName: group.icon)
-                    .foregroundStyle(group.color)
+                ZStack {
+                    ZStack {
+                        RoundedRectangle(cornerRadius: 8)
+                            .fill(group.backgroundColor)
+                        Image(systemName: group.icon)
+                            .foregroundStyle(group.color)
+                    }
                     .frame(width: 32, height: 32)
-                    .background(group.backgroundColor, in: RoundedRectangle(cornerRadius: 8))
+
+                    Menu {
+                        groupAppearanceMenu(group)
+                    } label: {
+                        Color.clear
+                            .frame(width: 32, height: 32)
+                            .contentShape(Rectangle())
+                    }
+                    .menuStyle(.borderlessButton)
+                    .menuIndicator(.hidden)
+                    .tint(group.color)
+                }
+                .frame(width: 32, height: 32)
+                .help("Icoon en kleur wijzigen")
                 VStack(alignment: .leading, spacing: 1) {
                     TextField("Groepsnaam", text: titleBinding(for: group.id))
                         .textFieldStyle(.plain)
@@ -943,11 +988,7 @@ private struct MacTodoBoard: View {
 
             Divider()
 
-            if items.isEmpty && !searchText.isEmpty {
-                Text("Geen overeenkomende taken")
-                    .foregroundStyle(.secondary)
-                    .padding(16)
-            } else {
+            if !items.isEmpty {
                 VStack(spacing: 0) {
                     ForEach(items) { todo in
                         todoRow(todo, group: group)
@@ -983,8 +1024,8 @@ private struct MacTodoBoard: View {
             }
             .padding(12)
         }
-        .background(Color.appCardBackground, in: RoundedRectangle(cornerRadius: 14))
-        .overlay { RoundedRectangle(cornerRadius: 14).stroke(Color.appCardOutline) }
+        .background(Color.appCardBackground, in: RoundedRectangle(cornerRadius: 10))
+        .overlay { RoundedRectangle(cornerRadius: 10).stroke(Color.appCardOutline) }
     }
 
     private func todoRow(_ todo: TodoItem, group: MacTodoGroup) -> some View {
@@ -1047,8 +1088,10 @@ private struct MacTodoBoard: View {
                 Image(systemName: "circle")
                     .font(.title3)
                     .foregroundStyle(group.color)
+                    .frame(width: 26, height: 24)
             }
             .buttonStyle(.plain)
+            .padding(.trailing, 2)
             .help("Markeer als afgerond")
         }
         .padding(.horizontal, 12)
@@ -1085,18 +1128,7 @@ private struct MacTodoBoard: View {
 
     private func groupMenu(_ group: MacTodoGroup, index: Int, isEmpty: Bool) -> some View {
         Menu {
-            Menu("Icoon") {
-                ForEach(macTodoIcons, id: \.self) { icon in
-                    Button { updateGroup(group.id) { $0.icon = icon } } label: { Label(icon, systemImage: icon) }
-                }
-            }
-            Menu("Kleur") {
-                ForEach(RecurringThemeColorOption.allCases) { color in
-                    Button { updateGroup(group.id) { $0.colorRawValue = color.rawValue } } label: {
-                        Text(color.rawValue.capitalized)
-                    }
-                }
-            }
+            groupAppearanceMenu(group)
             Divider()
             Button("Omhoog", systemImage: "arrow.up") { moveGroup(index, by: -1) }
                 .disabled(index == 0)
@@ -1114,7 +1146,24 @@ private struct MacTodoBoard: View {
         .menuStyle(.borderlessButton)
         .menuIndicator(.hidden)
         .tint(group.color)
-        .padding(.trailing, 20)
+        .padding(.trailing, 2)
+        .offset(x: -7)
+    }
+
+    @ViewBuilder
+    private func groupAppearanceMenu(_ group: MacTodoGroup) -> some View {
+        Menu("Icoon") {
+            ForEach(macTodoIcons, id: \.self) { icon in
+                Button { updateGroup(group.id) { $0.icon = icon } } label: { Label(icon, systemImage: icon) }
+            }
+        }
+        Menu("Kleur") {
+            ForEach(RecurringThemeColorOption.allCases) { color in
+                Button { updateGroup(group.id) { $0.colorRawValue = color.rawValue } } label: {
+                    Text(color.rawValue.capitalized)
+                }
+            }
+        }
     }
 
     private var newGroupRow: some View {
@@ -1350,6 +1399,7 @@ private struct MacRecurringBoard: View {
     @State private var dismissUndoTask: Task<Void, Never>?
     @State private var creatingItem: RecurringItem?
     @State private var isCreatingItem = false
+    @State private var showingHolidayManager = false
 
     private var categories: [MacRecurringCategory] {
         get { MacRecurringCategoryStore.decode(categoriesData) }
@@ -1362,6 +1412,7 @@ private struct MacRecurringBoard: View {
             LazyVStack(spacing: 12) {
                 ForEach(visibleCategoryEntries, id: \.element.id) { index, category in
                     categoryCard(category, index: index)
+                        .id(category.id)
                 }
                 if searchText.isEmpty && categories.count < MacRecurringCategoryStore.maxCount { newGroupRow }
             }
@@ -1383,15 +1434,21 @@ private struct MacRecurringBoard: View {
         .onReceive(NotificationCenter.default.publisher(for: .macSearchScrollRequest)) { note in
             guard let id = note.object as? UUID else { return }
             Task { @MainActor in
-                await Task.yield()
+                if let item = items.first(where: { $0.id == id }) {
+                    proxy.scrollTo(item.themeRawValue, anchor: .center)
+                }
+                try? await Task.sleep(for: .milliseconds(60))
                 withAnimation(.easeInOut(duration: 0.24)) { proxy.scrollTo(id, anchor: .center) }
+                try? await Task.sleep(for: .milliseconds(260))
+                proxy.scrollTo(id, anchor: .center)
             }
         }
         }
         .background(Color.appCanvasBackground)
         .overlay {
             if let creatingItem {
-                ZStack {
+                GeometryReader { geometry in
+                ZStack(alignment: .bottom) {
                     Color.black.opacity(0.16).ignoresSafeArea()
                     VStack(spacing: 0) {
                         HStack {
@@ -1406,18 +1463,24 @@ private struct MacRecurringBoard: View {
                             }
                             Button("Gereed") { finishCreatingItem() }.buttonStyle(.borderedProminent)
                         }
-                        .padding(.horizontal, 20).padding(.vertical, 14).background(.bar)
-                        Divider()
+                        .padding(.horizontal, 20).padding(.vertical, 14)
                         MacRecurringEditor(item: creatingItem)
                     }
-        .background(Color.appCanvasBackground)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: min(geometry.size.height + 58, 760), alignment: .top)
+                    .background(editorSurfaceColor)
+                    .clipShape(.rect(topLeadingRadius: 18, topTrailingRadius: 18))
                     .shadow(color: .black.opacity(0.2), radius: 18, y: -4)
                     .transition(.move(edge: .bottom).combined(with: .opacity))
+                }
+                .frame(height: geometry.size.height + 58)
+                .offset(y: -58)
                 }
                 .zIndex(10)
             }
         }
         .animation(.snappy(duration: 0.28), value: creatingItem?.id)
+        .sheet(isPresented: $showingHolidayManager) { MacHolidayManagerView() }
         .safeAreaInset(edge: .bottom) {
             if let recentlyRemovedItem {
                 HStack(spacing: 10) {
@@ -1435,19 +1498,40 @@ private struct MacRecurringBoard: View {
         }
     }
 
+    private var editorSurfaceColor: Color {
+        DefaultColorCombination.isEnabled ? .brandCanvasBlue : Color(nsColor: .windowBackgroundColor)
+    }
+
     private var visibleCategoryEntries: [(offset: Int, element: MacRecurringCategory)] {
-        let entries = Array(categories.enumerated())
-        guard !searchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return entries }
-        return entries.filter { !visibleItems(in: $0.element.id).isEmpty }
+        Array(categories.enumerated())
     }
 
     private func categoryCard(_ category: MacRecurringCategory, index: Int) -> some View {
         let categoryItems = visibleItems(in: category.id)
         return VStack(spacing: 0) {
             HStack(spacing: 10) {
-                Image(systemName: category.iconName ?? "repeat")
-                    .foregroundStyle(category.color).frame(width: 32, height: 32)
-                    .background(category.backgroundColor, in: RoundedRectangle(cornerRadius: 8))
+                ZStack {
+                    ZStack {
+                        RoundedRectangle(cornerRadius: 8)
+                            .fill(category.backgroundColor)
+                        Image(systemName: category.iconName ?? "repeat")
+                            .foregroundStyle(category.color)
+                    }
+                    .frame(width: 32, height: 32)
+
+                    Menu {
+                        categoryAppearanceMenu(category)
+                    } label: {
+                        Color.clear
+                            .frame(width: 32, height: 32)
+                            .contentShape(Rectangle())
+                    }
+                    .menuStyle(.borderlessButton)
+                    .menuIndicator(.hidden)
+                    .tint(category.color)
+                }
+                .frame(width: 32, height: 32)
+                .help("Icoon en kleur wijzigen")
                 VStack(alignment: .leading, spacing: 1) {
                     if category.isFixed {
                         Text(category.title).font(.headline)
@@ -1460,18 +1544,19 @@ private struct MacRecurringBoard: View {
                 Spacer()
                 HStack(spacing: 2) {
                     categoryActionsMenu(category, index: index, isEmpty: categoryItems.isEmpty)
-                    Button { createItem(in: category.id) } label: {
+                    Button {
+                        if category.id == MacRecurringCategoryStore.holidayID { showingHolidayManager = true }
+                        else { createItem(in: category.id) }
+                    } label: {
                         Image(systemName: "plus").fontWeight(.semibold).frame(width: 28, height: 28)
-                    }.help("Herhaling toevoegen")
+                    }.help(category.id == MacRecurringCategoryStore.holidayID ? "Feestdagen kiezen" : "Herhaling toevoegen")
                 }
                 .buttonStyle(.plain)
                 .foregroundStyle(category.color)
             }.padding(12)
 
             Divider()
-            if categoryItems.isEmpty && !searchText.isEmpty {
-                Text("Geen overeenkomende herhalingen").foregroundStyle(.secondary).padding(16)
-            } else {
+            if !categoryItems.isEmpty {
                 ForEach(categoryItems) { item in
                     itemRow(item, category: category)
                     if item.id != categoryItems.last?.id { Divider().padding(.leading, 72) }
@@ -1532,16 +1617,7 @@ private struct MacRecurringBoard: View {
             Button("Omhoog verplaatsen", systemImage: "arrow.up") { move(index, by: -1) }.disabled(index == 0)
             Button("Omlaag verplaatsen", systemImage: "arrow.down") { move(index, by: 1) }.disabled(index == categories.count - 1)
             Divider()
-            Menu("Icoon") {
-                ForEach(macRecurringIcons, id: \.self) { icon in
-                    Button { update(category.id) { $0.iconName = icon } } label: { Label(icon, systemImage: icon) }
-                }
-            }
-            Menu("Kleur") {
-                ForEach(RecurringThemeColorOption.allCases) { option in
-                    Button { update(category.id) { $0.colorRawValue = option.rawValue } } label: { Text(option.rawValue.capitalized) }
-                }
-            }
+            categoryAppearanceMenu(category)
             if !category.isFixed {
                 Divider()
                 Button("Verwijder groep", systemImage: "trash", role: .destructive) { delete(category.id) }
@@ -1557,6 +1633,20 @@ private struct MacRecurringBoard: View {
         .tint(category.color)
         .foregroundStyle(category.color)
         .help("Volgorde en uiterlijk")
+    }
+
+    @ViewBuilder
+    private func categoryAppearanceMenu(_ category: MacRecurringCategory) -> some View {
+        Menu("Icoon") {
+            ForEach(macRecurringIcons, id: \.self) { icon in
+                Button { update(category.id) { $0.iconName = icon } } label: { Label(icon, systemImage: icon) }
+            }
+        }
+        Menu("Kleur") {
+            ForEach(RecurringThemeColorOption.allCases) { option in
+                Button { update(category.id) { $0.colorRawValue = option.rawValue } } label: { Text(option.rawValue.capitalized) }
+            }
+        }
     }
 
     private var newGroupRow: some View {
@@ -1593,7 +1683,7 @@ private struct MacRecurringBoard: View {
     }
 
     private func visibleItems(in id: String) -> [RecurringItem] {
-        items.filter { $0.themeRawValue == id && (searchText.isEmpty || ($0.title + " " + $0.notes).localizedCaseInsensitiveContains(searchText)) }
+        items.filter { $0.themeRawValue == id }
             .sorted {
                 let lhs = nextDate(for: $0), rhs = nextDate(for: $1)
                 if lhs == rhs { return $0.title.localizedCaseInsensitiveCompare($1.title) == .orderedAscending }
@@ -1735,115 +1825,225 @@ private struct MacTodoEditor: View {
     private func save() { PersistenceSafety.save(modelContext) }
 }
 
+private struct MacHolidayManagerView: View {
+    @Environment(\.dismiss) private var dismiss
+    @Environment(\.modelContext) private var modelContext
+    @Environment(\.locale) private var locale
+    @Query(filter: #Predicate<RecurringItem> { !$0.isRemoved }) private var recurringItems: [RecurringItem]
+    @AppStorage(SettingsKeys.recurringHolidayCountry) private var storedCountryCode = ""
+    @AppStorage(SettingsKeys.recurringOnlyLocalHolidays) private var onlyLocal = true
+    @State private var country = HolidayCountry.localeDefault
+    @State private var selectedIDs: Set<String> = []
+
+    private var options: [HolidayOption] { HolidayCatalog.options(for: country, onlyLocal: onlyLocal) }
+    private var managedItems: [RecurringItem] { recurringItems.filter { HolidayCatalog.managedHoliday(from: $0.notes) != nil } }
+
+    var body: some View {
+        VStack(spacing: 0) {
+            HStack {
+                Button("Annuleer") { dismiss() }
+                Spacer()
+                Text("Feestdagen").font(.headline)
+                Spacer()
+                Button("Bewaar") { applySelection() }.buttonStyle(.borderedProminent)
+            }
+            .padding(16)
+
+            Form {
+                Section {
+                    Picker("Standaardland", selection: $country) {
+                        ForEach(HolidayCountry.allCases) { Text($0.title(for: locale)).tag($0) }
+                    }
+                    Toggle("Laat alleen lokale feestdagen zien", isOn: $onlyLocal)
+                }
+                Section("Selectie") {
+                    Button(visibleSelectionCount == options.count ? "Deselecteer alles" : "Selecteer alles") {
+                        let ids = Set(options.map(\.id))
+                        if visibleSelectionCount == options.count { selectedIDs.subtract(ids) }
+                        else { selectedIDs.formUnion(ids) }
+                    }
+                    ForEach(options) { option in
+                        Toggle(isOn: selectionBinding(option.id)) {
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(onlyLocal ? option.definition.title : "\(option.definition.title) (\(option.country.title(for: locale)))")
+                                Text(option.definition.recurrenceDescription).font(.caption).foregroundStyle(.secondary)
+                            }
+                        }
+                    }
+                }
+            }
+            .formStyle(.grouped)
+            .scrollContentBackground(.hidden)
+        }
+        .frame(minWidth: 480, minHeight: 560)
+        .background(Color.appCanvasBackground)
+        .onAppear(perform: loadSelection)
+        .onChange(of: country) { _, newCountry in selectedIDs = HolidayCatalog.defaultSelectionIDs(for: newCountry, onlyLocal: onlyLocal) }
+    }
+
+    private var visibleSelectionCount: Int { selectedIDs.intersection(Set(options.map(\.id))).count }
+    private func selectionBinding(_ id: String) -> Binding<Bool> {
+        Binding(get: { selectedIDs.contains(id) }, set: { isSelected in
+            if isSelected { selectedIDs.insert(id) } else { selectedIDs.remove(id) }
+        })
+    }
+    private func loadSelection() {
+        country = HolidayCountry(rawValue: storedCountryCode) ?? .localeDefault
+        let ids = managedItems.compactMap { item -> String? in
+            guard let value = HolidayCatalog.managedHoliday(from: item.notes) else { return nil }
+            return "\(value.country.rawValue):\(value.definition.id)"
+        }
+        selectedIDs = ids.isEmpty ? HolidayCatalog.defaultSelectionIDs(for: country, onlyLocal: onlyLocal) : Set(ids)
+    }
+    private func applySelection() {
+        managedItems.forEach(modelContext.delete)
+        for option in options where selectedIDs.contains(option.id) {
+            let definition = option.definition
+            let item = RecurringItem(title: definition.title, nextDate: HolidayCatalog.nextDate(for: definition), theme: .general, recurrenceKind: .annualFixed, notes: HolidayCatalog.marker(country: option.country, holidayID: definition.id))
+            item.themeRawValue = MacRecurringCategoryStore.holidayID
+            item.frequencyText = definition.recurrenceDescription
+            modelContext.insert(item)
+        }
+        storedCountryCode = country.rawValue
+        _ = PersistenceSafety.save(modelContext)
+        dismiss()
+    }
+}
+
 private struct MacRecurringEditor: View {
     @Environment(\.modelContext) private var modelContext
     @AppStorage(SettingsKeys.recurringCategories) private var categoriesData = ""
     @Bindable var item: RecurringItem
     @FocusState private var focusedLinkIndex: Int?
+    @State private var birthdayYearText = ""
+    @State private var currentAgeText = ""
 
     private var categories: [MacRecurringCategory] {
         MacRecurringCategoryStore.decode(categoriesData)
     }
 
     var body: some View {
-        Form {
-            Section(item.recurrenceKind == .birthday ? "Wie" : "Wat") {
-                TextField(item.recurrenceKind == .birthday ? "Naam" : "Titel", text: $item.title)
-                Picker("Categorie", selection: $item.themeRawValue) {
-                    ForEach(categories) { category in
-                        Label(category.title, systemImage: category.iconName ?? "repeat").tag(category.id)
-                    }
-                }
-            }
-
-            Section("Frequentie") { frequencyFields }
-
-            Section("Overzicht") {
-                LabeledContent("Volgende", value: nextDate.formatted(date: .long, time: .omitted))
-                LabeledContent("Herhaling", value: RecurrenceEngine.description(for: item))
-            }
-
-            Section("Links") {
-                ForEach(0..<visibleLinkFieldCount, id: \.self) { index in
-                    VStack(alignment: .leading, spacing: 7) {
-                        HStack(alignment: .firstTextBaseline, spacing: 10) {
-                            Text("URL").foregroundStyle(.secondary).frame(width: 42, alignment: .leading)
-                            TextField("", text: linkURLBinding(index), prompt: Text("Plak link"))
-                                .textFieldStyle(.plain)
-                                .focused($focusedLinkIndex, equals: index)
-                                .padding(.horizontal, 9).frame(height: 28)
-                                .background(Color.black.opacity(0.055), in: RoundedRectangle(cornerRadius: 6))
-                        }
-                        HStack(alignment: .firstTextBaseline, spacing: 10) {
-                            Text("Naam").foregroundStyle(.secondary).frame(width: 42, alignment: .leading)
-                            TextField("", text: linkNameBinding(index), prompt: Text("Link \(index + 1)"))
-                                .textFieldStyle(.plain)
-                                .padding(.horizontal, 9).frame(height: 28)
-                                .background(Color.black.opacity(0.055), in: RoundedRectangle(cornerRadius: 6))
-                            if let destination = links[safe: index]?.destination {
-                                Link(destination: destination) {
-                                    HStack(spacing: 4) {
-                                        Text(linkDisplayName(index)).lineLimit(1)
-                                        Image(systemName: "arrow.up.right.square")
-                                    }
-                                }.help("Open \(linkDisplayName(index))")
-                            }
-                            Button { removeLink(index) } label: { Image(systemName: "xmark.circle.fill") }
-                                .buttonStyle(.plain).foregroundStyle(.secondary)
-                                .disabled(index >= links.count).help("Verwijder link")
-                        }
-                    }
-                    .padding(.vertical, 3)
-                }
-            }
-
-            Section("Notities") {
-                TextEditor(text: $item.notes).frame(minHeight: 120)
-            }
-        }
-        .formStyle(.grouped)
-        .navigationTitle(item.title.isEmpty ? "Nieuw terugkerend item" : item.title)
-        .onChange(of: item.title) { _, _ in save() }
-        .onChange(of: item.nextDate) { _, value in item.nextDate = AppCalendar.startOfDay(value); saveRecurrence() }
-        .onChange(of: item.themeRawValue) { _, categoryID in
-            if categoryID == MacRecurringCategoryStore.birthdayID {
-                item.recurrenceKind = .birthday
-                item.birthDate = item.birthDate ?? item.nextDate
-            } else if categoryID == MacRecurringCategoryStore.holidayID {
-                item.recurrenceKind = .annualFixed
-                item.birthDate = nil
-            } else if item.recurrenceKind == .birthday || item.recurrenceKind == .annualFixed || item.recurrenceKind == .annualOrdinalWeekday {
-                item.recurrenceKind = .interval
-                item.birthDate = nil
-            }
-            saveRecurrence()
-        }
-        .onChange(of: item.recurrenceKindRawValue) { _, _ in saveRecurrence() }
-        .onChange(of: item.intervalValue) { _, _ in saveRecurrence() }
-        .onChange(of: item.intervalUnitRawValue) { _, _ in saveRecurrence() }
-        .onChange(of: item.monthlyDay) { _, _ in saveRecurrence() }
-        .onChange(of: item.monthlyOrdinal) { _, _ in saveRecurrence() }
-        .onChange(of: item.monthlyWeekday) { _, _ in saveRecurrence() }
-        .onChange(of: item.annualMonth) { _, _ in saveRecurrence() }
-        .onChange(of: item.birthDate) { _, value in
-            if let value { item.birthDate = AppCalendar.startOfDay(value); item.nextDate = AppCalendar.startOfDay(value) }
-            saveRecurrence()
-        }
+        editorContent
+        .onAppear(perform: loadBirthdayFields)
+        .onChange(of: item.themeRawValue) { _, categoryID in updateCategory(categoryID) }
+        .onChange(of: item.birthDate) { _, _ in saveRecurrence() }
         .onChange(of: item.birthdayYearUncertain) { _, _ in saveRecurrence() }
-        .onChange(of: item.reminderDaysBefore) { _, _ in saveRecurrence() }
         .onChange(of: item.notes) { _, _ in save() }
+    }
+
+    private var editorContent: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 26) {
+                identityCard
+                editorCard("Frequentie") { frequencyFields }
+                linksCard
+                notesCard
+            }
+            .padding(.horizontal, 22)
+            .padding(.vertical, 24)
+            .frame(maxWidth: 900)
+            .frame(maxWidth: .infinity)
+        }
+        .background(Color.clear)
+    }
+
+    private func updateCategory(_ categoryID: String) {
+        if categoryID == MacRecurringCategoryStore.birthdayID {
+            item.recurrenceKind = .birthday; item.birthDate = item.birthDate ?? item.nextDate; loadBirthdayFields()
+        } else if categoryID == MacRecurringCategoryStore.holidayID {
+            item.recurrenceKind = .annualFixed; item.birthDate = nil
+        } else if item.recurrenceKind == .birthday || item.recurrenceKind == .annualFixed || item.recurrenceKind == .annualOrdinalWeekday {
+            item.recurrenceKind = .interval; item.birthDate = nil
+        }
+        saveRecurrence()
+    }
+
+    private func editorCard<Content: View>(_ title: String, @ViewBuilder content: () -> Content) -> some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text(title).font(.headline).padding(.leading, 1)
+            VStack(spacing: 12) { content() }
+                .padding(.horizontal, 14).padding(.vertical, 12)
+                .background(Color.white, in: RoundedRectangle(cornerRadius: 14))
+        }
+    }
+
+    private var editorDivider: some View { Divider().opacity(0.35) }
+
+    private var identityCard: some View {
+        editorCard(item.recurrenceKind == .birthday ? "Wie" : "Wat") {
+            HStack(spacing: 18) {
+                Text(item.recurrenceKind == .birthday ? "Naam" : "Titel")
+                TextField("", text: $item.title).textFieldStyle(.plain).multilineTextAlignment(.leading)
+            }
+            editorDivider
+            Picker("Categorie", selection: $item.themeRawValue) {
+                ForEach(categories) { category in Label(category.title, systemImage: category.iconName ?? "repeat").tag(category.id) }
+            }
+        }
+    }
+
+    private var linksCard: some View {
+        editorCard("Links") {
+            ForEach(0..<visibleLinkFieldCount, id: \.self) { index in linkRow(index) }
+        }
+    }
+
+    private func linkRow(_ index: Int) -> some View {
+        HStack(spacing: 12) {
+            TextField("", text: linkURLBinding(index), prompt: Text("Plak link"))
+                .textFieldStyle(.plain).focused($focusedLinkIndex, equals: index)
+                .padding(.horizontal, 10).frame(height: 30)
+            Divider().frame(height: 24)
+            if let destination = links[safe: index]?.destination {
+                Link(linkDisplayName(index), destination: destination).lineLimit(1).frame(maxWidth: .infinity, alignment: .leading)
+                TextField("", text: linkNameBinding(index), prompt: Text("Naam"))
+                    .textFieldStyle(.plain).frame(width: 90)
+                Button { removeLink(index) } label: { Image(systemName: "xmark.circle.fill") }
+                    .buttonStyle(.plain).foregroundStyle(.secondary)
+            } else {
+                TextField("", text: linkNameBinding(index), prompt: Text("Link \(index + 1)"))
+                    .textFieldStyle(.plain).frame(maxWidth: .infinity)
+            }
+        }
+        .padding(.vertical, 3)
+    }
+
+    private var notesCard: some View {
+        editorCard("Notitie") {
+            TextEditor(text: $item.notes).frame(minHeight: 120).scrollContentBackground(.hidden)
+        }
     }
 
     @ViewBuilder private var frequencyFields: some View {
         if item.themeRawValue == MacRecurringCategoryStore.birthdayID {
-            DatePicker("Geboortedatum", selection: birthDateBinding, displayedComponents: .date)
-            Toggle("Geboortejaar onzeker", isOn: $item.birthdayYearUncertain)
+            HStack {
+                Text("Dag/Maand")
+                Spacer()
+                Picker("Dag", selection: birthdayDayBinding) {
+                    ForEach(1...daysInBirthdayMonth, id: \.self) { Text("\($0)").tag($0) }
+                }
+                .labelsHidden().pickerStyle(.menu).controlSize(.small)
+                Picker("Maand", selection: birthdayMonthBinding) {
+                    ForEach(1...12, id: \.self) { Text(AppCalendar.monthName($0)).tag($0) }
+                }
+                .labelsHidden().pickerStyle(.menu).controlSize(.small)
+            }
+            HStack {
+                Text("Leeftijd/jaar")
+                Spacer()
+                TextField("", text: currentAgeBinding, prompt: Text("Leeftijd"))
+                    .textFieldStyle(.plain).multilineTextAlignment(.trailing)
+                    .padding(.horizontal, 9).frame(width: 72, height: 28)
+                    .background(Color.white, in: RoundedRectangle(cornerRadius: 7))
+                TextField("", text: birthdayYearBinding, prompt: Text("Jaar"))
+                    .textFieldStyle(.plain).multilineTextAlignment(.trailing)
+                    .padding(.horizontal, 9).frame(width: 80, height: 28)
+                    .background(Color.white, in: RoundedRectangle(cornerRadius: 7))
+            }
+            Toggle("Leeftijd/jaar onzeker", isOn: $item.birthdayYearUncertain)
             Toggle("Reminder vooraf", isOn: reminderEnabledBinding)
             if item.reminderDaysBefore != nil {
                 Stepper("\(item.reminderDaysBefore ?? 7) dagen vooraf", value: reminderDaysBinding, in: 1...365)
-            }
-            if let birthDate = item.birthDate {
-                LabeledContent("Huidige leeftijd", value: "\(RecurrenceEngine.currentAge(for: birthDate))")
             }
         } else if item.themeRawValue == MacRecurringCategoryStore.holidayID {
             Picker("Regel", selection: $item.recurrenceKindRawValue) {
@@ -1851,14 +2051,14 @@ private struct MacRecurringEditor: View {
                 Text("Weekdag van een maand").tag(RecurrenceKind.annualOrdinalWeekday.rawValue)
             }
             if item.recurrenceKind == .annualFixed {
-                DatePicker("Datum", selection: $item.nextDate, displayedComponents: .date)
+                compactDatePicker("Datum", selection: $item.nextDate)
             } else {
                 monthPicker
                 ordinalPicker
                 weekdayPicker
             }
         } else {
-            DatePicker(item.recurrenceKind == .yearly ? "Startdatum" : "Eerstvolgende datum", selection: $item.nextDate, displayedComponents: .date)
+            compactDatePicker(item.recurrenceKind == .yearly ? "Startdatum" : "Eerstvolgende datum", selection: $item.nextDate)
             Picker("Type", selection: $item.recurrenceKindRawValue) {
                 Text("Vaste regelmaat").tag(RecurrenceKind.interval.rawValue)
                 Text("Maandelijks op datum").tag(RecurrenceKind.monthlyDay.rawValue)
@@ -1869,11 +2069,11 @@ private struct MacRecurringEditor: View {
             }
             switch item.recurrenceKind {
             case .monthlyDay:
-                Stepper("Elke \(item.monthlyDay)e van de maand", value: $item.monthlyDay, in: 1...31)
+                compactStepper("Elke \(item.monthlyDay)e van de maand", value: $item.monthlyDay, range: 1...31)
             case .monthlyOrdinalWeekday:
                 ordinalPicker; weekdayPicker
             case .interval, .approximateInterval:
-                Stepper("Elke \(item.intervalValue)", value: $item.intervalValue, in: 1...99)
+                compactStepper("Elke \(item.intervalValue)", value: $item.intervalValue, range: 1...99)
                 Picker("Eenheid", selection: $item.intervalUnitRawValue) {
                     Text("Dagen").tag(RecurrenceUnit.day.rawValue)
                     Text("Weken").tag(RecurrenceUnit.week.rawValue)
@@ -1889,6 +2089,43 @@ private struct MacRecurringEditor: View {
                 Text("Wordt ieder jaar herhaald op de datum hierboven.").font(.caption).foregroundStyle(.secondary)
             default: EmptyView()
             }
+        }
+    }
+
+    private func compactStepper(_ title: String, value: Binding<Int>, range: ClosedRange<Int>) -> some View {
+        HStack {
+            Text(title)
+            Spacer()
+            HStack(spacing: 2) {
+                Button { value.wrappedValue = min(range.upperBound, value.wrappedValue + 1) } label: {
+                    Image(systemName: "chevron.up").frame(width: 18, height: 14)
+                }
+                Button { value.wrappedValue = max(range.lowerBound, value.wrappedValue - 1) } label: {
+                    Image(systemName: "chevron.down").frame(width: 18, height: 14)
+                }
+            }
+            .font(.system(size: 11, weight: .semibold))
+            .buttonStyle(.plain)
+        }
+    }
+
+    private func compactDatePicker(_ title: String, selection: Binding<Date>) -> some View {
+        ZStack {
+            HStack {
+                Text(title)
+                Spacer()
+                HStack(spacing: 7) {
+                    Text(AppCalendar.localizedDate(selection.wrappedValue, template: "dMMMyyyy"))
+                        .monospacedDigit()
+                    Image(systemName: "calendar").foregroundStyle(.secondary)
+                }
+                .padding(.horizontal, 10).frame(height: 30)
+                .background(Color.white, in: RoundedRectangle(cornerRadius: 7))
+                .overlay { RoundedRectangle(cornerRadius: 7).stroke(Color.primary.opacity(0.08)) }
+            }
+            DatePicker("", selection: selection, displayedComponents: .date)
+                .labelsHidden().opacity(0.02)
+                .frame(maxWidth: .infinity, alignment: .trailing)
         }
     }
 
@@ -1908,6 +2145,57 @@ private struct MacRecurringEditor: View {
         }
     }
     private var birthDateBinding: Binding<Date> { Binding(get: { item.birthDate ?? item.nextDate }, set: { item.birthDate = AppCalendar.startOfDay($0); item.nextDate = AppCalendar.startOfDay($0) }) }
+
+    private var birthdayMonthBinding: Binding<Int> {
+        Binding(get: { AppCalendar.calendar.component(.month, from: birthDateBinding.wrappedValue) }, set: { updateBirthday(month: $0) })
+    }
+    private var birthdayDayBinding: Binding<Int> {
+        Binding(get: { AppCalendar.calendar.component(.day, from: birthDateBinding.wrappedValue) }, set: { updateBirthday(day: $0) })
+    }
+    private var daysInBirthdayMonth: Int {
+        let date = birthDateBinding.wrappedValue
+        return AppCalendar.calendar.range(of: .day, in: .month, for: date)?.count ?? 31
+    }
+    private var currentAgeBinding: Binding<String> {
+        Binding(get: { currentAgeText }, set: { value in
+            currentAgeText = String(value.filter(\.isNumber).prefix(3))
+            guard let age = Int(currentAgeText) else { return }
+            let components = AppCalendar.calendar.dateComponents([.month, .day], from: birthDateBinding.wrappedValue)
+            guard let date = RecurrenceEngine.birthDate(month: components.month ?? 1, day: components.day ?? 1, currentAge: age) else { return }
+            setBirthDate(date); birthdayYearText = String(AppCalendar.calendar.component(.year, from: date)); item.birthdayYearUncertain = false
+        })
+    }
+    private var birthdayYearBinding: Binding<String> {
+        Binding(get: { birthdayYearText }, set: { value in
+            birthdayYearText = String(value.filter(\.isNumber).prefix(4))
+            guard birthdayYearText.count == 4, let year = Int(birthdayYearText) else { return }
+            updateBirthday(year: year)
+            currentAgeText = String(RecurrenceEngine.currentAge(for: birthDateBinding.wrappedValue))
+            item.birthdayYearUncertain = false
+        })
+    }
+    private func loadBirthdayFields() {
+        guard item.themeRawValue == MacRecurringCategoryStore.birthdayID else { return }
+        let date = birthDateBinding.wrappedValue
+        birthdayYearText = String(AppCalendar.calendar.component(.year, from: date))
+        currentAgeText = String(RecurrenceEngine.currentAge(for: date))
+    }
+    private func updateBirthday(year: Int? = nil, month: Int? = nil, day: Int? = nil) {
+        let old = AppCalendar.calendar.dateComponents([.year, .month, .day], from: birthDateBinding.wrappedValue)
+        let resolvedYear = year ?? old.year ?? 2000
+        let resolvedMonth = month ?? old.month ?? 1
+        let provisional = AppCalendar.calendar.date(from: DateComponents(year: resolvedYear, month: resolvedMonth, day: 1)) ?? birthDateBinding.wrappedValue
+        let maxDay = AppCalendar.calendar.range(of: .day, in: .month, for: provisional)?.count ?? 31
+        guard let date = AppCalendar.calendar.date(from: DateComponents(year: resolvedYear, month: resolvedMonth, day: min(day ?? old.day ?? 1, maxDay))) else { return }
+        setBirthDate(date)
+        currentAgeText = String(RecurrenceEngine.currentAge(for: date))
+        birthdayYearText = String(resolvedYear)
+    }
+    private func setBirthDate(_ date: Date) {
+        item.birthDate = AppCalendar.startOfDay(date)
+        item.nextDate = AppCalendar.startOfDay(date)
+        saveRecurrence()
+    }
     private var reminderEnabledBinding: Binding<Bool> { Binding(get: { item.reminderDaysBefore != nil }, set: { item.reminderDaysBefore = $0 ? 7 : nil }) }
     private var reminderDaysBinding: Binding<Int> { Binding(get: { item.reminderDaysBefore ?? 7 }, set: { item.reminderDaysBefore = $0 }) }
     private var nextDate: Date { RecurrenceEngine.nextDate(for: item) ?? item.nextDate }

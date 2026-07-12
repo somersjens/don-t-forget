@@ -107,7 +107,12 @@ enum AppCalendar {
         numberOfWeeks: Int = 12
     ) -> [WeekSection] {
         let configuredCalendar = calendar
-        let dateFormatter = cachedFormatter(dateFormat: dateFormatOption.dateFormat ?? "dd/MM")
+        let configuredDateFormat = dateFormatOption.dateFormat ?? "dd/MM"
+        let dateFormatter = cachedFormatter(dateFormat: configuredDateFormat)
+        let longDateFormatter = cachedFormatter(template: "dMMMM")
+        let weekdaySymbols = cachedFormatter(template: "EEEE").weekdaySymbols ?? []
+        let configuredWeekdayLabelLength = weekdayLabelLength
+        let configuredMonthSymbols = cachedFormatter(template: "MMMM").monthSymbols ?? []
 
         guard let firstWeekStart = configuredCalendar.dateInterval(of: .weekOfYear, for: date)?.start else {
             return []
@@ -133,24 +138,32 @@ enum AppCalendar {
                     return nil
                 }
                 let normalizedDate = configuredCalendar.startOfDay(for: dayDate)
+                let weekday = configuredCalendar.component(.weekday, from: dayDate)
+                let weekdayIndex = weekday - 1
+                let weekdayName = weekdaySymbols.indices.contains(weekdayIndex)
+                    ? weekdaySymbols[weekdayIndex]
+                    : ""
 
                 return DayInfo(
                     id: normalizedDate,
                     date: normalizedDate,
                     dateLabel: dateFormatter.string(from: dayDate),
-                    weekdayLetter: weekdayLetter(
-                        for: dayDate,
-                        calendar: configuredCalendar
-                    )
+                    weekdayLetter: String(weekdayName.prefix(configuredWeekdayLabelLength))
+                        .localizedCapitalized
                 )
             }
+
+            let month = configuredCalendar.component(.month, from: weekStart)
+            let monthIndex = month - 1
 
             return WeekSection(
                 id: weekStart,
                 startDate: weekStart,
-                startDateLabel: localizedLongDate(weekStart, includeYear: false),
+                startDateLabel: longDateFormatter.string(from: weekStart),
                 weekNumber: weekNumber,
-                monthTitle: monthName(configuredCalendar.component(.month, from: weekStart)),
+                monthTitle: configuredMonthSymbols.indices.contains(monthIndex)
+                    ? configuredMonthSymbols[monthIndex]
+                    : "",
                 days: days
             )
         }
@@ -193,7 +206,8 @@ enum AppCalendar {
             configuredCalendar.timeZone.identifier,
             String(configuredCalendar.firstWeekday),
             String(configuredCalendar.minimumDaysInFirstWeek),
-            dateFormatOption.rawValue,
+            UserDefaults.standard.string(forKey: SettingsKeys.dateFormat)
+                ?? DateFormatOption.system.rawValue,
             cacheComponent
         ].joined(separator: "|")
 

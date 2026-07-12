@@ -954,7 +954,7 @@ struct InlineMatchSearchBar: View {
         #if os(iOS)
         EdgeInsets(top: 0, leading: 18, bottom: 0, trailing: 13)
         #else
-        EdgeInsets(top: 0, leading: 20, bottom: 0, trailing: 20)
+        EdgeInsets(top: 0, leading: 20, bottom: 0, trailing: 9)
         #endif
     }
 
@@ -962,7 +962,7 @@ struct InlineMatchSearchBar: View {
         #if os(iOS)
         18
         #else
-        12
+        18
         #endif
     }
 
@@ -1005,7 +1005,7 @@ struct InlineMatchSearchBar: View {
 
                     Button(action: next) {
                         Image(systemName: "chevron.down")
-                            .font(.system(size: 12, weight: .bold))
+                            .font(.system(size: 11, weight: .bold))
                             .frame(width: 24, height: 24)
                             .background(Color.brandHardBlue.opacity(0.10), in: Circle())
                     }
@@ -1049,20 +1049,24 @@ struct SearchMatchHighlight: ViewModifier {
     let isCurrent: Bool
 
     func body(content: Content) -> some View {
-        content
-            .background {
+        if isMatch {
+            content
+                .background {
                 RoundedRectangle(cornerRadius: 9)
-                    .fill(isMatch ? Color.brandLightBlue.opacity(isCurrent ? 0.72 : 0.38) : Color.clear)
+                    .fill(Color.brandLightBlue.opacity(isCurrent ? 0.72 : 0.38))
                     .padding(.horizontal, -4)
                     .padding(.vertical, -2)
-            }
-            .overlay {
-                if isCurrent {
-                    RoundedRectangle(cornerRadius: 9)
-                        .stroke(Color.brandHardBlue, lineWidth: 2)
-                        .padding(.horizontal, -4)
-                        .padding(.vertical, -2)
                 }
-            }
+                .overlay {
+                    if isCurrent {
+                        RoundedRectangle(cornerRadius: 9)
+                            .stroke(Color.brandHardBlue, lineWidth: 2)
+                            .padding(.horizontal, -4)
+                            .padding(.vertical, -2)
+                    }
+                }
+        } else {
+            content
+        }
     }
 }

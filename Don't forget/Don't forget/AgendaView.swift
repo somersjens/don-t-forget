@@ -178,6 +178,7 @@ struct AgendaView: View {
     @State private var isHelpExpanded = false
     @State private var hasPerformedAgendaTutorialMove = false
     @State private var weatherStore = AppleWeatherForecastStore()
+    @State private var recurringSyncState = RecurringSyncState.shared
     @State private var isSearchPresented = false
     @State private var isKeyboardVisible = false
     @State private var searchText = ""
@@ -523,6 +524,23 @@ struct AgendaView: View {
                             clear: clearAgendaSearch
                         )
                         .adaptiveReadableWidth()
+                    }
+
+                    if recurringSyncState.isSyncing {
+                        HStack(spacing: 8) {
+                            ProgressView()
+                                .controlSize(.small)
+                            Text(locale.language.languageCode?.identifier == "nl"
+                                 ? "Herhalingen worden geladen…"
+                                 : "Loading recurring items…")
+                                .font(.footnote.weight(.medium))
+                                .foregroundStyle(.secondary)
+                        }
+                        .padding(.horizontal, 18)
+                        .padding(.bottom, 8)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .adaptiveReadableWidth()
+                        .transition(.opacity)
                     }
 
                 }

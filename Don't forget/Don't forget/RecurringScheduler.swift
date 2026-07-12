@@ -1,5 +1,22 @@
 import Foundation
 import SwiftData
+import SwiftUI
+
+extension Notification.Name {
+    static let recurringSyncRequested = Notification.Name("recurring.syncRequested")
+}
+
+@MainActor
+@Observable
+final class RecurringSyncState {
+    static let shared = RecurringSyncState()
+    private(set) var isSyncing = false
+
+    private init() {}
+
+    func begin() { isSyncing = true }
+    func finish() { isSyncing = false }
+}
 
 @MainActor
 enum RecurringScheduler {
