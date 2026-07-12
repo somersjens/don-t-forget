@@ -24,6 +24,9 @@ struct RootTabView: View {
     @AppStorage(SettingsKeys.language)
     private var language = AppLanguage.system.rawValue
 
+    @AppStorage(SettingsKeys.defaultColorCombinationEnabled)
+    private var defaultColorCombinationEnabled = true
+
     @AppStorage(SettingsKeys.recurringHolidayCountry)
     private var holidayCountryCode = ""
 
@@ -95,43 +98,36 @@ struct RootTabView: View {
             AgendaView()
                 .tag(MainTab.agenda)
                 .tabItem {
-                    Label(
-                        AppSection.agenda.title(for: appLocale),
-                        systemImage: "calendar"
-                    )
+                    Image(systemName: "calendar")
+                        .accessibilityLabel(AppSection.agenda.title(for: appLocale))
                 }
                 .badge(showsRecurringCalendarHint ? Text("↓") : nil)
 
             TodoView()
                 .tag(MainTab.todo)
                 .tabItem {
-                    Label(
-                        AppSection.todo.title(for: appLocale),
-                        systemImage: "checklist"
-                    )
+                    Image(systemName: "checklist")
+                        .accessibilityLabel(AppSection.todo.title(for: appLocale))
                 }
 
             RecurringView()
                 .tag(MainTab.recurring)
                 .tabItem {
-                    Label(
-                        AppSection.recurring.title(for: appLocale),
-                        systemImage: "repeat"
-                    )
+                    Image(systemName: "repeat")
+                        .accessibilityLabel(AppSection.recurring.title(for: appLocale))
                 }
 
             HistoryView()
                 .tag(MainTab.history)
                 .tabItem {
-                    Label(
-                        AppSection.history.title(for: appLocale),
-                        systemImage: "clock.arrow.circlepath"
-                    )
+                    Image(systemName: "clock.arrow.circlepath")
+                        .accessibilityLabel(AppSection.history.title(for: appLocale))
                 }
         }
         .adaptiveTabViewStyle()
         .neverMinimizeTabBarWhenSupported()
         .tint(.brandHardBlue)
+        .background(Color.appCanvasBackground.ignoresSafeArea())
         .environment(\.locale, appLocale)
         .environment(\.layoutDirection, appLayoutDirection)
         .background {

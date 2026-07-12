@@ -428,6 +428,7 @@ struct HistoryView: View {
                 .padding(.vertical, 12)
                 .adaptiveReadableWidth()
             }
+            .background(Color.appCanvasBackground)
             .historyScrollCompatibility(isScrolled: $isScrolled)
             .toolbar(.hidden, for: .navigationBar)
             .safeAreaInset(edge: .top, spacing: 0) {
@@ -1123,7 +1124,13 @@ private struct HistorySummaryCard: View {
             HStack(spacing: 13) {
                 ZStack {
                     RoundedRectangle(cornerRadius: 11)
-                        .fill(colorScheme == .light ? Color.brandLightBlue : Color.brandHardBlue.opacity(0.22))
+                        .fill(
+                            DefaultColorCombination.isEnabled
+                                ? Color.brandCanvasBlue
+                                : (colorScheme == .light
+                                    ? Color.brandLightBlue
+                                    : Color.brandHardBlue.opacity(0.22))
+                        )
                     Image(systemName: "checkmark.circle.fill")
                         .font(.system(size: 20, weight: .semibold))
                         .foregroundStyle(Color.brandHardBlue)
@@ -1179,10 +1186,15 @@ private struct HistorySummaryCard: View {
                 .clipped()
         }
         .animation(.snappy(duration: 0.38, extraBounce: 0), value: isExpanded)
-        .background(Color(.secondarySystemBackground), in: RoundedRectangle(cornerRadius: 14))
+        .background(Color.appCardBackground, in: RoundedRectangle(cornerRadius: 14))
         .overlay {
             RoundedRectangle(cornerRadius: 14)
-                .stroke(Color.primary.opacity(0.045), lineWidth: 1)
+                .stroke(
+                    DefaultColorCombination.isEnabled
+                        ? Color.appCardOutline
+                        : Color.primary.opacity(0.045),
+                    lineWidth: 1
+                )
         }
     }
 
@@ -1294,7 +1306,12 @@ private struct HistoryBarChart: View {
             .frame(height: 142)
         }
         .padding(12)
-        .background(Color(.tertiarySystemFill), in: RoundedRectangle(cornerRadius: 12))
+        .background(
+            DefaultColorCombination.isEnabled
+                ? Color.brandCanvasBlue
+                : Color(.tertiarySystemFill),
+            in: RoundedRectangle(cornerRadius: 12)
+        )
         .frame(height: Self.layoutHeight, alignment: .top)
         .transaction { transaction in
             transaction.animation = nil
@@ -1442,7 +1459,7 @@ private struct HistoryFilterChip: View {
     private var backgroundColor: Color {
         isSelected
             ? (colorScheme == .light ? .brandLightBlue : Color.brandHardBlue.opacity(0.22))
-            : Color(.tertiarySystemFill)
+            : (DefaultColorCombination.isEnabled ? Color.white : Color(.tertiarySystemFill))
     }
 
     var body: some View {
@@ -1476,10 +1493,10 @@ private struct HistoryFilterChip: View {
         )
         .background(backgroundColor, in: Capsule())
         .overlay {
-            if isSelected {
-                Capsule()
-                    .stroke(Color.brandHardBlue.opacity(0.78), lineWidth: 1.5)
-            }
+            Capsule().stroke(
+                isSelected ? Color.brandHardBlue.opacity(0.78) : Color.appCardOutline,
+                lineWidth: isSelected ? 1.5 : 1
+            )
         }
     }
 }
@@ -1521,11 +1538,15 @@ private struct HistorySearchBar: View {
         }
         .padding(.horizontal, 13)
         .frame(minHeight: 44)
-        .background(Color(.secondarySystemBackground), in: RoundedRectangle(cornerRadius: 14))
+        .background(Color.appCardBackground, in: RoundedRectangle(cornerRadius: 14))
         .overlay {
             RoundedRectangle(cornerRadius: 14)
                 .stroke(
-                    isOnboardingHighlighted ? Color.brandHardBlue : Color.primary.opacity(0.045),
+                    isOnboardingHighlighted
+                        ? Color.brandHardBlue
+                        : (DefaultColorCombination.isEnabled
+                            ? Color.appCardOutline
+                            : Color.primary.opacity(0.045)),
                     lineWidth: isOnboardingHighlighted ? 3 : 1
                 )
         }
@@ -1583,10 +1604,15 @@ private struct HistoryDayCard: View {
                     }
                 }
             }
-            .background(Color(.secondarySystemBackground), in: RoundedRectangle(cornerRadius: 14))
+            .background(Color.appCardBackground, in: RoundedRectangle(cornerRadius: 14))
             .overlay {
                 RoundedRectangle(cornerRadius: 14)
-                    .stroke(Color.primary.opacity(0.045), lineWidth: 1)
+                    .stroke(
+                        DefaultColorCombination.isEnabled
+                            ? Color.appCardOutline
+                            : Color.primary.opacity(0.045),
+                        lineWidth: 1
+                    )
             }
         }
     }
@@ -1759,10 +1785,14 @@ private struct HistoryEmptyState: View {
         VStack(spacing: 12) {
             ZStack {
                 Circle()
-                    .fill(filter.backgroundColor)
+                    .fill(
+                        DefaultColorCombination.isEnabled
+                            ? Color.brandCanvasBlue
+                            : Color(.tertiarySystemFill)
+                    )
                 Image(systemName: hasSearchQuery ? "magnifyingglass" : (filter == .all ? "clock.arrow.circlepath" : filter.icon))
                     .font(.system(size: 27, weight: .medium))
-                    .foregroundStyle(filter.color)
+                    .foregroundStyle(.secondary)
             }
             .frame(width: 62, height: 62)
 
@@ -1778,7 +1808,10 @@ private struct HistoryEmptyState: View {
         .frame(maxWidth: .infinity)
         .padding(.vertical, 42)
         .padding(.horizontal, 20)
-        .background(Color(.secondarySystemBackground), in: RoundedRectangle(cornerRadius: 14))
+        .background(Color.appCardBackground, in: RoundedRectangle(cornerRadius: 14))
+        .overlay {
+            RoundedRectangle(cornerRadius: 14).stroke(Color.appCardOutline, lineWidth: 1)
+        }
     }
 }
 

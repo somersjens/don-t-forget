@@ -33,6 +33,47 @@ extension Color {
         green: 245.0 / 255.0,
         blue: 248.0 / 255.0
     )
+
+    /// Branded light canvas used by the default color combination: #F0F6FE.
+    static let brandCanvasBlue = Color(hex: 0xF0F6FE)
+
+    static var appCanvasBackground: Color {
+        guard DefaultColorCombination.isEnabled else {
+#if os(macOS)
+            return Color(nsColor: .windowBackgroundColor)
+#else
+            return Color(.systemBackground)
+#endif
+        }
+        return .brandCanvasBlue
+    }
+
+    static var appCardBackground: Color {
+        guard DefaultColorCombination.isEnabled else {
+#if os(macOS)
+            return Color.black.opacity(0.045)
+#else
+            return Color(.secondarySystemBackground)
+#endif
+        }
+        return .white
+    }
+
+    static var appCardOutline: Color {
+        DefaultColorCombination.isEnabled
+            ? Color(hex: 0x4F84EF).opacity(0.25)
+            : .clear
+    }
+}
+
+enum DefaultColorCombination {
+    static var isEnabled: Bool {
+        let defaults = UserDefaults.standard
+        guard defaults.object(forKey: SettingsKeys.defaultColorCombinationEnabled) != nil else {
+            return true
+        }
+        return defaults.bool(forKey: SettingsKeys.defaultColorCombinationEnabled)
+    }
 }
 
 struct TutorialCardStyle: ViewModifier {
@@ -206,6 +247,7 @@ struct TutorialCompletionContent: View {
 
 enum SettingsKeys {
     static let weekStart = "settings.weekStart"
+    static let weekdayLabelLength = "settings.weekdayLabelLength"
     static let weekNumberRule = "settings.weekNumberRule"
     static let dateFormat = "settings.dateFormat"
     static let language = "settings.language"
@@ -237,6 +279,7 @@ enum SettingsKeys {
     static let historyShowsDeletedItems = "settings.historyShowsDeletedItems"
     static let historyRetention = "settings.historyRetention"
     static let iCloudSyncEnabled = "settings.iCloudSyncEnabled"
+    static let defaultColorCombinationEnabled = "settings.defaultColorCombinationEnabled"
     static let endOfDayReminderEnabled = "settings.endOfDayReminderEnabled"
     static let endOfDayReminderMinutes = "settings.endOfDayReminderMinutes"
     static let actionButtonContent = "settings.actionButtonContent"
@@ -279,6 +322,28 @@ enum SettingsKeys {
     static let historyTutorialStep = "onboarding.history.tutorialStep"
     static let hasCompletedHistoryTutorial = "onboarding.history.hasCompletedTutorial"
     static let historyTutorialExampleID = "onboarding.history.exampleID"
+}
+
+enum WeekdayLabelLengthOption: Int, CaseIterable, Identifiable {
+    case one = 1
+    case two = 2
+    case three = 3
+
+    var id: Int { rawValue }
+
+    static func resolved(storedValue: Int, locale: Locale) -> Int {
+        if (1...3).contains(storedValue) { return storedValue }
+        return 1
+    }
+
+    func title(for locale: Locale) -> String {
+        let formatter = DateFormatter()
+        formatter.locale = locale
+        let mondayThroughWednesday = Array((formatter.weekdaySymbols ?? []).dropFirst().prefix(3))
+        return mondayThroughWednesday
+            .map { String($0.prefix(rawValue)).localizedCapitalized }
+            .joined(separator: ",")
+    }
 }
 
 enum HistoryRetentionOption: String, CaseIterable, Identifiable {
@@ -764,6 +829,9 @@ enum RecurringThemeColorOption: String, CaseIterable, Identifiable {
     }
 
     var backgroundColor: Color {
+        if self == .blue, DefaultColorCombination.isEnabled {
+            return .brandCanvasBlue
+        }
         let lightHex: UInt32 = switch self {
         case .blue: 0xD6EAFF
         case .cyan: 0xD8F7FC

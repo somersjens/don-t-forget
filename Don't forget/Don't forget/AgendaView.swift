@@ -200,6 +200,7 @@ struct AgendaView: View {
     private var agendaDinnerExampleID = ""
 
     @AppStorage(SettingsKeys.weekStart) private var weekStartSetting = WeekStartOption.monday.rawValue
+    @AppStorage(SettingsKeys.weekdayLabelLength) private var weekdayLabelLengthSetting = WeekdayLabelLengthOption.one.rawValue
     @AppStorage(SettingsKeys.weekNumberRule) private var weekNumberSetting = WeekNumberRule.iso8601.rawValue
     @AppStorage(SettingsKeys.language) private var languageSetting = AppLanguage.system.rawValue
     @AppStorage(SettingsKeys.todoGroups) private var todoGroupsData = ""
@@ -392,6 +393,7 @@ struct AgendaView: View {
                     }
                 }
             }
+            .background(Color.appCanvasBackground)
             .toolbar(.hidden, for: .navigationBar)
             .safeAreaInset(edge: .top, spacing: 0) {
                 VStack(spacing: 0) {
@@ -1629,7 +1631,7 @@ private struct AgendaFutureLoadingFooter: View {
         .frame(minHeight: 51)
         .background {
             RoundedRectangle(cornerRadius: 14)
-                .fill(Color(.secondarySystemBackground))
+                .fill(Color.appCardBackground)
         }
         .accessibilityElement(children: .combine)
     }
@@ -1647,7 +1649,13 @@ private enum AgendaScrollTarget: Hashable {
 
 private enum AgendaLayout {
     static let dateWidth: CGFloat = 47
-    static let weekdayWidth: CGFloat = 19
+    static var weekdayWidth: CGFloat {
+        switch AppCalendar.weekdayLabelLength {
+        case 1: 14
+        case 2: 22
+        default: 30
+        }
+    }
     static let dateWeekdaySpacing: CGFloat = 2
     static let lineSpacing: CGFloat = 6
     static let lineWidth: CGFloat = 1
@@ -1726,7 +1734,11 @@ struct WeekCard: View {
         VStack(alignment: .leading, spacing: 8) {
             Text(verbatim: "week #\(week.weekNumber) · start \(startDateLabel) · \(startYear)")
                 .font(.system(size: 14, weight: .medium))
-                .foregroundStyle(.secondary)
+                .foregroundStyle(
+                    DefaultColorCombination.isEnabled
+                        ? Color.brandHardBlue.opacity(0.70)
+                        : Color.secondary
+                )
                 .frame(maxWidth: .infinity, alignment: .center)
                 .padding(.horizontal, 14)
 
@@ -1761,7 +1773,10 @@ struct WeekCard: View {
             .padding(.vertical, 13)
         .background {
             RoundedRectangle(cornerRadius: 14)
-                .fill(Color(.secondarySystemBackground))
+                .fill(Color.appCardBackground)
+        }
+        .overlay {
+            RoundedRectangle(cornerRadius: 14).stroke(Color.appCardOutline, lineWidth: 1)
         }
 
 
@@ -2787,7 +2802,11 @@ private struct AgendaLinePrefix: View {
                 .foregroundStyle(.secondary)
                 .lineLimit(1)
                 .minimumScaleFactor(0.8)
-                .frame(width: AgendaLayout.weekdayWidth, height: 22, alignment: .center)
+                .frame(
+                    width: AgendaLayout.weekdayWidth,
+                    height: 22,
+                    alignment: AppCalendar.weekdayLabelLength == 1 ? .center : .leading
+                )
                 .background {
                     if isMoveActive {
                         RoundedRectangle(cornerRadius: 5)

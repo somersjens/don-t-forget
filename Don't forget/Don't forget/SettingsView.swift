@@ -14,6 +14,9 @@ struct SettingsView: View {
     @AppStorage(SettingsKeys.weekNumberRule)
     private var weekNumberRule = WeekNumberRule.iso8601.rawValue
 
+    @AppStorage(SettingsKeys.weekdayLabelLength)
+    private var weekdayLabelLength = WeekdayLabelLengthOption.one.rawValue
+
     @AppStorage(SettingsKeys.dateFormat)
     private var dateFormat = DateFormatOption.system.rawValue
 
@@ -37,6 +40,9 @@ struct SettingsView: View {
 
     @AppStorage(SettingsKeys.iCloudSyncEnabled)
     private var iCloudSyncEnabled = true
+
+    @AppStorage(SettingsKeys.defaultColorCombinationEnabled)
+    private var defaultColorCombinationEnabled = true
 
     @AppStorage(SettingsKeys.endOfDayReminderEnabled)
     private var endOfDayReminderEnabled = false
@@ -129,7 +135,7 @@ struct SettingsView: View {
                 }
 
                 Section {
-                    Picker("Systeemtaal", selection: $language) {
+                    Picker(languagePickerTitle, selection: $language) {
                         ForEach(AppLanguage.allCases) { language in
                             Text(language.title(for: locale)).tag(language.rawValue)
                         }
@@ -142,6 +148,14 @@ struct SettingsView: View {
                         }
                     }
                     .tint(.primary)
+
+                    Picker(weekdayFormattingPickerTitle, selection: $weekdayLabelLength) {
+                        ForEach(WeekdayLabelLengthOption.allCases) { option in
+                            Text(option.title(for: locale)).tag(option.rawValue)
+                        }
+                    }
+                    .tint(.primary)
+                    .onAppear(perform: normalizeWeekdayLabelLength)
 
                     Picker("Weeknummering", selection: $weekNumberRule) {
                         ForEach(WeekNumberRule.allCases) { rule in
@@ -239,6 +253,15 @@ struct SettingsView: View {
                 }
 
                 Section {
+                    Picker(
+                        locale.localized("App Color"),
+                        selection: $defaultColorCombinationEnabled
+                    ) {
+                        Text(locale.localized("Light blue")).tag(true)
+                        Text(locale.localized("Grey")).tag(false)
+                    }
+                    .tint(.primary)
+
                     VStack(alignment: .leading, spacing: 8) {
                         Toggle(isOn: $iCloudSyncEnabled) {
                             Text(locale.localized("iCloud-synchronisatie"))
@@ -577,6 +600,19 @@ struct SettingsView: View {
                 testReminderCountdownTask?.cancel()
             }
         }
+    }
+
+    private func normalizeWeekdayLabelLength() {
+        guard WeekdayLabelLengthOption(rawValue: weekdayLabelLength) == nil else { return }
+        weekdayLabelLength = WeekdayLabelLengthOption.one.rawValue
+    }
+
+    private var languagePickerTitle: String {
+        locale.language.languageCode?.identifier == "nl" ? "Taal" : "Language"
+    }
+
+    private var weekdayFormattingPickerTitle: String {
+        locale.language.languageCode?.identifier == "nl" ? "Weekdagnotatie" : "Weekday formatting"
     }
 
     private var weatherAgendaSelection: Binding<Bool> {

@@ -116,6 +116,26 @@
         }
       }
     },
+    "%@ — %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ — %2$@"
+          }
+        }
+      }
+    },
+    "%@ · %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ · %2$@"
+          }
+        }
+      }
+    },
     "%@ bewerken" : {
       "localizations" : {
         "en" : {
@@ -212,6 +232,12 @@
         }
       }
     },
+    "%lld afgerond in de afgelopen 7 dagen" : {
+
+    },
+    "%lld dagen vooraf" : {
+
+    },
     "%lld graden" : {
 
     },
@@ -250,6 +276,9 @@
           }
         }
       }
+    },
+    "%lld open" : {
+
     },
     "%lld°" : {
       "extractionState" : "stale",
@@ -350,6 +379,9 @@
           }
         }
       }
+    },
+    "1 open" : {
+
     },
     "1,5 jaar" : {
       "localizations" : {
@@ -704,6 +736,9 @@
         }
       }
     },
+    "Afgerond per dag" : {
+
+    },
     "Afgerond verwijderen?" : {
       "localizations" : {
         "en" : {
@@ -735,6 +770,9 @@
           }
         }
       }
+    },
+    "Afgeronde items per dag over de afgelopen zeven dagen" : {
+
     },
     "Afgeronde items verschijnen hier automatisch en kun je altijd weer terugzetten." : {
       "localizations" : {
@@ -1011,6 +1049,9 @@
           }
         }
       }
+    },
+    "Andere datum in agenda…" : {
+
     },
     "Annuleer" : {
       "localizations" : {
@@ -2279,6 +2320,9 @@
         }
       }
     },
+    "De datum varieert voorspelbaar rond deze periode." : {
+
+    },
     "De lockscreen-widget is beschikbaar op iPhone 11 en nieuwere modellen en op iPhone SE (2e generatie) en nieuwer. Houd het toegangsscherm ingedrukt en tik op Pas aan › Toegangsscherm › Voeg widgets toe. Kies daarna de widget van Don’t forget." : {
       "extractionState" : "stale",
       "localizations" : {
@@ -3366,6 +3410,12 @@
         }
       }
     },
+    "Geen overeenkomende herhalingen" : {
+
+    },
+    "Geen overeenkomende taken" : {
+
+    },
     "Geen toegang. Je kunt dit later wijzigen in iOS-instellingen." : {
       "localizations" : {
         "en" : {
@@ -3526,6 +3576,9 @@
         }
       }
     },
+    "Groepsnaam" : {
+
+    },
     "Hele app openen" : {
       "localizations" : {
         "en" : {
@@ -3589,6 +3642,9 @@
           }
         }
       }
+    },
+    "Herhaling toevoegen" : {
+
     },
     "Herhaling toevoegen aan %@" : {
       "localizations" : {
@@ -3701,6 +3757,9 @@
           }
         }
       }
+    },
+    "Hoe lang open; klik voor verplaatsen" : {
+
     },
     "holiday.all-saints" : {
       "extractionState" : "manual",
@@ -5872,6 +5931,9 @@
         }
       }
     },
+    "Link %lld" : {
+
+    },
     "Link verwijderen" : {
       "localizations" : {
         "en" : {
@@ -6146,6 +6208,9 @@
         }
       }
     },
+    "Markeer als afgerond" : {
+
+    },
     "Melding" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -6292,6 +6357,9 @@
         }
       }
     },
+    "Naar agenda verplaatsen" : {
+
+    },
     "Naar agenda..." : {
       "extractionState" : "manual",
       "localizations" : {
@@ -6308,6 +6376,9 @@
           }
         }
       }
+    },
+    "Naar vandaag" : {
+
     },
     "Naar vandaag %@" : {
       "localizations" : {
@@ -6655,6 +6726,9 @@
         }
       }
     },
+    "Omhoog" : {
+
+    },
     "Omhoog verplaatsen" : {
       "localizations" : {
         "en" : {
@@ -6670,6 +6744,9 @@
           }
         }
       }
+    },
+    "Omlaag" : {
+
     },
     "Omlaag verplaatsen" : {
       "localizations" : {
@@ -6954,7 +7031,13 @@
     "Ook toekomstige items verplaatsen" : {
 
     },
+    "Open %@" : {
+
+    },
     "Open kalender" : {
+
+    },
+    "Open link" : {
 
     },
     "Openen" : {
@@ -8158,6 +8241,54 @@
         }
       }
     },
+    "Grey" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Grey"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Grijs"
+          }
+        }
+      }
+    },
+    "Light blue" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Light blue"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lichtblauw"
+          }
+        }
+      }
+    },
+    "App Color" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "App Color"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Appkleur"
+          }
+        }
+      }
+    },
     "Standaardbestemming" : {
       "localizations" : {
         "en" : {
@@ -8255,6 +8386,7 @@
       }
     },
     "Systeemtaal" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -8417,7 +8549,11 @@
         }
       }
     },
+    "Terughalen" : {
+
+    },
     "Terugkerend item" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -8448,6 +8584,9 @@
           }
         }
       }
+    },
+    "Terugzetten naar %@" : {
+
     },
     "Testmelding versturen" : {
       "localizations" : {
@@ -8919,6 +9058,9 @@
         }
       }
     },
+    "Toon ook items die eerder zijn verwijderd" : {
+
+    },
     "Toon volgende datum" : {
       "localizations" : {
         "en" : {
@@ -9207,6 +9349,9 @@
         }
       }
     },
+    "URL" : {
+
+    },
     "Vandaag" : {
       "localizations" : {
         "en" : {
@@ -9382,6 +9527,9 @@
         }
       }
     },
+    "Verplaatsen of verwijderen" : {
+
+    },
     "Verplaatsmodus afsluiten" : {
       "localizations" : {
         "en" : {
@@ -9446,6 +9594,9 @@
         }
       }
     },
+    "Verwijder groep" : {
+
+    },
     "Verwijder herhaling" : {
       "localizations" : {
         "en" : {
@@ -9461,6 +9612,12 @@
           }
         }
       }
+    },
+    "Verwijder link" : {
+
+    },
+    "Verwijderde items" : {
+
     },
     "Verwijderde items tonen" : {
       "localizations" : {
@@ -9551,6 +9708,9 @@
     "Voeg toe en maak nog een item" : {
 
     },
+    "Volgende" : {
+
+    },
     "Volgende 3 maanden laden…" : {
       "localizations" : {
         "en" : {
@@ -9568,6 +9728,7 @@
       }
     },
     "Volgende datum" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -9646,6 +9807,9 @@
           }
         }
       }
+    },
+    "Volgorde en uiterlijk" : {
+
     },
     "Volgorde van %@ aanpassen" : {
       "localizations" : {

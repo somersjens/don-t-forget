@@ -310,6 +310,7 @@ struct TodoView: View {
                 .padding(.vertical, 12)
                 .adaptiveReadableWidth()
             }
+            .background(Color.appCanvasBackground)
             .todoScrollCompatibility(isScrolled: $isScrolled)
             .toolbar(.hidden, for: .navigationBar)
             .safeAreaInset(edge: .top, spacing: 0) {
@@ -1174,7 +1175,10 @@ private struct TodoBucketCard: View {
         }
         .background {
             RoundedRectangle(cornerRadius: 14)
-                .fill(Color(.secondarySystemBackground))
+                .fill(Color.appCardBackground)
+        }
+        .overlay {
+            RoundedRectangle(cornerRadius: 14).stroke(Color.appCardOutline, lineWidth: 1)
         }
         .sheet(isPresented: $showingAppearancePicker) {
             TodoGroupAppearancePicker(
@@ -1958,7 +1962,10 @@ private struct NewTodoGroupLine: View {
         .padding(.leading, 18)
         .padding(.trailing, 13)
         .padding(.vertical, 12)
-        .background(Color(.secondarySystemBackground), in: RoundedRectangle(cornerRadius: 14))
+        .background(Color.appCardBackground, in: RoundedRectangle(cornerRadius: 14))
+        .overlay {
+            RoundedRectangle(cornerRadius: 14).stroke(Color.appCardOutline, lineWidth: 1)
+        }
     }
 
     private func beginEditing() {

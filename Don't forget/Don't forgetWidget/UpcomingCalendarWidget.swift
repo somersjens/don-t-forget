@@ -578,17 +578,18 @@ private struct RelativeDayPrefixText: View {
 
     var body: some View {
         ZStack(alignment: .trailing) {
-            Text(reservedText)
-                .opacity(0)
+            ForEach(reservedValues, id: \.self) { reservedValue in
+                Text(reservedValue)
+                    .opacity(0)
+            }
             Text("\(value)")
         }
         .accessibilityLabel(Text("\(value)"))
     }
 
-    private var reservedText: String {
+    private var reservedValues: [String] {
         let values = visibleValues.isEmpty ? [value] : visibleValues
-        let digitCount = values.map { String(abs($0)).count }.max() ?? 1
-        return "-" + String(repeating: "0", count: digitCount)
+        return Array(Set(values.map(String.init)))
     }
 }
 

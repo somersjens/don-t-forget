@@ -67,6 +67,13 @@ enum AppCalendar {
         return selected
     }
 
+    static var weekdayLabelLength: Int {
+        WeekdayLabelLengthOption.resolved(
+            storedValue: UserDefaults.standard.integer(forKey: SettingsKeys.weekdayLabelLength),
+            locale: locale
+        )
+    }
+
     static func startOfDay(_ date: Date) -> Date {
         calendar.startOfDay(for: date)
     }
@@ -156,9 +163,10 @@ enum AppCalendar {
     private static func weekdayLetter(for date: Date, calendar: Calendar) -> String {
         let weekday = calendar.component(.weekday, from: date)
 
-        let symbols = cachedFormatter(template: "EEEEE").veryShortWeekdaySymbols ?? []
+        let symbols = cachedFormatter(template: "EEEE").weekdaySymbols ?? []
         let index = max(0, min(symbols.count - 1, weekday - 1))
-        return symbols.indices.contains(index) ? symbols[index] : ""
+        guard symbols.indices.contains(index) else { return "" }
+        return String(symbols[index].prefix(weekdayLabelLength)).localizedCapitalized
     }
 
     private static func cachedFormatter(template: String) -> DateFormatter {

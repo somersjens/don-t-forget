@@ -22,9 +22,11 @@ final class CloudSettingsSynchronizer {
 
     private let syncedKeys = [
         SettingsKeys.weekStart,
+        SettingsKeys.weekdayLabelLength,
         SettingsKeys.weekNumberRule,
         SettingsKeys.dateFormat,
         SettingsKeys.language,
+        SettingsKeys.defaultColorCombinationEnabled,
         SettingsKeys.recurringBirthdayColor,
         SettingsKeys.recurringGeneralColor,
         SettingsKeys.recurringPersonalColor,

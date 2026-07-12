@@ -403,6 +403,7 @@ struct RecurringView: View {
             .onPreferenceChange(RecurringLeadingColumnWidthPreferenceKey.self) { width in
                 leadingColumnWidth = max(38, width)
             }
+            .background(Color.appCanvasBackground)
             .recurringScrollCompatibility(isScrolled: $isScrolled)
             .toolbar(.hidden, for: .navigationBar)
             .safeAreaInset(edge: .top, spacing: 0) {
@@ -1090,10 +1091,15 @@ private struct RecurringThemeCard: View {
             }
         }
         .padding(.bottom, compactRows ? 3 : 0)
-        .background(Color(.secondarySystemBackground), in: RoundedRectangle(cornerRadius: 14))
+        .background(Color.appCardBackground, in: RoundedRectangle(cornerRadius: 14))
         .overlay {
             RoundedRectangle(cornerRadius: 14)
-                .stroke(Color.primary.opacity(0.045), lineWidth: 1)
+                .stroke(
+                    DefaultColorCombination.isEnabled
+                        ? Color.appCardOutline
+                        : Color.primary.opacity(0.045),
+                    lineWidth: 1
+                )
         }
         .simultaneousGesture(
             DragGesture(minimumDistance: 28).onEnded { value in
@@ -1529,13 +1535,15 @@ private struct NewRecurringCategoryLine: View {
         .padding(.leading, 11)
         .padding(.trailing, 14)
         .padding(.vertical, 13)
-        .background(Color(.secondarySystemBackground), in: RoundedRectangle(cornerRadius: 14))
+        .background(Color.appCardBackground, in: RoundedRectangle(cornerRadius: 14))
         .overlay {
             RoundedRectangle(cornerRadius: 14)
                 .stroke(
                     isOnboardingHighlighted
                         ? Color.brandHardBlue
-                        : Color.primary.opacity(0.045),
+                        : (DefaultColorCombination.isEnabled
+                            ? Color.appCardOutline
+                            : Color.primary.opacity(0.045)),
                     lineWidth: isOnboardingHighlighted ? 3 : 1
                 )
         }
