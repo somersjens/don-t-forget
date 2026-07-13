@@ -707,14 +707,22 @@ struct RecurringView: View {
                 RecurringSyncState.shared.finish()
                 return
             }
-            RecurringScheduler.syncAll(
+            let signatureBeingSynced = effectiveSyncSignature
+            let plan = RecurringScheduler.fullSyncPlan(
                 items: recurringItems,
-                in: modelContext,
                 through: syncEndDate
             )
+            let modelContainer = modelContext.container
             do {
-                try modelContext.save()
-                lastSyncSignature = effectiveSyncSignature
+                try await Task.detached(priority: .utility) {
+                    try RecurringFullSyncWorker.sync(
+                        plan: plan,
+                        in: modelContainer
+                    )
+                }.value
+                guard !Task.isCancelled,
+                      effectiveSyncSignature == signatureBeingSynced else { return }
+                lastSyncSignature = signatureBeingSynced
             } catch {
                 // Keep the old signature so a later change/appearance retries.
             }

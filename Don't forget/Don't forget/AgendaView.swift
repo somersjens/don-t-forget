@@ -4,27 +4,32 @@ import SwiftData
 private extension View {
     @ViewBuilder
     func agendaScrollCompatibility(
-        isScrolled: Binding<Bool>,
-        scrollIdleChanged: @escaping (Bool) -> Void
+        isScrolled: Binding<Bool>
     ) -> some View {
         if #available(iOS 26.0, *) {
             scrollEdgeEffectStyle(.soft, for: .top)
-                .onScrollPhaseChange { _, newPhase in
-                    scrollIdleChanged(newPhase == .idle)
-                }
                 .onScrollGeometryChange(for: Bool.self) { geometry in
                     geometry.contentOffset.y + geometry.contentInsets.top > 12
                 } action: { _, newValue in
                     isScrolled.wrappedValue = newValue
                 }
         } else if #available(iOS 18.0, *) {
-            onScrollPhaseChange { _, newPhase in
-                scrollIdleChanged(newPhase == .idle)
-            }
-            .onScrollGeometryChange(for: Bool.self) { geometry in
+            onScrollGeometryChange(for: Bool.self) { geometry in
                 geometry.contentOffset.y + geometry.contentInsets.top > 12
             } action: { _, newValue in
                 isScrolled.wrappedValue = newValue
+            }
+        } else {
+            self
+        }
+    }
+
+    @ViewBuilder
+    func agendaFutureLoadScrollStability(isLoading: Bool) -> some View {
+        if #available(iOS 18.0, *) {
+            transaction { transaction in
+                guard isLoading else { return }
+                transaction.scrollContentOffsetAdjustmentBehavior = .disabled
             }
         } else {
             self
@@ -42,10 +47,11 @@ private extension View {
 
     @ViewBuilder
     func agendaVisibilityCompatibility(
+        threshold: Double = 0.01,
         changed: @escaping (Bool) -> Void
     ) -> some View {
         if #available(iOS 18.0, *) {
-            onScrollVisibilityChange(threshold: 0.01, changed)
+            onScrollVisibilityChange(threshold: threshold, changed)
         } else {
             onAppear { changed(true) }
                 .onDisappear { changed(false) }
@@ -209,6 +215,11 @@ private struct AgendaDateMoveUndo {
     let targetDate: Date
 }
 
+private struct AgendaPendingCompletion {
+    let entry: DayEntry
+    let completedAt: Date
+}
+
 private enum AgendaEntryOrdering {
     nonisolated static func areInIncreasingOrder(_ first: DayEntry, _ second: DayEntry) -> Bool {
         switch (first.startMinutes, second.startMinutes) {
@@ -249,8 +260,7 @@ private enum AgendaEntryOrdering {
 private final class AgendaVisibilityCache {
     var dates: Set<Date> = []
     var entryIDs: Set<UUID> = []
-    var isScrollIdle = true
-    var pendingFutureLoadLimit: Int?
+    var visibleFutureBoundaryLimit: Int?
     var futureLoadTask: Task<Void, Never>?
 }
 
@@ -283,6 +293,7 @@ struct AgendaView: View {
     @State private var moveDraftDate = AppCalendar.startOfDay(.now)
     @State private var scrollTargetDate: Date?
     @State private var scrollTask: Task<Void, Never>?
+    @State private var inputScrollTask: Task<Void, Never>?
     @State private var visibilityCache = AgendaVisibilityCache()
     @State private var loadedFutureWeeks = 26
     @State private var isLoadingMoreFuture = false
@@ -291,6 +302,9 @@ struct AgendaView: View {
     @State private var recentlyRemovedEventIdentifier: String?
     @State private var dismissRemovalUndoTask: Task<Void, Never>?
     @State private var recentlyCompletedEntry: DayEntry?
+    @State private var pendingCompletions: [UUID: AgendaPendingCompletion] = [:]
+    @State private var pendingCompletionTask: Task<Void, Never>?
+    @State private var deferredCompletionSaveTask: Task<Void, Never>?
     @State private var recentlyMovedToTodo: AgendaTodoMoveUndo?
     @State private var recentlyMovedToDate: AgendaDateMoveUndo?
     @State private var dismissDateMoveUndoTask: Task<Void, Never>?
@@ -353,20 +367,28 @@ struct AgendaView: View {
 
     private var openPastDates: Set<Date> {
         let today = AppCalendar.startOfDay(.now)
-        return Set(entries.compactMap { entry in
+        return Set(presentedEntries.compactMap { entry in
             guard entry.date < today else { return nil }
             return AppCalendar.startOfDay(entry.date)
         })
     }
 
+    /// Pending completions leave the presentation immediately, before their
+    /// SwiftData changes are committed as one batch.
+    private var presentedEntries: [DayEntry] {
+        entries.filter {
+            !$0.isDone && !$0.isRemoved && pendingCompletions[$0.id] == nil
+        }
+    }
+
     private var entriesByDay: [Date: [DayEntry]] {
-        Dictionary(grouping: entries) { AppCalendar.startOfDay($0.date) }
+        Dictionary(grouping: presentedEntries) { AppCalendar.startOfDay($0.date) }
     }
 
     private var searchMatches: [DayEntry] {
         let query = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !query.isEmpty else { return [] }
-        return entries
+        return presentedEntries
             .filter { $0.rawText.localizedStandardContains(query) }
             .sorted { first, second in
                 let firstDay = AppCalendar.startOfDay(first.date)
@@ -412,7 +434,7 @@ struct AgendaView: View {
 
     private var onboardingMoveExampleEntry: DayEntry? {
         let today = AppCalendar.startOfDay(.now)
-        let todayEntries = entries
+        let todayEntries = presentedEntries
             .filter { AppCalendar.isSameDay($0.date, today) }
             .sorted(by: sortEntries)
         guard !todayEntries.isEmpty else { return nil }
@@ -425,7 +447,7 @@ struct AgendaView: View {
 
     private var weeks: [WeekSection] {
         let today = AppCalendar.startOfDay(.now)
-        let oldestOpenDate = entries
+        let oldestOpenDate = presentedEntries
             .filter { $0.date < today }
             .map(\.date)
             .min()
@@ -486,7 +508,7 @@ struct AgendaView: View {
                             .padding(.bottom, 4)
                         }
 
-                        ForEach(Array(visibleWeeks.enumerated()), id: \.element.id) { index, week in
+                        ForEach(visibleWeeks) { week in
                             WeekCard(
                                 week: week,
                                 entriesByDay: groupedEntries,
@@ -529,17 +551,19 @@ struct AgendaView: View {
                                     ? searchMatchIDs[currentSearchMatch] : nil
                             )
                             .id(AgendaScrollTarget.week(week.startDate))
-                            .onAppear {
-                                if index >= visibleWeeks.count - 2 {
-                                    queueMoreFutureWeeks(ifCurrentLimitIs: loadedWeekLimit)
-                                }
-                            }
                         }
 
                         if loadedWeekLimit < maximumFutureWeekCount {
                             AgendaFutureLoadingFooter(locale: locale)
-                                .onAppear {
-                                    queueMoreFutureWeeks(ifCurrentLimitIs: loadedWeekLimit)
+                                // Do not prefetch when the footer merely grazes
+                                // the viewport. The selected initial horizon is
+                                // already complete; extend it only at its real
+                                // boundary.
+                                .agendaVisibilityCompatibility(threshold: 0.5) { isVisible in
+                                    futureBoundaryVisibilityChanged(
+                                        isVisible,
+                                        for: loadedWeekLimit
+                                    )
                                 }
                         }
                     }
@@ -548,24 +572,24 @@ struct AgendaView: View {
                     .adaptiveReadableWidth()
                 }
                 .contentMargins(.bottom, isSearchPresented ? 96 : 0, for: .scrollContent)
-                // A series save can publish many changed DayEntry models in a
-                // single frame. Keep the scroll position stable while SwiftData
-                // merges that batch so lazy rows cannot be recycled mid-update.
-                .scrollDisabled(isLoadingMoreFuture || isRecurringMoveProcessing)
+                // SwiftUI's automatic adjustment keeps the bottom edge pinned
+                // when scroll content grows. That changes the absolute offset
+                // while future weeks and their recurring entries are merged.
+                // The existing rows are stable, so preserve their offset for
+                // the complete load transaction instead.
+                .agendaFutureLoadScrollStability(isLoading: isLoadingMoreFuture)
+                // Future weeks are appended beyond the current boundary. Keep
+                // accepting new drags while that batch is merged: disabling the
+                // entire scroll view here made a swipe that started during the
+                // short load window appear to be ignored.
+                .scrollDisabled(isRecurringMoveProcessing)
                 .allowsHitTesting(!isRecurringMoveProcessing)
                 .agendaScrollCompatibility(
                     isScrolled: Binding(
                         get: { scrollPresentation.isScrolled },
                         set: { scrollPresentation.isScrolled = $0 }
                     )
-                ) { isIdle in
-                    visibilityCache.isScrollIdle = isIdle
-                    if isIdle {
-                        startPendingFutureLoad()
-                    } else {
-                        cancelDeferredFutureLoad()
-                    }
-                }
+                )
                 .onChange(of: scrollTargetDate) { _, targetDate in
                     guard let targetDate else { return }
 
@@ -590,6 +614,10 @@ struct AgendaView: View {
                     searchScrollRequest &+= 1
                 }
                 .onChange(of: searchScrollRequest) { _, _ in scrollToAgendaMatch(proxy) }
+                .onChange(of: entries.count) { _, _ in
+                    guard case let .newEntry(date) = focusedField else { return }
+                    scrollToAgendaInput(date, with: proxy)
+                }
             }
             .background(Color.appCanvasBackground)
             .toolbar(.hidden, for: .navigationBar)
@@ -605,16 +633,30 @@ struct AgendaView: View {
                         )
 
                         HStack {
-                            Button {
-                                undoManager?.undo()
-                            } label: {
-                                Image(systemName: "arrow.uturn.backward")
-                                    .font(.system(size: 20, weight: .semibold))
-                                    .frame(width: 44, height: 44)
+                            Group {
+                                if recurringSyncState.isSyncing {
+                                    ProgressView()
+                                        .controlSize(.regular)
+                                        .tint(Color.brandHardBlue)
+                                        .frame(width: 44, height: 44)
+                                        .compatibleAgendaGlassEffect()
+                                        .accessibilityLabel(locale.localized("recurring.loading"))
+                                        .transition(.opacity)
+                                } else {
+                                    Button {
+                                        undoManager?.undo()
+                                    } label: {
+                                        Image(systemName: "arrow.uturn.backward")
+                                            .font(.system(size: 20, weight: .semibold))
+                                            .frame(width: 44, height: 44)
+                                    }
+                                    .compatibleAgendaGlassEffect()
+                                    .disabled(!(undoManager?.canUndo ?? false))
+                                    .accessibilityLabel("Laatste wijziging terugdraaien")
+                                    .transition(.opacity)
+                                }
                             }
-                            .compatibleAgendaGlassEffect()
-                            .disabled(!(undoManager?.canUndo ?? false))
-                            .accessibilityLabel("Laatste wijziging terugdraaien")
+                            .frame(width: 44, height: 44)
 
                             Spacer()
 
@@ -677,21 +719,6 @@ struct AgendaView: View {
                         .adaptiveReadableWidth()
                     }
 
-                    if recurringSyncState.isSyncing {
-                        HStack(spacing: 8) {
-                            ProgressView()
-                                .controlSize(.small)
-                            Text(locale.localized("recurring.loading"))
-                                .font(.footnote.weight(.medium))
-                                .foregroundStyle(.secondary)
-                        }
-                        .padding(.horizontal, 18)
-                        .padding(.bottom, 8)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .adaptiveReadableWidth()
-                        .transition(.opacity)
-                    }
-
                 }
             }
             .safeAreaInset(edge: .bottom, spacing: 8) {
@@ -742,6 +769,8 @@ struct AgendaView: View {
                 isKeyboardVisible = true
             }
             .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillHideNotification)) { _ in
+                inputScrollTask?.cancel()
+                inputScrollTask = nil
                 isKeyboardVisible = false
                 if searchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
                     isSearchPresented = false
@@ -766,18 +795,23 @@ struct AgendaView: View {
             .onChange(of: focusedField) { _, newValue in
                 if newValue == nil {
                     _ = PersistenceSafety.save(modelContext)
-                    startPendingFutureLoad()
+                    if let limit = visibilityCache.visibleFutureBoundaryLimit {
+                        loadMoreFutureWeeks(ifCurrentLimitIs: limit)
+                    }
                 } else {
-                    // Text input always outranks speculative future loading.
-                    cancelDeferredFutureLoad()
+                    // Text input always outranks a boundary load that has not
+                    // started its background persistence pass yet.
+                    cancelFutureLoadBeforeItStarts()
                 }
             }
             .onDisappear {
                 scrollTask?.cancel()
+                inputScrollTask?.cancel()
                 visibilityCache.futureLoadTask?.cancel()
                 dismissRecurringMoveOfferTask?.cancel()
                 deferredRecurringMoveTask?.cancel()
                 dismissDateMoveUndoTask?.cancel()
+                flushPendingCompletions()
                 flushDeferredMoveSave()
             }
         }
@@ -857,6 +891,24 @@ struct AgendaView: View {
             withAnimation(.smooth(duration: 0.24, extraBounce: 0), action)
         } else {
             action()
+        }
+    }
+
+    private func scrollToAgendaInput(_ date: Date, with proxy: ScrollViewProxy) {
+        inputScrollTask?.cancel()
+        inputScrollTask = Task { @MainActor in
+            try? await Task.sleep(for: .milliseconds(40))
+            guard !Task.isCancelled, isKeyboardVisible else { return }
+            withAnimation(.smooth(duration: 0.22, extraBounce: 0)) {
+                proxy.scrollTo(AgendaScrollTarget.newEntry(date), anchor: .bottom)
+            }
+
+            // The query update and keyboard safe area do not always settle in
+            // the same pass. Correct once more after both layouts are complete.
+            try? await Task.sleep(for: .milliseconds(240))
+            guard !Task.isCancelled, isKeyboardVisible else { return }
+            proxy.scrollTo(AgendaScrollTarget.newEntry(date), anchor: .bottom)
+            inputScrollTask = nil
         }
     }
 
@@ -1120,9 +1172,14 @@ struct AgendaView: View {
         dismissRemovalUndoTask?.cancel()
         recentlyRemovedEntry = nil
         recentlyMovedToTodo = nil
+        pendingCompletions[entry.id] = AgendaPendingCompletion(
+            entry: entry,
+            completedAt: .now
+        )
         withAnimation(.snappy(duration: 0.25)) {
             recentlyCompletedEntry = entry
         }
+        schedulePendingCompletionFlush()
         dismissRemovalUndoTask = Task { @MainActor in
             try? await Task.sleep(for: .seconds(3))
             guard !Task.isCancelled else { return }
@@ -1134,12 +1191,88 @@ struct AgendaView: View {
 
     private func undoCompletion() {
         guard let entry = recentlyCompletedEntry else { return }
-        entry.isDone = false
-        entry.completedAt = nil
-        _ = PersistenceSafety.save(modelContext)
+        if pendingCompletions.removeValue(forKey: entry.id) != nil {
+            pendingCompletionTask?.cancel()
+            pendingCompletionTask = nil
+            schedulePendingCompletionFlush()
+            dismissRemovalUndoTask?.cancel()
+            withAnimation(.easeOut(duration: 0.2)) {
+                recentlyCompletedEntry = nil
+            }
+            return
+        }
+        let isRecurringOccurrence = entry.recurringItemIdentifier != nil
+        // A completion save may still be waiting for its 300 ms presentation
+        // window. Replace it with one save after the restored row has rendered,
+        // rather than blocking the undo tap with synchronous persistence.
+        deferredCompletionSaveTask?.cancel()
+        var transaction = Transaction()
+        transaction.disablesAnimations = true
+        withTransaction(transaction) {
+            entry.isDone = false
+            if !isRecurringOccurrence {
+                entry.completedAt = nil
+            }
+        }
+        if isRecurringOccurrence {
+            // Query membership is controlled by isDone. Let that single change
+            // put the generated occurrence back on screen first; completedAt is
+            // history-only metadata and can be cleared after the insertion pass.
+            Task { @MainActor in
+                try? await Task.sleep(for: .milliseconds(120))
+                guard !entry.isDone else { return }
+                entry.completedAt = nil
+            }
+        }
+        deferredCompletionSaveTask = Task { @MainActor in
+            try? await Task.sleep(for: .milliseconds(300))
+            guard !Task.isCancelled else { return }
+            _ = PersistenceSafety.save(modelContext)
+            deferredCompletionSaveTask = nil
+        }
         dismissRemovalUndoTask?.cancel()
         withAnimation(.easeOut(duration: 0.2)) {
             recentlyCompletedEntry = nil
+        }
+    }
+
+    private func schedulePendingCompletionFlush() {
+        pendingCompletionTask?.cancel()
+        guard !pendingCompletions.isEmpty else {
+            pendingCompletionTask = nil
+            return
+        }
+        pendingCompletionTask = Task { @MainActor in
+            // This window guarantees feedback gets a frame and combines rapid
+            // taps into one Agenda/History/widget/reminder query invalidation.
+            try? await Task.sleep(for: .milliseconds(180))
+            guard !Task.isCancelled else { return }
+            flushPendingCompletions()
+        }
+    }
+
+    private func flushPendingCompletions() {
+        pendingCompletionTask?.cancel()
+        pendingCompletionTask = nil
+        guard !pendingCompletions.isEmpty else { return }
+
+        let completions = Array(pendingCompletions.values)
+        var transaction = Transaction()
+        transaction.disablesAnimations = true
+        withTransaction(transaction) {
+            for completion in completions where !completion.entry.isDone {
+                completion.entry.completedAt = completion.completedAt
+                completion.entry.isDone = true
+            }
+            pendingCompletions.removeAll(keepingCapacity: true)
+        }
+
+        deferredCompletionSaveTask?.cancel()
+        deferredCompletionSaveTask = Task { @MainActor in
+            try? await Task.sleep(for: .milliseconds(300))
+            guard !Task.isCancelled else { return }
+            _ = PersistenceSafety.save(modelContext)
+            deferredCompletionSaveTask = nil
         }
     }
 
@@ -1516,6 +1649,7 @@ struct AgendaView: View {
     private func loadMoreFutureWeeks(ifCurrentLimitIs expectedLimit: Int) {
         guard loadedFutureWeeks == expectedLimit,
               loadedFutureWeeks < maximumFutureWeekCount,
+              visibilityCache.visibleFutureBoundaryLimit == expectedLimit,
               !isLoadingMoreFuture,
               visibilityCache.futureLoadTask == nil else {
             return
@@ -1541,40 +1675,45 @@ struct AgendaView: View {
         let newLimit = weekCount(through: endDate)
 
         visibilityCache.futureLoadTask = Task { @MainActor in
-            // Loading is speculative. Wait until scrolling has settled and
-            // leave a generous window in which a tap can focus a text field.
-            try? await Task.sleep(for: .milliseconds(850))
+            // Do not schedule work relative to the scroll's idle phase. That
+            // made the batch begin 850 ms after a swipe and collide precisely
+            // with a user's next gesture. One yield lets disappearance/focus
+            // updates cancel this before background persistence starts.
+            await Task.yield()
             guard !Task.isCancelled,
-                  visibilityCache.isScrollIdle,
+                  visibilityCache.visibleFutureBoundaryLimit == expectedLimit,
                   focusedField == nil,
                   activeMoveEntryID == nil else {
                 visibilityCache.futureLoadTask = nil
                 return
             }
 
-            visibilityCache.pendingFutureLoadLimit = nil
             isLoadingMoreFuture = true
-            await Task.yield()
-            guard !Task.isCancelled else {
-                isLoadingMoreFuture = false
-                visibilityCache.futureLoadTask = nil
-                return
-            }
+
+            let extensionPlan = RecurringScheduler.extensionPlan(
+                items: recurringItems,
+                from: currentEndDate,
+                through: endDate
+            )
+            let modelContainer = modelContext.container
 
             do {
-                try RecurringScheduler.extendAll(
-                    in: modelContext.container,
-                    from: currentEndDate,
-                    through: endDate
-                )
+                try await Task.detached(priority: .utility) {
+                    try RecurringExtensionWorker.extend(
+                        plan: extensionPlan,
+                        in: modelContainer
+                    )
+                }.value
+                guard !Task.isCancelled else {
+                    isLoadingMoreFuture = false
+                    visibilityCache.futureLoadTask = nil
+                    return
+                }
                 recurringExtendedThrough = max(
                     recurringExtendedThrough,
                     endDate.timeIntervalSinceReferenceDate
                 )
-                // Give the live @Query one run-loop turn to merge the single
-                // store save before exposing the newly generated weeks.
-                try? await Task.sleep(for: .milliseconds(50))
-                loadedFutureWeeks = newLimit
+                publishLoadedFutureWeeks(newLimit)
             } catch {
                 // Keep the current boundary; approaching it retries naturally.
             }
@@ -1583,32 +1722,31 @@ struct AgendaView: View {
         }
     }
 
-    private func queueMoreFutureWeeks(ifCurrentLimitIs expectedLimit: Int) {
-        guard loadedFutureWeeks == expectedLimit,
-              loadedFutureWeeks < maximumFutureWeekCount else {
-            return
-        }
-
-        visibilityCache.pendingFutureLoadLimit = expectedLimit
-        if visibilityCache.isScrollIdle {
-            startPendingFutureLoad()
+    private func publishLoadedFutureWeeks(_ newLimit: Int) {
+        if #available(iOS 18.0, *) {
+            var transaction = Transaction()
+            transaction.scrollContentOffsetAdjustmentBehavior = .disabled
+            withTransaction(transaction) {
+                loadedFutureWeeks = newLimit
+            }
+        } else {
+            loadedFutureWeeks = newLimit
         }
     }
 
-    private func startPendingFutureLoad() {
-        guard visibilityCache.isScrollIdle,
-              !isLoadingMoreFuture,
-              focusedField == nil,
-              activeMoveEntryID == nil,
-              visibilityCache.futureLoadTask == nil,
-              let expectedLimit = visibilityCache.pendingFutureLoadLimit else {
+    private func futureBoundaryVisibilityChanged(_ isVisible: Bool, for limit: Int) {
+        if isVisible {
+            visibilityCache.visibleFutureBoundaryLimit = limit
+            loadMoreFutureWeeks(ifCurrentLimitIs: limit)
             return
         }
 
-        loadMoreFutureWeeks(ifCurrentLimitIs: expectedLimit)
+        guard visibilityCache.visibleFutureBoundaryLimit == limit else { return }
+        visibilityCache.visibleFutureBoundaryLimit = nil
+        cancelFutureLoadBeforeItStarts()
     }
 
-    private func cancelDeferredFutureLoad() {
+    private func cancelFutureLoadBeforeItStarts() {
         guard !isLoadingMoreFuture else { return }
         visibilityCache.futureLoadTask?.cancel()
         visibilityCache.futureLoadTask = nil
@@ -1617,7 +1755,7 @@ struct AgendaView: View {
     private func configureLoadedHorizon() {
         visibilityCache.futureLoadTask?.cancel()
         visibilityCache.futureLoadTask = nil
-        visibilityCache.pendingFutureLoadLimit = nil
+        visibilityCache.visibleFutureBoundaryLimit = nil
         isLoadingMoreFuture = false
         let option = RecurringHorizonOption(rawValue: recurringHorizon) ?? .threeMonths
         let today = AppCalendar.startOfDay(.now)
@@ -2117,6 +2255,7 @@ enum AgendaField: Hashable {
 private enum AgendaScrollTarget: Hashable {
     case week(Date)
     case day(Date)
+    case newEntry(Date)
 }
 
 private enum AgendaLayout {
@@ -2343,27 +2482,8 @@ struct DayBlock: View {
         VStack(alignment: .leading, spacing: 2) {
             ZStack(alignment: .leading) {
                 VStack(alignment: .leading, spacing: 2) {
-                    if sortedEntries.isEmpty {
-                        AgendaInputLine(
-                            dateLabel: day.dateLabel,
-                            weekdayLetter: day.weekdayLetter,
-                            date: day.date,
-                            nextOrder: 0,
-                            weather: day.date >= AppCalendar.startOfDay(.now)
-                                ? weather
-                                : nil,
-                            focusedField: focusedField,
-                            isMoveModeActive: activeMoveEntryID != nil,
-                            isMoveTargetHighlighted: false,
-                            moveActiveEntryHere: moveActiveEntryHere,
-                            finishMove: finishMove,
-                            isOnboardingHighlighted: onboardingStep == 0
-                                && AppCalendar.isSameDay(day.date, .now),
-                            entryAdded: onboardingEntryAdded
-                        )
-                    } else {
-                        ForEach(Array(sortedEntries.enumerated()), id: \.element.id) { index, entry in
-                            AgendaEntryLine(
+                    ForEach(Array(sortedEntries.enumerated()), id: \.element.id) { index, entry in
+                        AgendaEntryLine(
                                 dateLabel: index == 0 ? day.dateLabel : "",
                                 weekdayLetter: day.weekdayLetter,
                                 entry: entry,
@@ -2414,28 +2534,33 @@ struct DayBlock: View {
                                 onboardingMoveCancelled: onboardingMoveCancelled,
                                 isSearchMatch: searchMatchIDs.contains(entry.id),
                                 isCurrentSearchMatch: currentSearchMatchID == entry.id
-                            )
-                            .agendaVisibilityCompatibility { isVisible in
-                                entryVisibilityChanged(entry.id, isVisible)
-                            }
-                        }
-
-                        AgendaInputLine(
-                            dateLabel: "",
-                            weekdayLetter: day.weekdayLetter,
-                            date: day.date,
-                            nextOrder: nextUntimedManualOrder,
-                            weather: nil,
-                            focusedField: focusedField,
-                            isMoveModeActive: activeMoveEntryID != nil,
-                            isMoveTargetHighlighted: false,
-                            moveActiveEntryHere: moveActiveEntryHere,
-                            finishMove: finishMove,
-                            isOnboardingHighlighted: onboardingStep == 0
-                                && AppCalendar.isSameDay(day.date, .now),
-                            entryAdded: onboardingEntryAdded
                         )
+                        .agendaVisibilityCompatibility { isVisible in
+                            entryVisibilityChanged(entry.id, isVisible)
+                        }
                     }
+
+                    // Keep the input row at a stable position in the view tree.
+                    // Replacing it when the first entry was inserted caused iOS
+                    // to recreate its first responder and respawn the keyboard.
+                    AgendaInputLine(
+                        dateLabel: sortedEntries.isEmpty ? day.dateLabel : "",
+                        weekdayLetter: day.weekdayLetter,
+                        date: day.date,
+                        nextOrder: nextUntimedManualOrder,
+                        weather: sortedEntries.isEmpty && day.date >= AppCalendar.startOfDay(.now)
+                            ? weather
+                            : nil,
+                        focusedField: focusedField,
+                        isMoveModeActive: activeMoveEntryID != nil,
+                        isMoveTargetHighlighted: false,
+                        moveActiveEntryHere: moveActiveEntryHere,
+                        finishMove: finishMove,
+                        isOnboardingHighlighted: onboardingStep == 0
+                            && AppCalendar.isSameDay(day.date, .now),
+                        entryAdded: onboardingEntryAdded
+                    )
+                    .id(AgendaScrollTarget.newEntry(day.date))
                 }
                 .transaction { transaction in
                     if activeMoveEntryID == nil {
@@ -2665,6 +2790,12 @@ struct AgendaEntryLine: View {
                     .overlay(alignment: .topLeading) {
                         ZStack(alignment: .topLeading) {
                             compatibleTextField
+                                // The field grows with its contents, so it never
+                                // needs its own vertical scrolling. Disabling its
+                                // internal scroll recognizer lets the surrounding
+                                // agenda win drags that start on a row, while taps
+                                // still focus the field normally.
+                                .scrollDisabled(true)
                                 .textFieldStyle(.plain)
                                 .focused(focusedField, equals: .entry(entry.id))
                                 .lineLimit(1...)
@@ -2687,8 +2818,10 @@ struct AgendaEntryLine: View {
         }
         .font(.system(size: 16, weight: .regular))
         .lineLimit(1...)
-        .strikethrough(entry.isDone)
-        .foregroundStyle(entry.isDone ? Color.secondary : entryAccentColor)
+        // Completed entries leave this filtered query immediately. Avoid
+        // rendering a transient crossed-out/grey frame while SwiftData removes
+        // the row from the agenda hierarchy.
+        .foregroundStyle(entryAccentColor)
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 
@@ -2831,20 +2964,9 @@ struct AgendaEntryLine: View {
         guard !isDeleting else { return }
         isDeleting = true
 
-        // Present feedback before the model mutation invalidates the agenda,
-        // history, widget and reminder queries. This guarantees the bar gets a
-        // render frame even when saving a large store is temporarily expensive.
+        // Agenda owns completion batching. The row disappears immediately via
+        // presentation state; rapid taps then reach SwiftData in one mutation.
         completed(entry)
-        var transaction = Transaction()
-        transaction.disablesAnimations = true
-        withTransaction(transaction) {
-            entry.toggleDone()
-        }
-        Task { @MainActor in
-            try? await Task.sleep(for: .milliseconds(300))
-            guard !Task.isCancelled else { return }
-            _ = PersistenceSafety.save(modelContext)
-        }
     }
 
     private var entryAccentColor: Color {
@@ -2910,7 +3032,6 @@ struct AgendaInputLine: View {
     private var modelContext
 
     @State private var text = ""
-    @State private var textFieldResetToken = 0
     @State private var suppressFocusCommit = false
 
     private var cleanText: String {
@@ -2942,7 +3063,9 @@ struct AgendaInputLine: View {
                 .overlay(alignment: .topLeading) {
                     ZStack(alignment: .leading) {
                         TextField("", text: $text, axis: .vertical)
-                            .id(textFieldResetToken)
+                            // This multiline field expands with its text. Its own
+                            // pan recognizer only competes with the agenda scroll.
+                            .scrollDisabled(true)
                             .textFieldStyle(.plain)
                             .focused(focusedField, equals: .newEntry(date))
                             .submitLabel(.return)
@@ -3036,7 +3159,6 @@ struct AgendaInputLine: View {
 
         withTransaction(transaction) {
             text = ""
-            textFieldResetToken &+= 1
             modelContext.insert(entry)
         }
         entryAdded()
@@ -3045,7 +3167,8 @@ struct AgendaInputLine: View {
             await Task.yield()
             text = ""
             if continueEditing {
-                // Enter and the plus button continue on a fresh entry for this day.
+                // A plus-tap continues on a fresh entry without replacing the
+                // focused text field, so the existing keyboard stays in place.
                 focusedField.wrappedValue = .newEntry(date)
             }
             suppressFocusCommit = false

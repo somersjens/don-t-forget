@@ -435,6 +435,51 @@ final class Don_t_forgetTests: XCTestCase {
     }
 
     @MainActor
+    func testFullRecurringWorkerKeepsCompletedDailyOccurrenceAndIsIdempotent() throws {
+        let schema = Schema(versionedSchema: AppSchemaV1.self)
+        let configuration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: true)
+        let container = try ModelContainer(
+            for: schema,
+            migrationPlan: AppSchemaMigrationPlan.self,
+            configurations: configuration
+        )
+        let today = AppCalendar.startOfDay(.now)
+        let endDate = try XCTUnwrap(AppCalendar.calendar.date(
+            byAdding: .day,
+            value: 30,
+            to: today
+        ))
+        let item = RecurringItem(
+            title: "Dagtaak",
+            nextDate: today,
+            recurrenceKind: .interval,
+            intervalValue: 1,
+            intervalUnit: .day
+        )
+        let plan = RecurringScheduler.fullSyncPlan(items: [item], through: endDate)
+
+        try RecurringFullSyncWorker.sync(plan: plan, in: container)
+
+        let completionContext = ModelContext(container)
+        let initialEntries = try completionContext.fetch(FetchDescriptor<DayEntry>())
+        XCTAssertEqual(initialEntries.count, 31)
+        let completed = try XCTUnwrap(initialEntries.first)
+        let completedID = completed.id
+        completed.isDone = true
+        completed.completedAt = .now
+        try completionContext.save()
+
+        try RecurringFullSyncWorker.sync(plan: plan, in: container)
+
+        let verificationContext = ModelContext(container)
+        let entriesAfterSecondSync = try verificationContext.fetch(FetchDescriptor<DayEntry>())
+        XCTAssertEqual(entriesAfterSecondSync.count, 31)
+        let preserved = try XCTUnwrap(entriesAfterSecondSync.first(where: { $0.id == completedID }))
+        XCTAssertTrue(preserved.isDone)
+        XCTAssertNotNil(preserved.completedAt)
+    }
+
+    @MainActor
     func testSchedulerMigratesShiftedLegacyKeyWithoutReplacingEntry() throws {
         let schema = Schema(versionedSchema: AppSchemaV1.self)
         let configuration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: true)

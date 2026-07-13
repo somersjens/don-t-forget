@@ -141,6 +141,8 @@ struct MacCalendarView: View {
                 )
                 .frame(maxWidth: 560)
                 .padding(.horizontal, 14)
+                // Keep feedback clear of the floating macOS section menu.
+                .padding(.bottom, 70)
                 .transition(.move(edge: .bottom).combined(with: .opacity))
             }
         }

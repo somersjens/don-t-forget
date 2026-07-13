@@ -9641,6 +9641,22 @@
         }
       }
     },
+    "Titel is verplicht" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Title is required"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Titel is verplicht"
+          }
+        }
+      }
+    },
     "Titel laten zien" : {
       "localizations" : {
         "en" : {
@@ -10971,6 +10987,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Vul een geldig geboortejaar in."
+          }
+        }
+      }
+    },
+    "Vul een titel in om deze herhaling te bewaren." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enter a title to save this recurrence."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vul een titel in om deze herhaling te bewaren."
           }
         }
       }

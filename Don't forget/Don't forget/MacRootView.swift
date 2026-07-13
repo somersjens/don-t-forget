@@ -1438,6 +1438,7 @@ private struct MacRecurringBoard: View {
     @State private var dismissUndoTask: Task<Void, Never>?
     @State private var creatingItem: RecurringItem?
     @State private var isCreatingItem = false
+    @State private var showsTitleValidation = false
     @State private var showingHolidayManager = false
     @State private var cachedDisplayItems: [String: [MacRecurringDisplayItem]] = [:]
     @State private var hasCachedDisplayItems = false
@@ -1505,10 +1506,19 @@ private struct MacRecurringBoard: View {
                                 .buttonStyle(.borderedProminent)
                                 .tint(.red)
                             }
+                            if isCreatingItem {
+                                Button("Annuleer") { cancelCreatingItem() }
+                                    .buttonStyle(.bordered)
+                                    .tint(.secondary)
+                            }
                             Button("Gereed") { finishCreatingItem() }.buttonStyle(.borderedProminent)
                         }
                         .padding(.horizontal, 20).padding(.vertical, 14)
-                        MacRecurringEditor(item: creatingItem)
+                        MacRecurringEditor(
+                            item: creatingItem,
+                            showsTitleValidation: showsTitleValidation,
+                            titleChanged: { showsTitleValidation = false }
+                        )
                     }
                     .frame(maxWidth: .infinity)
                     .frame(height: min(geometry.size.height + 58, 760), alignment: .top)
@@ -1537,7 +1547,7 @@ private struct MacRecurringBoard: View {
                     Button("Ongedaan maken") { undoRemoval() }.buttonStyle(.borderedProminent)
                 }
                 .padding(10).background(.regularMaterial, in: RoundedRectangle(cornerRadius: 8))
-                .padding(.horizontal, 18).padding(.bottom, 8)
+                .padding(.horizontal, 18).padding(.bottom, 78)
             }
         }
         .onAppear {
@@ -1840,6 +1850,7 @@ private struct MacRecurringBoard: View {
             : (id == MacRecurringCategoryStore.holidayID ? .annualFixed : .interval)
         let item = RecurringItem(nextDate: .now, theme: RecurringTheme(rawValue: id) ?? .general, recurrenceKind: kind)
         item.themeRawValue = id; if kind == .birthday { item.birthDate = .now }
+        showsTitleValidation = false
         isCreatingItem = true
         creatingItem = item
     }
@@ -1855,18 +1866,28 @@ private struct MacRecurringBoard: View {
     private func repairUnknownCategories() { let valid = Set(categories.map(\.id)); guard let fallback = categories.first(where: { $0.id == RecurringTheme.general.rawValue })?.id ?? categories.first?.id else { return }; var changed = false; for item in items where !valid.contains(item.themeRawValue) { item.themeRawValue = fallback; changed = true }; if changed { save() } }
     private func finishCreatingItem() {
         guard let item = creatingItem else { return }
-        if isCreatingItem, !item.title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+        if isCreatingItem {
+            guard !item.title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+                showsTitleValidation = true
+                return
+            }
             modelContext.insert(item)
             item.frequencyText = RecurrenceEngine.description(for: item)
             save()
         } else if !isCreatingItem {
             save()
         }
+        showsTitleValidation = false
         creatingItem = nil
         isCreatingItem = false
     }
-    private func openEditor(for item: RecurringItem) { isCreatingItem = false; creatingItem = item }
-    private func removeFromEditor(_ item: RecurringItem) { creatingItem = nil; isCreatingItem = false; remove(item) }
+    private func cancelCreatingItem() {
+        showsTitleValidation = false
+        creatingItem = nil
+        isCreatingItem = false
+    }
+    private func openEditor(for item: RecurringItem) { showsTitleValidation = false; isCreatingItem = false; creatingItem = item }
+    private func removeFromEditor(_ item: RecurringItem) { showsTitleValidation = false; creatingItem = nil; isCreatingItem = false; remove(item) }
     private func remove(_ item: RecurringItem) {
         dismissUndoTask?.cancel(); item.isRemoved = true; item.completedAt = .now; selection = nil
         recentlyRemovedItem = item; save()
@@ -2064,6 +2085,9 @@ private struct MacRecurringEditor: View {
     @Environment(\.modelContext) private var modelContext
     @AppStorage(SettingsKeys.recurringCategories) private var categoriesData = ""
     @Bindable var item: RecurringItem
+    var showsTitleValidation = false
+    var titleChanged: () -> Void = {}
+    @FocusState private var isTitleFocused: Bool
     @FocusState private var focusedLinkIndex: Int?
     @FocusState private var focusedLinkNameIndex: Int?
     @State private var birthdayYearText = ""
@@ -2079,6 +2103,9 @@ private struct MacRecurringEditor: View {
     var body: some View {
         editorContent
         .onAppear(perform: loadBirthdayFields)
+        .onChange(of: showsTitleValidation) { _, isShowing in
+            if isShowing { isTitleFocused = true }
+        }
         .onChange(of: item.themeRawValue) { _, categoryID in updateCategory(categoryID) }
         .onChange(of: item.birthDate) { _, _ in saveRecurrence() }
         .onChange(of: item.birthdayYearUncertain) { _, _ in saveRecurrence() }
@@ -2129,13 +2156,26 @@ private struct MacRecurringEditor: View {
 
     private var identityCard: some View {
         editorCard(item.recurrenceKind == .birthday ? LocalizedStringKey("Wie") : LocalizedStringKey("Wat")) {
-            HStack(spacing: 18) {
-                Text(item.recurrenceKind == .birthday ? "Naam" : "Titel")
-                Spacer(minLength: 12)
-                TextField("", text: $item.title).textFieldStyle(.plain).multilineTextAlignment(.trailing)
-                    .frame(maxWidth: 560, alignment: .trailing)
+            VStack(alignment: .trailing, spacing: 3) {
+                HStack(spacing: 18) {
+                    Text(item.recurrenceKind == .birthday ? "Naam" : "Titel")
+                    Spacer(minLength: 12)
+                    TextField("", text: $item.title)
+                        .textFieldStyle(.plain)
+                        .multilineTextAlignment(.trailing)
+                        .focused($isTitleFocused)
+                        .onChange(of: item.title) { _, _ in titleChanged() }
+                        .frame(maxWidth: 560, alignment: .trailing)
+                }
+                .frame(height: rowHeight)
+
+                if showsTitleValidation {
+                    Text("Vul een titel in om deze herhaling te bewaren.")
+                        .font(.caption)
+                        .foregroundStyle(.red)
+                        .accessibilityLabel("Titel is verplicht")
+                }
             }
-            .frame(height: rowHeight)
             editorDivider
             HStack(spacing: 12) {
                 Text("Categorie")
@@ -2145,6 +2185,7 @@ private struct MacRecurringEditor: View {
                 }
                 .labelsHidden()
                 .controlSize(.regular)
+                .multilineTextAlignment(.leading)
                 .fixedSize()
             }
             .frame(height: rowHeight)
@@ -2237,10 +2278,12 @@ private struct MacRecurringEditor: View {
                     ForEach(1...daysInBirthdayMonth, id: \.self) { Text("\($0)").tag($0) }
                 }
                 .labelsHidden().pickerStyle(.menu).controlSize(.regular)
+                .multilineTextAlignment(.leading)
                 Picker("Maand", selection: birthdayMonthBinding) {
                     ForEach(1...12, id: \.self) { Text(AppCalendar.monthName($0)).tag($0) }
                 }
                 .labelsHidden().pickerStyle(.menu).controlSize(.regular)
+                .multilineTextAlignment(.leading)
             }
             .frame(height: rowHeight)
             HStack {

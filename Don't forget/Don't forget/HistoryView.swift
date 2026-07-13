@@ -141,6 +141,7 @@ struct HistoryView: View {
     @State private var isShowingSettings = false
     @State private var recentlyRestoredRow: HistoryRow?
     @State private var dismissRestoreTask: Task<Void, Never>?
+    @State private var deferredRestoreSaveTask: Task<Void, Never>?
     @State private var selectedDeletionRowID: UUID?
     @State private var pendingPermanentDeletion: HistoryRow?
     @State private var permanentDeletionTask: Task<Void, Never>?
@@ -736,6 +737,8 @@ struct HistoryView: View {
     private func restore(_ row: HistoryRow) {
         selectedDeletionRowID = nil
         dismissRestoreTask?.cancel()
+        deferredRestoreSaveTask?.cancel()
+        let defersCompletionMetadata = row.isCompletedRecurringOccurrence
         withAnimation(.snappy(duration: 0.25, extraBounce: 0)) {
             recentlyRestoredRow = row
         }
@@ -746,15 +749,25 @@ struct HistoryView: View {
         var transaction = Transaction()
         transaction.disablesAnimations = true
         withTransaction(transaction) {
-            row.restore()
+            row.restore(deferCompletionMetadata: defersCompletionMetadata)
+        }
+        if defersCompletionMetadata {
+            // The row's visibility changes first. Clearing its history timestamp
+            // in the same pass caused a second, unnecessary recurring-query
+            // update before the restored agenda row had finished rendering.
+            Task { @MainActor in
+                try? await Task.sleep(for: .milliseconds(120))
+                row.clearCompletionMetadataIfStillRestored()
+            }
         }
 
         // Saving is the potentially blocking part. Give SwiftUI a frame to
         // render both the restored row and feedback before persisting it.
-        Task { @MainActor in
+        deferredRestoreSaveTask = Task { @MainActor in
             try? await Task.sleep(for: .milliseconds(300))
             guard !Task.isCancelled else { return }
             _ = PersistenceSafety.save(modelContext)
+            deferredRestoreSaveTask = nil
         }
 
         if visibleOnboardingStep == 2, row.id == tutorialExampleID {
@@ -871,8 +884,20 @@ struct HistoryView: View {
 
     private func undoRestore() {
         guard let row = recentlyRestoredRow else { return }
-        row.undoRestore()
-        _ = PersistenceSafety.save(modelContext)
+        // Replace the delayed restore save with a single save after the undo
+        // frame. Synchronous persistence here made the undo tap feel sticky.
+        deferredRestoreSaveTask?.cancel()
+        var transaction = Transaction()
+        transaction.disablesAnimations = true
+        withTransaction(transaction) {
+            row.undoRestore()
+        }
+        deferredRestoreSaveTask = Task { @MainActor in
+            try? await Task.sleep(for: .milliseconds(300))
+            guard !Task.isCancelled else { return }
+            _ = PersistenceSafety.save(modelContext)
+            deferredRestoreSaveTask = nil
+        }
         hideRestoreBar()
         if visibleOnboardingStep == 3, row.id == tutorialExampleID {
             historyTutorialStep = 4
@@ -1889,6 +1914,10 @@ private struct HistoryRow: Identifiable {
     private let todo: TodoItem?
     private let recurringItem: RecurringItem?
 
+    var isCompletedRecurringOccurrence: Bool {
+        source == .recurring && entry != nil && isDone && !isRemoved
+    }
+
     init(
         entry: DayEntry,
         source: HistorySource,
@@ -1943,15 +1972,26 @@ private struct HistoryRow: Identifiable {
         self.recurringItem = recurringItem
     }
 
-    func restore() {
-        entry?.isDone = false
-        entry?.isRemoved = false
-        entry?.completedAt = nil
-        todo?.isDone = false
-        todo?.isRemoved = false
-        todo?.completedAt = nil
-        recurringItem?.isRemoved = false
-        recurringItem?.completedAt = nil
+    func restore(deferCompletionMetadata: Bool = false) {
+        if let entry {
+            if entry.isDone { entry.isDone = false }
+            if entry.isRemoved { entry.isRemoved = false }
+            if !deferCompletionMetadata { entry.completedAt = nil }
+        }
+        if let todo {
+            if todo.isDone { todo.isDone = false }
+            if todo.isRemoved { todo.isRemoved = false }
+            todo.completedAt = nil
+        }
+        if let recurringItem {
+            if recurringItem.isRemoved { recurringItem.isRemoved = false }
+            recurringItem.completedAt = nil
+        }
+    }
+
+    func clearCompletionMetadataIfStillRestored() {
+        guard let entry, !entry.isDone, !entry.isRemoved else { return }
+        entry.completedAt = nil
     }
 
     func undoRestore() {

@@ -254,6 +254,7 @@ struct TodoView: View {
     @State private var currentSearchMatch = 0
     @State private var searchScrollRequest = 0
     @State private var searchScrollTask: Task<Void, Never>?
+    @State private var inputScrollTask: Task<Void, Never>?
     @FocusState private var isSearchFocused: Bool
 
     @AppStorage(SettingsKeys.todoGroups) private var todoGroupsData = ""
@@ -297,26 +298,15 @@ struct TodoView: View {
         let searchMatchIDSet = Set(currentSearchMatchIDs)
 
         NavigationStack {
-            Group {
-                if isSearchPresented {
-                    ScrollViewReader { proxy in
-                        todoScrollView(
-                            currentGroups: currentGroups,
-                            activeTodosByGroup: activeTodosByGroup,
-                            searchMatchIDs: searchMatchIDSet,
-                            currentSearchMatchID: currentSearchMatchID,
-                            searchProxy: proxy
-                        )
-                    }
-                } else {
-                    todoScrollView(
-                        currentGroups: currentGroups,
-                        activeTodosByGroup: activeTodosByGroup,
-                        searchMatchIDs: searchMatchIDSet,
-                        currentSearchMatchID: currentSearchMatchID,
-                        searchProxy: nil
-                    )
-                }
+            ScrollViewReader { proxy in
+                todoScrollView(
+                    currentGroups: currentGroups,
+                    activeTodosByGroup: activeTodosByGroup,
+                    searchMatchIDs: searchMatchIDSet,
+                    currentSearchMatchID: currentSearchMatchID,
+                    searchProxy: isSearchPresented ? proxy : nil,
+                    inputProxy: proxy
+                )
             }
             .toolbar(.hidden, for: .navigationBar)
             .safeAreaInset(edge: .top, spacing: 0) {
@@ -440,6 +430,8 @@ struct TodoView: View {
                 isKeyboardVisible = true
             }
             .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillHideNotification)) { _ in
+                inputScrollTask?.cancel()
+                inputScrollTask = nil
                 isKeyboardVisible = false
                 if searchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
                     isSearchPresented = false
@@ -447,6 +439,7 @@ struct TodoView: View {
             }
             .onDisappear {
                 searchScrollTask?.cancel()
+                inputScrollTask?.cancel()
             }
         }
     }
@@ -456,7 +449,8 @@ struct TodoView: View {
         activeTodosByGroup: [String: [TodoItem]],
         searchMatchIDs: Set<UUID>,
         currentSearchMatchID: UUID?,
-        searchProxy: ScrollViewProxy?
+        searchProxy: ScrollViewProxy?,
+        inputProxy: ScrollViewProxy
     ) -> some View {
         ScrollView(.vertical, showsIndicators: true) {
             LazyVStack(spacing: 12) {
@@ -482,7 +476,10 @@ struct TodoView: View {
                         index: index,
                         groupTodos: groupTodos,
                         searchMatchIDs: searchMatchIDs,
-                        currentSearchMatchID: currentSearchMatchID
+                        currentSearchMatchID: currentSearchMatchID,
+                        newTodoContinued: {
+                            scrollToTodoInput(group.id, with: inputProxy)
+                        }
                     )
                 }
 
@@ -556,13 +553,32 @@ struct TodoView: View {
         }
     }
 
+    private func scrollToTodoInput(_ groupID: String, with proxy: ScrollViewProxy) {
+        inputScrollTask?.cancel()
+        inputScrollTask = Task { @MainActor in
+            try? await Task.sleep(for: .milliseconds(40))
+            guard !Task.isCancelled, isKeyboardVisible else { return }
+            withAnimation(.smooth(duration: 0.22, extraBounce: 0)) {
+                proxy.scrollTo(TodoScrollTarget.newEntry(groupID), anchor: .bottom)
+            }
+
+            // The inserted row and keyboard safe area can settle in separate
+            // layout passes. Re-apply the target so the empty input stays visible.
+            try? await Task.sleep(for: .milliseconds(240))
+            guard !Task.isCancelled, isKeyboardVisible else { return }
+            proxy.scrollTo(TodoScrollTarget.newEntry(groupID), anchor: .bottom)
+            inputScrollTask = nil
+        }
+    }
+
     private func todoBucketCard(
         group: TodoGroup,
         allGroups: [TodoGroup],
         index: Int,
         groupTodos: [TodoItem],
         searchMatchIDs: Set<UUID>,
-        currentSearchMatchID: UUID?
+        currentSearchMatchID: UUID?,
+        newTodoContinued: @escaping () -> Void
     ) -> some View {
         let isFirstGroup = index == 0
         let step = visibleOnboardingStep
@@ -592,6 +608,7 @@ struct TodoView: View {
                 }
             },
             newTodoAdded: handleOnboardingTodoAdded,
+            newTodoContinued: newTodoContinued,
             todoMovePerformed: handleOnboardingTodoMove,
             categoryReordered: handleOnboardingCategoryReorder,
             tutorialInputCommand: isFirstGroup ? todoTutorialInputCommand : nil,
@@ -1181,6 +1198,7 @@ private struct TodoBucketCard: View {
     let highlightsCategoryReorder: Bool
     let newTodoTextChanged: (String) -> Void
     let newTodoAdded: (UUID) -> Void
+    let newTodoContinued: () -> Void
     let todoMovePerformed: (UUID) -> Void
     let categoryReordered: () -> Void
     let tutorialInputCommand: TodoTutorialInputCommand?
@@ -1272,8 +1290,10 @@ private struct TodoBucketCard: View {
                     requiresPlusToSubmit: requiresPlusToSubmit,
                     textChanged: newTodoTextChanged,
                     todoAdded: newTodoAdded,
+                    continuedEntry: newTodoContinued,
                     focusChanged: { isNewTodoFieldFocused = $0 }
                 )
+                .id(TodoScrollTarget.newEntry(group.id))
             }
             .padding(.leading, 12)
             .padding(.trailing, 8)
@@ -1508,6 +1528,10 @@ private enum TodoRowFirstLineCenter: AlignmentID {
 
 private extension VerticalAlignment {
     static let todoRowFirstLineCenter = VerticalAlignment(TodoRowFirstLineCenter.self)
+}
+
+private enum TodoScrollTarget: Hashable {
+    case newEntry(String)
 }
 
 private struct TodoLine: View {
@@ -1885,6 +1909,7 @@ private struct NewTodoLine: View {
     let requiresPlusToSubmit: Bool
     let textChanged: (String) -> Void
     let todoAdded: (UUID) -> Void
+    let continuedEntry: () -> Void
     let focusChanged: (Bool) -> Void
 
     @Environment(\.modelContext)
@@ -2002,6 +2027,9 @@ private struct NewTodoLine: View {
             modelContext.insert(todo)
         }
         todoAdded(todo.id)
+        if continueEditing {
+            continuedEntry()
+        }
 
         Task { @MainActor in
             await Task.yield()

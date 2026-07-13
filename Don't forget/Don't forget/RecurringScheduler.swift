@@ -11,11 +11,33 @@ extension Notification.Name {
 final class RecurringSyncState {
     static let shared = RecurringSyncState()
     private(set) var isSyncing = false
+    @ObservationIgnored private var delayedFinishTask: Task<Void, Never>?
 
     private init() {}
 
-    func begin() { isSyncing = true }
-    func finish() { isSyncing = false }
+    func begin() {
+        delayedFinishTask?.cancel()
+        delayedFinishTask = nil
+        isSyncing = true
+    }
+
+    /// A private-context save completes before live queries have merged the
+    /// inserted occurrences and SwiftUI has laid out the affected calendar.
+    /// Keep the indicator visible through that short settling phase.
+    func finish(after delay: Duration = .milliseconds(750)) {
+        delayedFinishTask?.cancel()
+        guard isSyncing else { return }
+        delayedFinishTask = Task { @MainActor in
+            try? await Task.sleep(for: delay)
+            guard !Task.isCancelled else { return }
+            // Give the query merge and the resulting layout their own turns.
+            await Task.yield()
+            await Task.yield()
+            guard !Task.isCancelled else { return }
+            isSyncing = false
+            delayedFinishTask = nil
+        }
+    }
 }
 
 @MainActor
@@ -172,6 +194,72 @@ enum RecurringScheduler {
                 accent: $0.accent
             )
         })
+    }
+
+    /// Captures a complete recurrence sync as value types so the SwiftData
+    /// fetch, diff and save can run in a private context off the UI actor.
+    static func fullSyncPlan(
+        items: [RecurringItem],
+        through endDate: Date
+    ) -> RecurringFullSyncPlan {
+        let today = AppCalendar.startOfDay(.now)
+        return RecurringFullSyncPlan(
+            today: today,
+            series: items.map { item in
+                RecurrenceEngine.prepareLegacyItem(item)
+                return RecurringFullSyncPlan.Series(
+                    itemID: item.id,
+                    baseTitle: item.title,
+                    entries: seriesPlan(
+                        for: item,
+                        from: today,
+                        through: endDate
+                    ).entries
+                )
+            }
+        )
+    }
+
+    /// Precomputes recurrence dates on the UI actor from the already-fetched
+    /// recurring items. The heavier SwiftData fetch, diff and save are applied
+    /// by `RecurringExtensionWorker` away from the UI actor.
+    static func extensionPlan(
+        items: [RecurringItem],
+        from startDate: Date,
+        through endDate: Date
+    ) -> RecurringExtensionPlan {
+        let largestReminderOffset = items.compactMap(\.reminderDaysBefore).max() ?? 0
+        let generationStart = AppCalendar.calendar.date(
+            byAdding: .day,
+            value: -max(0, largestReminderOffset),
+            to: AppCalendar.startOfDay(startDate)
+        ) ?? AppCalendar.startOfDay(startDate)
+
+        let series = items.map { item in
+            RecurrenceEngine.prepareLegacyItem(item)
+            return RecurringExtensionPlan.Series(
+                itemID: item.id,
+                entries: desiredEntries(
+                    for: item,
+                    from: generationStart,
+                    through: endDate
+                ).map {
+                    RecurringSeriesSyncPlan.Entry(
+                        key: $0.key,
+                        legacyKey: $0.legacyKey,
+                        date: $0.date,
+                        title: $0.title,
+                        accent: $0.accent
+                    )
+                }
+            )
+        }
+
+        return RecurringExtensionPlan(
+            generationStart: generationStart,
+            endDate: endDate,
+            series: series
+        )
     }
 
     private struct DesiredEntry {
@@ -375,6 +463,28 @@ enum RecurringScheduler {
     }
 }
 
+struct RecurringExtensionPlan: Sendable {
+    struct Series: Sendable {
+        let itemID: UUID
+        let entries: [RecurringSeriesSyncPlan.Entry]
+    }
+
+    let generationStart: Date
+    let endDate: Date
+    let series: [Series]
+}
+
+struct RecurringFullSyncPlan: Sendable {
+    struct Series: Sendable {
+        let itemID: UUID
+        let baseTitle: String
+        let entries: [RecurringSeriesSyncPlan.Entry]
+    }
+
+    let today: Date
+    let series: [Series]
+}
+
 struct RecurringSeriesSyncPlan: Sendable {
     struct Entry: Sendable {
         let key: String
@@ -385,6 +495,240 @@ struct RecurringSeriesSyncPlan: Sendable {
     }
 
     let entries: [Entry]
+}
+
+/// Reconciles all generated occurrences in one private-context transaction.
+/// This avoids publishing hundreds of individual inserts on the main context
+/// when a daily (or dense weekly) series is added.
+nonisolated enum RecurringFullSyncWorker {
+    private struct Identity: Hashable {
+        let itemID: UUID
+        let key: String
+    }
+
+    private struct LegacyEntryKey: Hashable {
+        let date: Date
+        let title: String
+
+        init(date: Date, title: String) {
+            self.date = Calendar.current.startOfDay(for: date)
+            self.title = title
+        }
+    }
+
+    static func sync(
+        plan: RecurringFullSyncPlan,
+        in modelContainer: ModelContainer
+    ) throws {
+        let context = ModelContext(modelContainer)
+        context.autosaveEnabled = false
+        var entries = try context.fetch(FetchDescriptor<DayEntry>())
+        let validItemIDs = Set(plan.series.map(\.itemID))
+
+        let orphaned = entries.filter { entry in
+            guard let itemID = entry.recurringItemIdentifier else { return false }
+            return entry.date >= plan.today && !validItemIDs.contains(itemID)
+        }
+        remove(orphaned, from: &entries, in: context)
+
+        var linkedByIdentity: [Identity: DayEntry] = [:]
+        var linkedByItem: [UUID: [DayEntry]] = [:]
+        var legacyByDateAndTitle: [LegacyEntryKey: DayEntry] = [:]
+
+        for entry in entries {
+            if let itemID = entry.recurringItemIdentifier {
+                linkedByItem[itemID, default: []].append(entry)
+                if let key = entry.recurringOccurrenceKey {
+                    let identity = Identity(itemID: itemID, key: key)
+                    if linkedByIdentity[identity] == nil {
+                        linkedByIdentity[identity] = entry
+                    }
+                }
+            } else if entry.source == .recurring {
+                let key = LegacyEntryKey(date: entry.date, title: entry.rawText)
+                if legacyByDateAndTitle[key] == nil {
+                    legacyByDateAndTitle[key] = entry
+                }
+            }
+        }
+
+        for series in plan.series {
+            let validKeys = Set(series.entries.flatMap { [$0.key, $0.legacyKey] })
+            let stale = (linkedByItem[series.itemID] ?? []).filter { entry in
+                entry.date >= plan.today
+                    && !validKeys.contains(entry.recurringOccurrenceKey ?? "")
+            }
+            remove(stale, from: &entries, in: context)
+
+            for desired in series.entries {
+                let identity = Identity(itemID: series.itemID, key: desired.key)
+                let legacyIdentity = Identity(itemID: series.itemID, key: desired.legacyKey)
+                let legacyEntry = legacyByDateAndTitle[
+                    LegacyEntryKey(date: desired.date, title: series.baseTitle)
+                ] ?? legacyByDateAndTitle[
+                    LegacyEntryKey(date: desired.date, title: desired.title)
+                ]
+
+                if let existing = linkedByIdentity[identity]
+                    ?? linkedByIdentity[legacyIdentity]
+                    ?? legacyEntry {
+                    if legacyEntry?.id == existing.id {
+                        legacyByDateAndTitle.removeValue(
+                            forKey: LegacyEntryKey(date: desired.date, title: series.baseTitle)
+                        )
+                        legacyByDateAndTitle.removeValue(
+                            forKey: LegacyEntryKey(date: desired.date, title: desired.title)
+                        )
+                    }
+                    update(existing, with: desired, itemID: series.itemID)
+                    linkedByIdentity[identity] = existing
+                    continue
+                }
+
+                let entry = DayEntry(
+                    date: desired.date,
+                    rawText: desired.title,
+                    source: .recurring,
+                    manualOrder: 0
+                )
+                entry.showOnWidget = true
+                entry.recurringItemIdentifier = series.itemID
+                entry.recurringOccurrenceKey = desired.key
+                entry.accentRawValue = desired.accent
+                context.insert(entry)
+                entries.append(entry)
+                linkedByIdentity[identity] = entry
+            }
+        }
+
+        if context.hasChanges {
+            try context.save()
+        }
+    }
+
+    private static func update(
+        _ entry: DayEntry,
+        with desired: RecurringSeriesSyncPlan.Entry,
+        itemID: UUID
+    ) {
+        let desiredDate = entry.recurringDateOverride ?? desired.date
+        let needsParsing = entry.rawText != desired.title
+        entry.date = desiredDate
+        entry.rawText = desired.title
+        entry.showOnWidget = true
+        entry.recurringItemIdentifier = itemID
+        entry.recurringOccurrenceKey = desired.key
+        entry.accentRawValue = desired.accent
+        if needsParsing {
+            entry.refreshParsedFields()
+        }
+    }
+
+    private static func remove(
+        _ removed: [DayEntry],
+        from entries: inout [DayEntry],
+        in context: ModelContext
+    ) {
+        guard !removed.isEmpty else { return }
+        let removedIDs = Set(removed.map(\.id))
+        let eventIDs = Set(removed.compactMap(\.calendarEventIdentifier))
+        let remainingEventIDs = Set(entries.compactMap { entry in
+            removedIDs.contains(entry.id) ? nil : entry.calendarEventIdentifier
+        })
+        for identifier in eventIDs.subtracting(remainingEventIDs) {
+            Task { @MainActor in
+                CalendarSyncService.enqueueEventDeletion(withIdentifier: identifier)
+            }
+        }
+        for entry in removed {
+            context.delete(entry)
+        }
+        entries.removeAll { removedIDs.contains($0.id) }
+    }
+}
+
+/// Appends precomputed future occurrences in a private SwiftData context.
+/// Keeping this work off the main actor prevents reaching the agenda boundary
+/// from pausing touch delivery while the batch is fetched and saved.
+nonisolated enum RecurringExtensionWorker {
+    private struct Identity: Hashable {
+        let itemID: UUID
+        let key: String
+    }
+
+    static func extend(
+        plan: RecurringExtensionPlan,
+        in modelContainer: ModelContainer
+    ) throws {
+        let context = ModelContext(modelContainer)
+        context.autosaveEnabled = false
+        let generationStart = plan.generationStart
+        let endDate = plan.endDate
+        let existingEntries = try context.fetch(FetchDescriptor<DayEntry>(
+            predicate: #Predicate { entry in
+                entry.recurringItemIdentifier != nil
+                    && entry.date >= generationStart
+                    && entry.date <= endDate
+            }
+        ))
+        var existingByIdentity: [Identity: DayEntry] = [:]
+
+        for entry in existingEntries {
+            guard let itemID = entry.recurringItemIdentifier,
+                  let key = entry.recurringOccurrenceKey else {
+                continue
+            }
+            existingByIdentity[Identity(itemID: itemID, key: key)] = entry
+        }
+
+        for series in plan.series {
+            for desired in series.entries {
+                let identity = Identity(itemID: series.itemID, key: desired.key)
+                let legacyIdentity = Identity(itemID: series.itemID, key: desired.legacyKey)
+                if let existing = existingByIdentity[identity]
+                    ?? existingByIdentity[legacyIdentity] {
+                    update(existing, with: desired, itemID: series.itemID)
+                    existingByIdentity[identity] = existing
+                    continue
+                }
+
+                let entry = DayEntry(
+                    date: desired.date,
+                    rawText: desired.title,
+                    source: .recurring,
+                    manualOrder: 0
+                )
+                entry.showOnWidget = true
+                entry.recurringItemIdentifier = series.itemID
+                entry.recurringOccurrenceKey = desired.key
+                entry.accentRawValue = desired.accent
+                context.insert(entry)
+                existingByIdentity[identity] = entry
+            }
+        }
+
+        if context.hasChanges {
+            try context.save()
+        }
+    }
+
+    private static func update(
+        _ entry: DayEntry,
+        with desired: RecurringSeriesSyncPlan.Entry,
+        itemID: UUID
+    ) {
+        let desiredDate = entry.recurringDateOverride ?? desired.date
+        let needsParsing = entry.rawText != desired.title
+        entry.date = desiredDate
+        entry.rawText = desired.title
+        entry.showOnWidget = true
+        entry.recurringItemIdentifier = itemID
+        entry.recurringOccurrenceKey = desired.key
+        entry.accentRawValue = desired.accent
+        if needsParsing {
+            entry.refreshParsedFields()
+        }
+    }
 }
 
 /// Applies a precomputed single-series plan in a private SwiftData context.
