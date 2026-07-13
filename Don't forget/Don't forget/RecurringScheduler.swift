@@ -395,7 +395,7 @@ nonisolated enum RecurringSeriesWorker {
         itemID: UUID,
         plan: RecurringSeriesSyncPlan,
         in modelContainer: ModelContainer
-    ) throws {
+    ) throws -> Bool {
         let context = ModelContext(modelContainer)
         context.autosaveEnabled = false
         var entries = try context.fetch(FetchDescriptor<DayEntry>(
@@ -436,9 +436,11 @@ nonisolated enum RecurringSeriesWorker {
             }
         }
 
-        if context.hasChanges {
+        let didChangeEntries = context.hasChanges
+        if didChangeEntries {
             try context.save()
         }
+        return didChangeEntries
     }
 
     private static func update(

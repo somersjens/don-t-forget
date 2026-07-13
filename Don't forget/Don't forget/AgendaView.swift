@@ -123,18 +123,27 @@ private struct AgendaRecurringMoveBar: View {
                 Button(action: apply) {
                     HStack(spacing: 12) {
                         leadingIcon(for: offer.phase)
+                            .frame(width: 18, height: 18)
                         Text(message(for: offer.phase))
                             .font(.system(size: 14, weight: offer.phase == .prompt ? .semibold : .medium))
                             .multilineTextAlignment(.leading)
                             .layoutPriority(1)
                         Spacer(minLength: 4)
+                        // Prompt text, spinner and checkmark occupy exactly the
+                        // same slot. The material card therefore cannot resize
+                        // or appear to be replaced when only its state changes.
                         trailingAction(for: offer.phase)
+                            .frame(width: 72, alignment: .trailing)
                     }
                     .modifier(RecurringMoveBarStyle())
                 }
                 .buttonStyle(.plain)
-                .disabled(offer.phase == .processing || offer.phase == .success)
+                // `.disabled` dims a Button, including its material background.
+                // Keep this one card visually constant and only stop hit testing
+                // while its content changes to progress or success.
+                .allowsHitTesting(offer.phase == .prompt || offer.phase == .failure)
                 .accessibilityLabel(message(for: offer.phase))
+                .transition(.move(edge: .bottom).combined(with: .opacity))
             }
         }
     }
@@ -164,12 +173,14 @@ private struct AgendaRecurringMoveBar: View {
                 .fixedSize(horizontal: true, vertical: false)
         case .processing:
             ProgressView()
-                .controlSize(.small)
-                .frame(minWidth: 58)
+                .progressViewStyle(.circular)
+                .controlSize(.regular)
+                .tint(Color.brandHardBlue)
+                .scaleEffect(1.08)
         case .success:
             Image(systemName: "checkmark")
+                .font(.system(size: 18, weight: .bold))
                 .foregroundStyle(Color.brandHardBlue)
-                .frame(minWidth: 58)
         case .failure:
             Text(locale.localized("recurring.retry"))
                 .font(.system(size: 14, weight: .semibold))
@@ -180,8 +191,10 @@ private struct AgendaRecurringMoveBar: View {
 
     private func message(for phase: AgendaRecurringMoveOffer.Phase) -> String {
         switch phase {
-        case .prompt, .processing:
+        case .prompt:
             locale.localized("Volgende herhalingen meeverschuiven?")
+        case .processing:
+            locale.localized("recurring.rescheduling")
         case .success:
             locale.localized("Volgende herhalingen zijn meeverschoven")
         case .failure:
@@ -282,6 +295,8 @@ struct AgendaView: View {
     @State private var recentlyMovedToDate: AgendaDateMoveUndo?
     @State private var dismissDateMoveUndoTask: Task<Void, Never>?
     @State private var recurringMoveController = AgendaRecurringMoveController()
+    @State private var recurringSeriesPresentationRevision = 0
+    @State private var agendaDataRefreshState = AgendaDataRefreshState.shared
     @State private var dismissRecurringMoveOfferTask: Task<Void, Never>?
     @State private var deferredRecurringMoveTask: Task<Void, Never>?
     @State private var deferredMoveSaveTask: Task<Void, Never>?
@@ -371,6 +386,29 @@ struct AgendaView: View {
     private var currentSearchMatchEntry: DayEntry? {
         guard searchMatches.indices.contains(currentSearchMatch) else { return nil }
         return searchMatches[currentSearchMatch]
+    }
+
+    private var isRecurringMoveProcessing: Bool {
+        recurringMoveController.offer?.phase == .processing
+    }
+
+    /// Changes only when the actively rescheduled series has visibly changed in
+    /// Agenda's @Query. This distinguishes a completed private-context save
+    /// from a completed UI merge.
+    private var activeRecurringSeriesSignature: Int? {
+        guard let offer = recurringMoveController.offer,
+              offer.phase == .processing else { return nil }
+
+        var hasher = Hasher()
+        for entry in entries where entry.recurringItemIdentifier == offer.itemID {
+            hasher.combine(entry.id)
+            hasher.combine(entry.recurringOccurrenceKey)
+            hasher.combine(entry.date)
+            hasher.combine(entry.recurringDateOverride)
+            hasher.combine(entry.rawText)
+            hasher.combine(entry.manualOrder)
+        }
+        return hasher.finalize()
     }
 
     private var onboardingMoveExampleEntry: DayEntry? {
@@ -511,7 +549,11 @@ struct AgendaView: View {
                     .adaptiveReadableWidth()
                 }
                 .contentMargins(.bottom, isSearchPresented ? 96 : 0, for: .scrollContent)
-                .scrollDisabled(isLoadingMoreFuture)
+                // A series save can publish many changed DayEntry models in a
+                // single frame. Keep the scroll position stable while SwiftData
+                // merges that batch so lazy rows cannot be recycled mid-update.
+                .scrollDisabled(isLoadingMoreFuture || isRecurringMoveProcessing)
+                .allowsHitTesting(!isRecurringMoveProcessing)
                 .agendaScrollCompatibility(
                     isScrolled: Binding(
                         get: { scrollPresentation.isScrolled },
@@ -717,6 +759,10 @@ struct AgendaView: View {
             }
             .onChange(of: recurringHorizon) { _, _ in
                 configureLoadedHorizon()
+            }
+            .onChange(of: activeRecurringSeriesSignature) { oldValue, newValue in
+                guard oldValue != nil, newValue != nil, oldValue != newValue else { return }
+                recurringSeriesPresentationRevision &+= 1
             }
             .onChange(of: focusedField) { _, newValue in
                 if newValue == nil {
@@ -1147,20 +1193,32 @@ struct AgendaView: View {
         let day = AppCalendar.startOfDay(targetDate)
 
         if originalDay != day, entry.recurringItemIdentifier != nil {
-            // Publish the lightweight prompt before grouping or mutating the
-            // potentially very large agenda query. The card follows one frame
-            // later, which keeps the prompt response independent of list size.
-            showRecurringMoveOfferIfNeeded(for: entry, from: originalDay, to: day)
+            // Moving the row, saving it and scrolling the lazy agenda all
+            // invalidate layout. Finish those operations before inserting the
+            // prompt; starting them 16 ms after the popup appeared made its
+            // first animation frames visibly stall.
             deferredRecurringMoveTask?.cancel()
+            performMoveEntry(
+                entryID,
+                from: originalDay,
+                to: day,
+                insertionIndex: insertionIndex,
+                shouldOfferRecurringShift: false
+            )
             deferredRecurringMoveTask = Task { @MainActor in
-                try? await Task.sleep(for: .milliseconds(16))
+                // The deferred move save runs after 80 ms and an offscreen
+                // scroll finishes after roughly 230 ms. Presenting at 300 ms
+                // keeps both completely outside the popup transition.
+                try? await Task.sleep(for: .milliseconds(300))
                 guard !Task.isCancelled else { return }
-                performMoveEntry(
-                    entryID,
+                guard let movedEntry = entries.first(where: { $0.id == entryID }) else {
+                    deferredRecurringMoveTask = nil
+                    return
+                }
+                showRecurringMoveOfferIfNeeded(
+                    for: movedEntry,
                     from: originalDay,
-                    to: day,
-                    insertionIndex: insertionIndex,
-                    shouldOfferRecurringShift: false
+                    to: day
                 )
                 deferredRecurringMoveTask = nil
             }
@@ -1184,8 +1242,15 @@ struct AgendaView: View {
         shouldOfferRecurringShift: Bool
     ) {
         guard let entry = entries.first(where: { $0.id == entryID }) else { return }
-        let targetEntries = (entriesByDay[day] ?? [])
-            .filter { !$0.isRemoved && $0.id != entryID }
+        // Grouping the complete query just to find one destination day is
+        // noticeably expensive for large agendas. A direct scan avoids the
+        // dictionary allocation on the latency-sensitive move path.
+        let targetEntries = entries
+            .filter {
+                !$0.isRemoved
+                    && $0.id != entryID
+                    && AppCalendar.isSameDay($0.date, day)
+            }
             .sorted(by: sortEntries)
         let targetIndex = min(max(insertionIndex ?? targetEntries.count, 0), targetEntries.count)
 
@@ -1278,16 +1343,20 @@ struct AgendaView: View {
         dismissRecurringMoveOfferTask?.cancel()
         dismissDateMoveUndoTask?.cancel()
         recentlyMovedToDate = nil
-        recurringMoveController.offer = AgendaRecurringMoveOffer(
-            itemID: itemID,
-            effectiveFrom: effectiveFrom,
-            seriesDate: seriesDate,
-            targetDate: targetDate
-        )
+        withAnimation(.snappy(duration: 0.25)) {
+            recurringMoveController.offer = AgendaRecurringMoveOffer(
+                itemID: itemID,
+                effectiveFrom: effectiveFrom,
+                seriesDate: seriesDate,
+                targetDate: targetDate
+            )
+        }
         dismissRecurringMoveOfferTask = Task { @MainActor in
             try? await Task.sleep(for: .seconds(5))
             guard !Task.isCancelled else { return }
-            recurringMoveController.offer = nil
+            withAnimation(.easeOut(duration: 0.2)) {
+                recurringMoveController.offer = nil
+            }
         }
     }
 
@@ -1302,13 +1371,37 @@ struct AgendaView: View {
         ).day ?? 0
         guard offset != 0 else { return }
 
-        finishAgendaEditing()
         deferredMoveSaveTask?.cancel()
         deferredMoveSaveTask = nil
         dismissRecurringMoveOfferTask?.cancel()
         offer.phase = .processing
-        recurringMoveController.offer = offer
+        // This is the same material card; only replace its contents. Animating
+        // the whole phase also animates Material internals and briefly looks
+        // like a second translucent card underneath the first one.
+        var loadingTransaction = Transaction()
+        loadingTransaction.disablesAnimations = true
+        withTransaction(loadingTransaction) {
+            recurringMoveController.offer = offer
+        }
         dismissRecurringMoveOfferTask = Task { @MainActor in
+            // Do not merely yield the main actor: that can resume in the same
+            // render transaction. Keep the actor free for several display
+            // frames, so the unchanged card and spinner are committed before
+            // any save, plan construction, or series synchronization starts.
+            try? await Task.sleep(for: .milliseconds(280))
+            guard !Task.isCancelled else { return }
+            finishAgendaEditing()
+
+            // Finishing edit mode can itself invalidate agenda rows. Give that
+            // smaller update its own render pass as well instead of combining
+            // it with the persistence transaction below.
+            await Task.yield()
+            try? await Task.sleep(for: .milliseconds(80))
+            guard !Task.isCancelled else { return }
+
+            let presentationRevisionBeforeSync = recurringSeriesPresentationRevision
+            let dataRefreshRevisionBeforeSync = agendaDataRefreshState.revision
+
             var workingOffer = offer
             if !workingOffer.shiftWasSaved {
                 RecurrenceEngine.appendScheduleShift(
@@ -1338,8 +1431,9 @@ struct AgendaView: View {
                 from: AppCalendar.startOfDay(.now),
                 through: endDate
             )
+            let didChangeEntries: Bool
             do {
-                try await Task.detached(priority: .userInitiated) {
+                didChangeEntries = try await Task.detached(priority: .userInitiated) {
                     try RecurringSeriesWorker.sync(
                         itemID: itemID,
                         plan: plan,
@@ -1354,13 +1448,92 @@ struct AgendaView: View {
                 return
             }
 
+            let didSettle = await waitForRecurringSeriesToSettle(
+                after: presentationRevisionBeforeSync,
+                dataRefreshRevision: dataRefreshRevisionBeforeSync,
+                expectsQueryChange: didChangeEntries
+            )
+            guard !Task.isCancelled else { return }
+            guard didSettle else {
+                var failedOffer = workingOffer
+                failedOffer.phase = .failure
+                recurringMoveController.offer = failedOffer
+                return
+            }
+
             var completedOffer = workingOffer
             completedOffer.phase = .success
-            recurringMoveController.offer = completedOffer
+            withAnimation(.easeInOut(duration: 0.2)) {
+                recurringMoveController.offer = completedOffer
+            }
             try? await Task.sleep(for: .seconds(1))
             guard !Task.isCancelled else { return }
-            recurringMoveController.offer = nil
+            withAnimation(.easeOut(duration: 0.22)) {
+                recurringMoveController.offer = nil
+            }
         }
+    }
+
+    /// Waits for three distinct completion stages: SwiftData has published the
+    /// series into this view, the resulting layout has gone quiet, and all
+    /// debounced consumers of the same query have finished their work.
+    private func waitForRecurringSeriesToSettle(
+        after presentationRevision: Int,
+        dataRefreshRevision: Int,
+        expectsQueryChange: Bool
+    ) async -> Bool {
+        let clock = ContinuousClock()
+        if expectsQueryChange {
+            let queryDeadline = clock.now.advanced(by: .seconds(5))
+
+            while recurringSeriesPresentationRevision == presentationRevision,
+                  clock.now < queryDeadline,
+                  !Task.isCancelled {
+                try? await Task.sleep(for: .milliseconds(25))
+            }
+            guard !Task.isCancelled,
+                  recurringSeriesPresentationRevision != presentationRevision else {
+                return false
+            }
+
+            // Require two quiet windows. A large @Query update may reach the lazy
+            // hierarchy in more than one observation/layout pass.
+            var stableRevision = recurringSeriesPresentationRevision
+            var quietWindows = 0
+            let layoutDeadline = clock.now.advanced(by: .seconds(3))
+            while quietWindows < 2, clock.now < layoutDeadline, !Task.isCancelled {
+                try? await Task.sleep(for: .milliseconds(140))
+                guard !Task.isCancelled else { return false }
+                if recurringSeriesPresentationRevision != stableRevision {
+                    stableRevision = recurringSeriesPresentationRevision
+                    quietWindows = 0
+                } else {
+                    quietWindows += 1
+                }
+            }
+            guard quietWindows == 2 else { return false }
+        }
+
+        // Widget and reminder publishers mark themselves busy immediately when
+        // they receive the query change, including their debounce interval.
+        let refreshDeadline = clock.now.advanced(by: .seconds(10))
+        var derivedWorkDidFinish = !expectsQueryChange && !agendaDataRefreshState.isBusy
+        while clock.now < refreshDeadline, !Task.isCancelled {
+            let observedDerivedWork = !expectsQueryChange
+                || agendaDataRefreshState.revision > dataRefreshRevision
+            if observedDerivedWork && !agendaDataRefreshState.isBusy {
+                derivedWorkDidFinish = true
+                break
+            }
+            try? await Task.sleep(for: .milliseconds(25))
+        }
+        guard derivedWorkDidFinish, !Task.isCancelled else { return false }
+
+        // Leave one final quiet frame between the last derived task and the
+        // success animation.
+        await Task.yield()
+        try? await Task.sleep(for: .milliseconds(100))
+        return !Task.isCancelled && !agendaDataRefreshState.isBusy
     }
 
     private func loadMoreFutureWeeks(ifCurrentLimitIs expectedLimit: Int) {

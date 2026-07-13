@@ -414,11 +414,11 @@ final class Don_t_forgetTests: XCTestCase {
             through: try date(2027, 1, 8)
         )
         try context.save()
-        try RecurringSeriesWorker.sync(
+        XCTAssertTrue(try RecurringSeriesWorker.sync(
             itemID: item.id,
             plan: plan,
             in: container
-        )
+        ))
 
         let verificationContext = ModelContext(container)
         let shifted = try verificationContext.fetch(FetchDescriptor<DayEntry>())
