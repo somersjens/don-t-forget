@@ -6,6 +6,8 @@
 	<string>6788163617</string>
 	<key>CFBundleDisplayName</key>
 	<string>Forget It</string>
+	<key>LSApplicationCategoryType</key>
+	<string>public.app-category.productivity</string>
 	<key>CFBundleURLTypes</key>
 	<array>
 		<dict>
