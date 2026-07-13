@@ -359,6 +359,7 @@ struct QuickTodoCaptureView: View {
     @Environment(\.modelContext) private var modelContext
 
     let groups: [TodoGroup]
+    let focusesKeyboardImmediately: Bool
     let onDismiss: (() -> Void)?
 
     @State private var text = ""
@@ -371,9 +372,15 @@ struct QuickTodoCaptureView: View {
     @AppStorage(SettingsKeys.actionButtonStartsVoiceRecording)
     private var startsVoiceRecording = false
 
-    init(groups: [TodoGroup], onDismiss: (() -> Void)? = nil) {
+    init(
+        groups: [TodoGroup],
+        initialDestinationID: String? = nil,
+        focusesKeyboardImmediately: Bool = false,
+        onDismiss: (() -> Void)? = nil
+    ) {
         let normalizedGroups = groups.isEmpty ? TodoGroupStore.defaults : groups
         self.groups = normalizedGroups
+        self.focusesKeyboardImmediately = focusesKeyboardImmediately
         self.onDismiss = onDismiss
         let destination = ActionButtonDefaultDestination(
             rawValue: UserDefaults.standard.string(
@@ -385,9 +392,17 @@ struct QuickTodoCaptureView: View {
         ) ?? ""
         let defaultGroupID = normalizedGroups.first(where: { $0.id == configuredGroupID })?.id
             ?? normalizedGroups[0].id
-        _destinationID = State(initialValue: destination == .calendarToday
-            ? Self.agendaDestinationID
-            : defaultGroupID)
+        let requestedDestinationID: String?
+        if initialDestinationID == Self.agendaDestinationID {
+            requestedDestinationID = Self.agendaDestinationID
+        } else if let initialDestinationID,
+                  normalizedGroups.contains(where: { $0.id == initialDestinationID }) {
+            requestedDestinationID = initialDestinationID
+        } else {
+            requestedDestinationID = nil
+        }
+        _destinationID = State(initialValue: requestedDestinationID
+            ?? (destination == .calendarToday ? Self.agendaDestinationID : defaultGroupID))
     }
 
     var body: some View {
@@ -491,7 +506,9 @@ struct QuickTodoCaptureView: View {
                 }
             }
             .onAppear {
-                if startsVoiceRecording {
+                if focusesKeyboardImmediately {
+                    isTextFieldFocused = true
+                } else if startsVoiceRecording {
                     startVoiceRecording()
                 } else {
                     isTextFieldFocused = true
@@ -505,7 +522,7 @@ struct QuickTodoCaptureView: View {
         .presentationDragIndicator(.visible)
     }
 
-    private static let agendaDestinationID = "__quickCaptureAgenda"
+    static let agendaDestinationID = "__quickCaptureAgenda"
 
     private var cleanText: String {
         text.trimmingCharacters(in: .whitespacesAndNewlines)

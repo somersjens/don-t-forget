@@ -1,182 +1,188 @@
 {
-  "sourceLanguage": "en",
-  "strings": {
-    "%lld": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%lld"
+  "sourceLanguage" : "en",
+  "strings" : {
+    "%lld" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld"
           }
         },
-        "nl": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%lld"
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld"
           }
         }
       }
     },
-    "%lldd": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%lldd"
+    "%lldd" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lldd"
           }
         },
-        "nl": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%lldd"
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lldd"
           }
         }
       }
     },
-    "1": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "1"
+    "1" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1"
           }
         },
-        "nl": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "1"
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1"
           }
         }
       }
     },
-    "Geen open taken": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "No open tasks"
+    "Geen open taken" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No open tasks"
           }
         },
-        "nl": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Geen open taken"
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Geen open taken"
           }
         }
       }
     },
-    "Geen open taken ✓": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "No open tasks ✓"
+    "Geen open taken ✓" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No open tasks ✓"
           }
         },
-        "nl": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Geen open taken ✓"
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Geen open taken ✓"
           }
         }
       }
     },
-    "Kalender": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Calendar"
+    "Kalender" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Calendar"
           }
         },
-        "nl": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Kalender"
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kalender"
           }
         }
       }
     },
-    "Lege agenda ✓": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Clean calendar ✓"
+    "Lege agenda ✓" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Clean calendar ✓"
           }
         },
-        "nl": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Lege agenda ✓"
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lege agenda ✓"
           }
         }
       }
     },
-    "Taken": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Tasks"
+    "Taak toevoegen" : {
+
+    },
+    "Taken" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tasks"
           }
         },
-        "nl": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Taken"
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Taken"
           }
         }
       }
     },
-    "widget.gallery.description": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Automatically shows the next upcoming items from your calendar."
+    "Toevoegen aan kalender" : {
+
+    },
+    "widget.gallery.description" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Automatically shows the next upcoming items from your calendar."
           }
         },
-        "nl": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Toont automatisch de eerstvolgende items uit je agenda."
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Toont automatisch de eerstvolgende items uit je agenda."
           }
         }
       }
     },
-    "widget.gallery.name": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Upcoming calendar items"
+    "widget.gallery.name" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Upcoming calendar items"
           }
         },
-        "nl": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Eerstvolgende kalenderitems"
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Eerstvolgende kalenderitems"
           }
         }
       }
     },
-    "widget.noUpcomingItems": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "No upcoming items"
+    "widget.noUpcomingItems" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No upcoming items"
           }
         },
-        "nl": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Geen komende items"
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Geen komende items"
           }
         }
       }
     }
   },
-  "version": "1.0"
+  "version" : "1.0"
 }

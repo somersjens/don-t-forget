@@ -455,6 +455,7 @@ struct HistoryView: View {
                         } label: {
                             Image(systemName: "gearshape")
                                 .font(.system(size: 20, weight: .semibold))
+                                .foregroundStyle(Color.brandHardBlue)
                                 .frame(width: 44, height: 44)
                         }
                         .compatibleHistoryGlassEffect()

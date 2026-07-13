@@ -96,7 +96,8 @@ struct MacCalendarView: View {
                     }
             .frame(maxWidth: 920)
             .frame(maxWidth: .infinity)
-            .padding(18)
+            .padding(.horizontal, 18)
+            .padding(.bottom, 18)
         }
         .onChange(of: currentMatchID) { _, id in
             guard let id else { return }

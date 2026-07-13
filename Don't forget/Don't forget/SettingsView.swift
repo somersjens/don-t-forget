@@ -474,8 +474,15 @@ struct SettingsView: View {
             .navigationTitle("Instellingen")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .topBarLeading) {
-                    AppActivityIndicator()
+                if #available(iOS 26.0, *) {
+                    ToolbarItem(placement: .topBarLeading) {
+                        AppActivityIndicator()
+                    }
+                    .sharedBackgroundVisibility(.hidden)
+                } else {
+                    ToolbarItem(placement: .topBarLeading) {
+                        AppActivityIndicator()
+                    }
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Gereed") {
@@ -1299,6 +1306,8 @@ private enum HomeWidgetPreviewFamily: String, CaseIterable, Identifiable {
 }
 
 private struct HomeWidgetSettingsPreview: View {
+    @Environment(\.colorScheme) private var colorScheme
+
     let family: HomeWidgetPreviewFamily
     let content: HomeWidgetContentOption
     let calendarRange: HomeWidgetCalendarRangeOption
@@ -1328,13 +1337,14 @@ private struct HomeWidgetSettingsPreview: View {
 
     var body: some View {
         Group {
-            if showsOtherWhenEmpty, todoItems.isEmpty, content != .calendar, !calendarItems.isEmpty {
+            if family == .large {
+                largePreviewContent
+            } else if showsOtherWhenEmpty, todoItems.isEmpty, content != .calendar, !calendarItems.isEmpty {
                 previewColumn(
                     title: locale.localized("Geen open taken ✓"),
                     items: calendarItems,
                     maximum: previewRowCount,
-                    calendar: true,
-                    forceTitle: true
+                    calendar: true
                 )
             } else if family == .small && content == .combined {
                 VStack(alignment: .leading, spacing: 7) {
@@ -1354,9 +1364,25 @@ private struct HomeWidgetSettingsPreview: View {
                 previewColumn(title: "Taken", items: todoItems, maximum: previewRowCount, calendar: false)
             }
         }
+        .foregroundStyle(previewPrimaryTextColor)
         .padding(14)
         .frame(width: family.size.width, height: family.size.height, alignment: .topLeading)
-        .background(usesLightBlueBackground ? Color(red: 207 / 255, green: 224 / 255, blue: 247 / 255) : .white)
+        .background {
+            if colorScheme == .dark {
+                LinearGradient(
+                    colors: [
+                        Color(red: 35 / 255, green: 38 / 255, blue: 44 / 255),
+                        Color(red: 10 / 255, green: 11 / 255, blue: 14 / 255)
+                    ],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
+            } else {
+                usesLightBlueBackground
+                    ? Color(red: 207 / 255, green: 224 / 255, blue: 247 / 255)
+                    : Color.white
+            }
+        }
         .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
         .shadow(color: .black.opacity(0.14), radius: 12, y: 5)
         .id(family)
@@ -1370,18 +1396,85 @@ private struct HomeWidgetSettingsPreview: View {
         return family.rowCount
     }
 
+    private var previewPrimaryTextColor: Color {
+        colorScheme == .dark && usesLightBlueBackground
+            ? Color.brandDarkModeTextBlue
+            : Color.primary
+    }
+
+    private var largePreviewContent: some View {
+        VStack(alignment: .leading, spacing: 9) {
+            if showsTitle {
+                HomeWidgetPreviewHeader(locale: locale)
+                    .frame(height: (family.size.height - 28) * 0.12)
+
+                Rectangle()
+                    .fill(.secondary.opacity(0.16))
+                    .frame(height: 1)
+            }
+
+            Group {
+                if content == .combined {
+                    HStack(alignment: .top, spacing: 10) {
+                        previewColumn(
+                            title: "Kalender",
+                            items: calendarItems,
+                            maximum: previewRowCount,
+                            calendar: true,
+                            showsAddButton: true
+                        )
+                        Rectangle()
+                            .fill(.secondary.opacity(0.18))
+                            .frame(width: 1)
+                        previewColumn(
+                            title: "Taken",
+                            items: todoItems,
+                            maximum: previewRowCount,
+                            calendar: false,
+                            showsAddButton: true
+                        )
+                    }
+                } else if content == .calendar {
+                    previewColumn(
+                        title: "Kalender",
+                        items: calendarItems,
+                        maximum: previewRowCount,
+                        calendar: true,
+                        showsAddButton: true
+                    )
+                } else {
+                    previewColumn(
+                        title: "Taken",
+                        items: todoItems,
+                        maximum: previewRowCount,
+                        calendar: false,
+                        showsAddButton: true
+                    )
+                }
+            }
+        }
+    }
+
     private func previewColumn(
         title: String,
         items: [(String, String, Color)],
         maximum: Int,
         calendar _: Bool,
-        forceTitle: Bool = false
+        showsAddButton: Bool = false
     ) -> some View {
         VStack(alignment: .leading, spacing: 6) {
-            if showsTitle || forceTitle {
-                Text(title)
-                    .font(.system(size: 12, weight: .bold))
-                    .foregroundStyle(Color(red: 59 / 255, green: 134 / 255, blue: 247 / 255))
+            if showsTitle {
+                HStack(spacing: 5) {
+                    Text(locale.localized(title))
+                        .font(.system(size: showsAddButton ? 15 : 12, weight: .bold))
+                    if showsAddButton && showsTitle {
+                        Spacer(minLength: 4)
+                        Image(systemName: "plus")
+                            .font(.system(size: 15, weight: .bold))
+                            .frame(width: 20, height: 20)
+                    }
+                }
+                .foregroundStyle(Color(red: 59 / 255, green: 134 / 255, blue: 247 / 255))
             }
             ForEach(Array(items.prefix(maximum).enumerated()), id: \.offset) { _, item in
                 HStack(alignment: .firstTextBaseline, spacing: 5) {
@@ -1408,6 +1501,56 @@ private struct HomeWidgetSettingsPreview: View {
         formatter.locale = locale
         formatter.dateFormat = dateFormat.dateFormat ?? DateFormatOption.localeDefault(for: locale).dateFormat ?? "dd/MM"
         return formatter.string(from: date)
+    }
+}
+
+private struct HomeWidgetPreviewHeader: View {
+    @Environment(\.colorScheme) private var colorScheme
+    let locale: Locale
+
+    private let brandBlue = Color(red: 59 / 255, green: 134 / 255, blue: 247 / 255)
+
+    var body: some View {
+        ViewThatFits(in: .horizontal) {
+            HStack(spacing: 10) {
+                Text(dateTitle)
+                    .font(.system(size: 18, weight: .semibold, design: .rounded))
+
+                Text(weekTitle.uppercased(with: locale))
+                    .font(.system(size: 10, weight: .bold, design: .rounded))
+                    .tracking(0.8)
+                    .padding(.horizontal, 9)
+                    .padding(.vertical, 5.5)
+                    .background(brandBlue.opacity(colorScheme == .dark ? 0.22 : 0.12), in: Capsule())
+                    .overlay {
+                        Capsule()
+                            .stroke(brandBlue.opacity(0.10), lineWidth: 0.5)
+                    }
+            }
+
+            Text("\(dateTitle), \(weekTitle)")
+                .font(.system(size: 17, weight: .semibold, design: .rounded))
+                .lineLimit(1)
+                .minimumScaleFactor(0.72)
+        }
+        .foregroundStyle(brandBlue)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
+        .accessibilityLabel("\(dateTitle), \(weekTitle)")
+    }
+
+    private var dateTitle: String {
+        let formatter = DateFormatter()
+        formatter.locale = locale
+        formatter.calendar = Calendar(identifier: .gregorian)
+        formatter.setLocalizedDateFormatFromTemplate("EEEE d MMMM")
+        let text = formatter.string(from: .now)
+        return text.prefix(1).uppercased(with: locale) + String(text.dropFirst())
+    }
+
+    private var weekTitle: String {
+        var calendar = Calendar.current
+        calendar.locale = locale
+        return "week \(calendar.component(.weekOfYear, from: .now))"
     }
 }
 

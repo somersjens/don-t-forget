@@ -124,6 +124,7 @@ private struct UpcomingCalendarProvider: TimelineProvider {
 
 private struct UpcomingCalendarWidgetView: View {
     @Environment(\.widgetFamily) private var family
+    @Environment(\.colorScheme) private var colorScheme
     let entry: UpcomingCalendarEntry
 
     private var layoutDirection: LayoutDirection {
@@ -166,11 +167,21 @@ private struct UpcomingCalendarWidgetView: View {
                 accessoryContent
             } else {
                 homeScreenContent
+                    .foregroundStyle(homePrimaryTextColor)
             }
         }
         .containerBackground(for: .widget) {
             if family == .accessoryRectangular {
                 Color(.secondarySystemBackground)
+            } else if colorScheme == .dark {
+                LinearGradient(
+                    colors: [
+                        Color(red: 35 / 255, green: 38 / 255, blue: 44 / 255),
+                        Color(red: 10 / 255, green: 11 / 255, blue: 14 / 255)
+                    ],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
             } else if entry.snapshot.homeWidgetBackground == "white" {
                 Color.white
             } else {
@@ -183,7 +194,19 @@ private struct UpcomingCalendarWidgetView: View {
 
     private var homeScreenContent: some View {
         Group {
-            switch entry.snapshot.homeWidgetContent ?? "combined" {
+            if family == .systemLarge {
+                largeHomeScreenContent
+            } else {
+                regularHomeScreenContent
+            }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        .padding(14)
+    }
+
+    @ViewBuilder
+    private var regularHomeScreenContent: some View {
+        switch entry.snapshot.homeWidgetContent ?? "combined" {
             case "todo":
                 if shouldShowOtherContent, homeTodoItems.isEmpty, !homeCalendarItems.isEmpty {
                     Link(destination: URL(string: "dontforget://calendar")!) {
@@ -191,8 +214,7 @@ private struct UpcomingCalendarWidgetView: View {
                             title: String(localized: "Geen open taken ✓"),
                             items: homeCalendarItems,
                             kind: .calendar,
-                            maximum: homeRowCapacity,
-                            forceTitle: true
+                            maximum: homeRowCapacity
                         )
                     }
                 } else {
@@ -212,8 +234,7 @@ private struct UpcomingCalendarWidgetView: View {
                             title: String(localized: "Lege agenda ✓"),
                             items: homeTodoItems,
                             kind: .todo,
-                            maximum: homeRowCapacity,
-                            forceTitle: true
+                            maximum: homeRowCapacity
                         )
                     }
                 } else {
@@ -223,10 +244,212 @@ private struct UpcomingCalendarWidgetView: View {
                 }
             default:
                 combinedHomeContent
+        }
+    }
+
+    private var largeHomeScreenContent: some View {
+        GeometryReader { proxy in
+            if showsHomeTitle {
+                VStack(alignment: .leading, spacing: 9) {
+                    largeDateHeader
+                        .frame(height: proxy.size.height * 0.12, alignment: .center)
+
+                    Rectangle()
+                        .fill(.secondary.opacity(0.16))
+                        .frame(height: 1)
+
+                    largeConfiguredContent
+                }
+            } else {
+                largeConfiguredContent
+            }
+        }
+    }
+
+    private var largeDateHeader: some View {
+        ViewThatFits(in: .horizontal) {
+            HStack(spacing: 10) {
+                Text(largeDateMainTitle)
+                    .font(.system(size: 18, weight: .semibold, design: .rounded))
+
+                Text(largeWeekTitle.uppercased(with: widgetLocale))
+                    .font(.system(size: 10, weight: .bold, design: .rounded))
+                    .tracking(0.8)
+                    .padding(.horizontal, 9)
+                    .padding(.vertical, 5.5)
+                    .background(brandBlue.opacity(colorScheme == .dark ? 0.22 : 0.12), in: Capsule())
+                    .overlay {
+                        Capsule()
+                            .stroke(brandBlue.opacity(0.10), lineWidth: 0.5)
+                    }
+            }
+
+            Text(largeDateTitle)
+                .font(.system(size: 17, weight: .semibold, design: .rounded))
+                .lineLimit(1)
+                .minimumScaleFactor(0.72)
+        }
+            .foregroundStyle(brandBlue)
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
+            .accessibilityLabel(largeDateTitle)
+    }
+
+    @ViewBuilder
+    private var largeConfiguredContent: some View {
+        switch entry.snapshot.homeWidgetContent ?? "combined" {
+        case "todo":
+            largeColumn(
+                title: String(localized: "Taken"),
+                items: homeTodoItems,
+                kind: .todo,
+                maximum: largeSingleColumnCapacity
+            )
+        case "calendar":
+            largeColumn(
+                title: String(localized: "Kalender"),
+                items: homeCalendarItems,
+                kind: .calendar,
+                maximum: largeSingleColumnCapacity
+            )
+        default:
+            HStack(spacing: 10) {
+                largeColumn(
+                    title: String(localized: "Kalender"),
+                    items: homeCalendarItems,
+                    kind: .calendar,
+                    maximum: largeCombinedColumnCapacity
+                )
+                .frame(maxWidth: .infinity)
+
+                Rectangle()
+                    .fill(.secondary.opacity(0.18))
+                    .frame(width: 1)
+
+                largeColumn(
+                    title: String(localized: "Taken"),
+                    items: homeTodoItems,
+                    kind: .todo,
+                    maximum: largeCombinedColumnCapacity
+                )
+                .frame(maxWidth: .infinity)
+            }
+        }
+    }
+
+    private func largeColumn(
+        title: String,
+        items: [WidgetCalendarItem],
+        kind: HomeItemKind,
+        maximum: Int
+    ) -> some View {
+        VStack(alignment: .leading, spacing: wrapsHomeText ? 5 : 7) {
+            if showsHomeTitle {
+                HStack(alignment: .center, spacing: 6) {
+                    Link(destination: sectionURL(for: kind)) {
+                        Text(title)
+                            .font(.system(size: 15, weight: .bold))
+                            .lineLimit(1)
+                    }
+
+                    Spacer(minLength: 4)
+
+                    Link(destination: quickAddURL(for: kind)) {
+                        Image(systemName: "plus")
+                            .font(.system(size: 15, weight: .bold))
+                            .frame(width: 20, height: 20)
+                            .contentShape(Rectangle())
+                    }
+                    .accessibilityLabel(kind == .calendar
+                        ? "Toevoegen aan kalender"
+                        : "Taak toevoegen")
+                }
+                .foregroundStyle(brandBlue)
+            }
+
+            Link(destination: sectionURL(for: kind)) {
+                VStack(alignment: .leading, spacing: wrapsHomeText ? 4 : 6) {
+                    if items.isEmpty {
+                        Text(emptyText(for: kind))
+                            .font(.system(size: 12, weight: .medium))
+                            .foregroundStyle(.secondary)
+                    } else {
+                        let displayedItems = Array(items.prefix(maximum))
+                        ForEach(displayedItems) { item in
+                            homeItemRow(item, kind: kind, displayedItems: displayedItems)
+                        }
+                    }
+                    Spacer(minLength: 0)
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+                .contentShape(Rectangle())
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-        .padding(14)
+    }
+
+    private func sectionURL(for kind: HomeItemKind) -> URL {
+        URL(string: kind == .calendar ? "dontforget://calendar" : "dontforget://todo")!
+    }
+
+    private func quickAddURL(for kind: HomeItemKind) -> URL {
+        var components = URLComponents()
+        components.scheme = "dontforget"
+        components.host = "quick-add"
+        var queryItems = [URLQueryItem(
+            name: "destination",
+            value: kind == .calendar ? "calendar" : "todo"
+        )]
+        if kind == .todo,
+           let categoryID = entry.snapshot.homeWidgetTodoCategoryID,
+           !categoryID.isEmpty {
+            queryItems.append(URLQueryItem(name: "category", value: categoryID))
+        }
+        components.queryItems = queryItems
+        return components.url!
+    }
+
+    private var largeSingleColumnCapacity: Int {
+        wrapsHomeText ? 7 : 11
+    }
+
+    private var largeCombinedColumnCapacity: Int {
+        wrapsHomeText ? 6 : 10
+    }
+
+    private var largeDateTitle: String {
+        "\(largeDateMainTitle), \(largeWeekTitle)"
+    }
+
+    private var largeDateMainTitle: String {
+        let formatter = DateFormatter()
+        formatter.locale = widgetLocale
+        formatter.calendar = Calendar(identifier: .gregorian)
+        formatter.setLocalizedDateFormatFromTemplate("EEEE d MMMM")
+        let dateText = formatter.string(from: entry.date)
+        return dateText.prefix(1).uppercased(with: widgetLocale) + String(dateText.dropFirst())
+    }
+
+    private var largeWeekTitle: String {
+        var calendar = Calendar.current
+        calendar.locale = widgetLocale
+        let week = calendar.component(.weekOfYear, from: entry.date)
+        return "week \(week)"
+    }
+
+    private var widgetLocale: Locale {
+        Locale(identifier: entry.snapshot.localeIdentifier)
+    }
+
+    private var brandBlue: Color {
+        Color(red: 59 / 255, green: 134 / 255, blue: 247 / 255)
+    }
+
+    private var homePrimaryTextColor: Color {
+        if colorScheme == .dark,
+           entry.snapshot.homeWidgetBackground == "brandLightBlue" {
+            return Color(red: 185 / 255, green: 216 / 255, blue: 255 / 255)
+        }
+        return .primary
     }
 
     private var shouldShowOtherContent: Bool {
@@ -241,8 +464,7 @@ private struct UpcomingCalendarWidgetView: View {
                     title: String(localized: "Lege agenda ✓"),
                     items: homeTodoItems,
                     kind: .todo,
-                    maximum: homeRowCapacity,
-                    forceTitle: true
+                    maximum: homeRowCapacity
                 )
             }
         } else if shouldShowOtherContent, homeTodoItems.isEmpty, !homeCalendarItems.isEmpty {
@@ -251,8 +473,7 @@ private struct UpcomingCalendarWidgetView: View {
                     title: String(localized: "Geen open taken ✓"),
                     items: homeCalendarItems,
                     kind: .calendar,
-                    maximum: homeRowCapacity,
-                    forceTitle: true
+                    maximum: homeRowCapacity
                 )
             }
         } else if family == .systemMedium || family == .systemLarge {
@@ -334,11 +555,10 @@ private struct UpcomingCalendarWidgetView: View {
         title: String,
         items: [WidgetCalendarItem],
         kind: HomeItemKind,
-        maximum: Int,
-        forceTitle: Bool = false
+        maximum: Int
     ) -> some View {
         VStack(alignment: .leading, spacing: wrapsHomeText ? 4 : 6) {
-            if showsHomeTitle || forceTitle {
+            if showsHomeTitle {
                 Text(title)
                     .font(.system(size: 12, weight: .bold))
                     .foregroundStyle(Color(red: 59 / 255, green: 134 / 255, blue: 247 / 255))

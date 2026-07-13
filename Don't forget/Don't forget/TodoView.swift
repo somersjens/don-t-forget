@@ -328,6 +328,11 @@ struct TodoView: View {
                         } label: {
                             Image(systemName: "arrow.uturn.backward")
                                 .font(.system(size: 20, weight: .semibold))
+                                .foregroundStyle(
+                                    (undoManager?.canUndo ?? false)
+                                        ? Color.brandHardBlue
+                                        : Color.secondary
+                                )
                                 .frame(width: 44, height: 44)
                         }
                         .compatibleCircularGlassEffect()

@@ -163,15 +163,26 @@ struct AppActivityIndicator: View {
 
     var body: some View {
         if activityState.isActive {
-            ProgressView()
-                .controlSize(.regular)
-                .tint(Color.brandHardBlue)
+            AppActivitySpinner()
                 .frame(width: 44, height: 44)
                 .background(.regularMaterial, in: Circle())
                 .shadow(color: .black.opacity(0.10), radius: 7, y: 2)
                 .accessibilityLabel("App is bezig")
                 .transition(.opacity)
         }
+    }
+}
+
+/// The glyph has no background of its own; the containing view draws the
+/// circle. This keeps an extra rounded-rectangle plate out of the indicator.
+struct AppActivitySpinner: View {
+    var controlSize: ControlSize = .regular
+
+    var body: some View {
+        ProgressView()
+            .progressViewStyle(.circular)
+            .controlSize(controlSize)
+            .tint(Color.brandHardBlue)
     }
 }
 

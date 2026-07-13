@@ -348,6 +348,8 @@
 			inputFileListPaths = (
 				"$(SRCROOT)/Don't forgetTests/SourceFixtures.xcfilelist",
 			);
+			inputPaths = (
+			);
 			name = "Copy Source Fixtures";
 			outputPaths = (
 				"$(TARGET_BUILD_DIR)/$(UNLOCALIZED_RESOURCES_FOLDER_PATH)/SourceFixtures/.stamp",
@@ -415,7 +417,7 @@
 				APPLICATION_EXTENSION_API_ONLY = YES;
 				CODE_SIGN_ENTITLEMENTS = "Don't forgetWidget/Don't_forgetWidget.entitlements";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1.4;
+				CURRENT_PROJECT_VERSION = 1.6;
 				DEVELOPMENT_TEAM = 4283ACUG4Y;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = "Don't forgetWidget/Info.plist";
@@ -445,7 +447,7 @@
 				APPLICATION_EXTENSION_API_ONLY = YES;
 				CODE_SIGN_ENTITLEMENTS = "Don't forgetWidget/Don't_forgetWidget.entitlements";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1.4;
+				CURRENT_PROJECT_VERSION = 1.6;
 				DEVELOPMENT_TEAM = 4283ACUG4Y;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = "Don't forgetWidget/Info.plist";
@@ -477,7 +479,7 @@
 				AUTOMATION_APPLE_EVENTS = NO;
 				CODE_SIGN_ENTITLEMENTS = "Don't forget/Don_t_forget.entitlements";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1.4;
+				CURRENT_PROJECT_VERSION = 1.6;
 				DEVELOPMENT_TEAM = 4283ACUG4Y;
 				ENABLE_APP_SANDBOX = YES;
 				ENABLE_HARDENED_RUNTIME = YES;
@@ -552,7 +554,7 @@
 				AUTOMATION_APPLE_EVENTS = NO;
 				CODE_SIGN_ENTITLEMENTS = "Don't forget/Don_t_forget.entitlements";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1.4;
+				CURRENT_PROJECT_VERSION = 1.6;
 				DEVELOPMENT_TEAM = 4283ACUG4Y;
 				ENABLE_APP_SANDBOX = YES;
 				ENABLE_HARDENED_RUNTIME = YES;

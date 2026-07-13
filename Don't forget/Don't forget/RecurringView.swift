@@ -426,6 +426,7 @@ struct RecurringView: View {
                         } label: {
                             Image(systemName: "arrow.trianglehead.2.clockwise.rotate.90")
                                 .font(.system(size: 20, weight: .semibold))
+                                .foregroundStyle(Color.brandHardBlue)
                                 .frame(width: 44, height: 44)
                         }
                         .compatibleRecurringGlassEffect()
@@ -449,6 +450,7 @@ struct RecurringView: View {
                         } label: {
                             Image(systemName: "plus")
                                 .font(.system(size: 20, weight: .semibold))
+                                .foregroundStyle(Color.brandHardBlue)
                                 .frame(width: 44, height: 44)
                         }
                         .compatibleRecurringGlassEffect()

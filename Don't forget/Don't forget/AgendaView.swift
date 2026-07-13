@@ -635,9 +635,7 @@ struct AgendaView: View {
                         HStack {
                             Group {
                                 if appActivityState.isActive {
-                                    ProgressView()
-                                        .controlSize(.regular)
-                                        .tint(Color.brandHardBlue)
+                                    AppActivitySpinner()
                                         .frame(width: 44, height: 44)
                                         .compatibleAgendaGlassEffect()
                                         .accessibilityLabel("App is bezig")
@@ -648,6 +646,11 @@ struct AgendaView: View {
                                     } label: {
                                         Image(systemName: "arrow.uturn.backward")
                                             .font(.system(size: 20, weight: .semibold))
+                                            .foregroundStyle(
+                                                (undoManager?.canUndo ?? false)
+                                                    ? Color.brandHardBlue
+                                                    : Color.secondary
+                                            )
                                             .frame(width: 44, height: 44)
                                     }
                                     .compatibleAgendaGlassEffect()

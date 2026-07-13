@@ -41,6 +41,7 @@ struct RootTabView: View {
 
     @State private var hasPerformedLaunchSync = false
     @State private var isShowingQuickTodoCapture = false
+    @State private var quickCaptureDestinationID: String?
     @State private var selectedTab = MainTab.agenda
     @Environment(\.scenePhase) private var scenePhase
 
@@ -141,11 +142,16 @@ struct RootTabView: View {
         }
         .overlay(alignment: .top) {
             if isShowingQuickTodoCapture {
-                QuickTodoCaptureView(groups: todoGroups) {
+                QuickTodoCaptureView(
+                    groups: todoGroups,
+                    initialDestinationID: quickCaptureDestinationID,
+                    focusesKeyboardImmediately: quickCaptureDestinationID != nil
+                ) {
                     withAnimation(.easeOut(duration: 0.2)) {
                         isShowingQuickTodoCapture = false
                     }
                 }
+                .id(quickCaptureDestinationID)
                 .frame(height: 250)
                 .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 18))
                 .clipShape(RoundedRectangle(cornerRadius: 18))
@@ -187,6 +193,7 @@ struct RootTabView: View {
             switch url.host {
             case "calendar": selectedTab = .agenda
             case "todo": selectedTab = .todo
+            case "quick-add": presentWidgetQuickCapture(from: url)
             default: break
             }
         }
@@ -227,9 +234,32 @@ struct RootTabView: View {
         let defaults = UserDefaults.standard
         guard defaults.bool(forKey: SettingsKeys.quickTodoCaptureRequested) else { return }
         defaults.set(false, forKey: SettingsKeys.quickTodoCaptureRequested)
+        quickCaptureDestinationID = nil
         let destination = ActionButtonDefaultDestination(rawValue: actionButtonDefaultDestination)
             ?? .topTodoCategory
         selectedTab = destination == .calendarToday ? .agenda : .todo
+        if !isShowingQuickTodoCapture {
+            withAnimation(.snappy(duration: 0.28, extraBounce: 0)) {
+                isShowingQuickTodoCapture = true
+            }
+        }
+    }
+
+    private func presentWidgetQuickCapture(from url: URL) {
+        let queryItems = URLComponents(url: url, resolvingAgainstBaseURL: false)?.queryItems ?? []
+        let destination = queryItems.first(where: { $0.name == "destination" })?.value
+        let requestedCategoryID = queryItems.first(where: { $0.name == "category" })?.value
+
+        if destination == "calendar" {
+            selectedTab = .agenda
+            quickCaptureDestinationID = QuickTodoCaptureView.agendaDestinationID
+        } else {
+            selectedTab = .todo
+            quickCaptureDestinationID = todoGroups.contains(where: { $0.id == requestedCategoryID })
+                ? requestedCategoryID
+                : todoGroups.first?.id
+        }
+
         if !isShowingQuickTodoCapture {
             withAnimation(.snappy(duration: 0.28, extraBounce: 0)) {
                 isShowingQuickTodoCapture = true

@@ -142,9 +142,7 @@ struct MacRootView: View {
             HStack {
                 Group {
                     if appActivityState.isActive {
-                        ProgressView()
-                            .controlSize(.small)
-                            .tint(Color.brandHardBlue)
+                        AppActivitySpinner(controlSize: .small)
                             .frame(width: 32, height: 32)
                             .background(.regularMaterial, in: Circle())
                             .accessibilityLabel("App is bezig")
@@ -178,7 +176,8 @@ struct MacRootView: View {
         .padding(.horizontal, 29)
         .frame(maxWidth: 900)
         .frame(maxWidth: .infinity)
-        .padding(.vertical, 12)
+        .padding(.top, 12)
+        .padding(.bottom, isSearchPresented ? 8 : 12)
         .background(Color.appCanvasBackground)
         if isSearchPresented {
             InlineMatchSearchBar(
@@ -189,7 +188,6 @@ struct MacRootView: View {
                 next: showNextSearchMatch,
                 clear: clearSearch
             )
-            .padding(.top, 8)
             .frame(maxWidth: 900)
             .frame(maxWidth: .infinity)
             .background(Color.appCanvasBackground)
@@ -291,6 +289,10 @@ struct MacRootView: View {
                     .zIndex(section == .recurring ? 1 : 0)
             }
         }
+        // The search bar already owns 8 pt of bottom spacing. Keep the same
+        // visual gap below the regular header without stacking both insets
+        // while search is presented.
+        .padding(.top, isSearchPresented ? 0 : 8)
     }
 
     @ViewBuilder
@@ -569,7 +571,9 @@ private struct MacHistoryBoard: View {
                         .id(date)
                 }
             }
-            .padding(18).frame(maxWidth: 900).frame(maxWidth: .infinity)
+            .padding(.horizontal, 18)
+            .padding(.bottom, 18)
+            .frame(maxWidth: 900).frame(maxWidth: .infinity)
         }
         .scrollIndicators(.hidden)
         .onChange(of: currentMatchID) { _, id in
@@ -925,7 +929,8 @@ private struct MacTodoBoard: View {
                 }
                 if searchText.isEmpty && groups.count < MacTodoGroupStore.maxCount { newGroupRow }
             }
-            .padding(18)
+            .padding(.horizontal, 18)
+            .padding(.bottom, 18)
             .frame(maxWidth: 900)
             .frame(maxWidth: .infinity)
         }
@@ -1478,7 +1483,8 @@ private struct MacRecurringBoard: View {
                 }
                 if searchText.isEmpty && visibleCategories.count < MacRecurringCategoryStore.maxCount { newGroupRow }
             }
-            .padding(18)
+            .padding(.horizontal, 18)
+            .padding(.bottom, 18)
             .frame(maxWidth: 900)
             .frame(maxWidth: .infinity)
         }
