@@ -737,10 +737,25 @@ struct HistoryView: View {
         selectedDeletionRowID = nil
         dismissRestoreTask?.cancel()
         withAnimation(.snappy(duration: 0.25, extraBounce: 0)) {
-            row.restore()
             recentlyRestoredRow = row
         }
-        _ = PersistenceSafety.save(modelContext)
+
+        // Keep the large history/agenda query invalidation out of the feedback
+        // animation transaction. This is particularly important for generated
+        // recurring occurrences.
+        var transaction = Transaction()
+        transaction.disablesAnimations = true
+        withTransaction(transaction) {
+            row.restore()
+        }
+
+        // Saving is the potentially blocking part. Give SwiftUI a frame to
+        // render both the restored row and feedback before persisting it.
+        Task { @MainActor in
+            try? await Task.sleep(for: .milliseconds(300))
+            guard !Task.isCancelled else { return }
+            _ = PersistenceSafety.save(modelContext)
+        }
 
         if visibleOnboardingStep == 2, row.id == tutorialExampleID {
             historyTutorialStep = 3

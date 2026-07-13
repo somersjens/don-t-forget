@@ -13,40 +13,6 @@ enum AppKeyboard {
     }
 }
 
-/// Tracks work derived from agenda query changes. A recurring-series move uses
-/// this as a completion barrier so its success UI never competes with widget
-/// serialization or notification rescheduling on the main actor.
-@MainActor
-@Observable
-final class AgendaDataRefreshState {
-    enum Operation: Hashable {
-        case endOfDayReminders
-        case widgetSnapshot
-    }
-
-    static let shared = AgendaDataRefreshState()
-
-    private var activeTokens: [Operation: UUID] = [:]
-    private(set) var revision = 0
-
-    var isBusy: Bool { !activeTokens.isEmpty }
-
-    private init() {}
-
-    func begin(_ operation: Operation) -> UUID {
-        let token = UUID()
-        activeTokens[operation] = token
-        revision &+= 1
-        return token
-    }
-
-    func finish(_ operation: Operation, token: UUID) {
-        guard activeTokens[operation] == token else { return }
-        activeTokens[operation] = nil
-        revision &+= 1
-    }
-}
-
 struct RootTabView: View {
     private enum MainTab: Hashable {
         case agenda, recurring, todo, history
@@ -335,18 +301,11 @@ private struct EndOfDayReminderPublisherView: View {
 
     private func queueReschedule(after delay: Duration) {
         pendingScheduleTask?.cancel()
-        let refreshToken = AgendaDataRefreshState.shared.begin(.endOfDayReminders)
         let currentEntries = entries
         let currentMinutes = reminderMinutes
         let currentlyEnabled = isEnabled
 
         pendingScheduleTask = Task { @MainActor in
-            defer {
-                AgendaDataRefreshState.shared.finish(
-                    .endOfDayReminders,
-                    token: refreshToken
-                )
-            }
             do {
                 try await Task.sleep(for: delay)
             } catch {
@@ -463,7 +422,6 @@ private struct WidgetSnapshotPublisherView: View, Equatable {
 
     private func schedulePublish(after delay: Duration) {
         pendingPublishTask?.cancel()
-        let refreshToken = AgendaDataRefreshState.shared.begin(.widgetSnapshot)
 
         let currentEntries = entries
         let currentTodos = todos
@@ -483,12 +441,6 @@ private struct WidgetSnapshotPublisherView: View, Equatable {
         let currentHomeWidgetTodoCategoryID = homeWidgetTodoCategoryID
 
         pendingPublishTask = Task { @MainActor in
-            defer {
-                AgendaDataRefreshState.shared.finish(
-                    .widgetSnapshot,
-                    token: refreshToken
-                )
-            }
             do {
                 try await Task.sleep(for: delay)
             } catch {

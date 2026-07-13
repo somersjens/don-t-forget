@@ -296,7 +296,6 @@ struct AgendaView: View {
     @State private var dismissDateMoveUndoTask: Task<Void, Never>?
     @State private var recurringMoveController = AgendaRecurringMoveController()
     @State private var recurringSeriesPresentationRevision = 0
-    @State private var agendaDataRefreshState = AgendaDataRefreshState.shared
     @State private var dismissRecurringMoveOfferTask: Task<Void, Never>?
     @State private var deferredRecurringMoveTask: Task<Void, Never>?
     @State private var deferredMoveSaveTask: Task<Void, Never>?
@@ -1400,7 +1399,6 @@ struct AgendaView: View {
             guard !Task.isCancelled else { return }
 
             let presentationRevisionBeforeSync = recurringSeriesPresentationRevision
-            let dataRefreshRevisionBeforeSync = agendaDataRefreshState.revision
 
             var workingOffer = offer
             if !workingOffer.shiftWasSaved {
@@ -1450,7 +1448,6 @@ struct AgendaView: View {
 
             let didSettle = await waitForRecurringSeriesToSettle(
                 after: presentationRevisionBeforeSync,
-                dataRefreshRevision: dataRefreshRevisionBeforeSync,
                 expectsQueryChange: didChangeEntries
             )
             guard !Task.isCancelled else { return }
@@ -1474,12 +1471,12 @@ struct AgendaView: View {
         }
     }
 
-    /// Waits for three distinct completion stages: SwiftData has published the
-    /// series into this view, the resulting layout has gone quiet, and all
-    /// debounced consumers of the same query have finished their work.
+    /// Wait until SwiftData has published the changed series into this view.
+    /// Widget and reminder publishers are intentionally not part of this
+    /// barrier: observing those global tasks made every agenda mutation publish
+    /// extra state and slowed unrelated completion and restore actions.
     private func waitForRecurringSeriesToSettle(
         after presentationRevision: Int,
-        dataRefreshRevision: Int,
         expectsQueryChange: Bool
     ) async -> Bool {
         let clock = ContinuousClock()
@@ -1496,44 +1493,24 @@ struct AgendaView: View {
                 return false
             }
 
-            // Require two quiet windows. A large @Query update may reach the lazy
-            // hierarchy in more than one observation/layout pass.
+            // A single quiet window is enough to keep the success transition
+            // out of the query merge without waiting for unrelated debounces.
             var stableRevision = recurringSeriesPresentationRevision
-            var quietWindows = 0
-            let layoutDeadline = clock.now.advanced(by: .seconds(3))
-            while quietWindows < 2, clock.now < layoutDeadline, !Task.isCancelled {
-                try? await Task.sleep(for: .milliseconds(140))
+            let layoutDeadline = clock.now.advanced(by: .seconds(1))
+            while clock.now < layoutDeadline, !Task.isCancelled {
+                try? await Task.sleep(for: .milliseconds(100))
                 guard !Task.isCancelled else { return false }
                 if recurringSeriesPresentationRevision != stableRevision {
                     stableRevision = recurringSeriesPresentationRevision
-                    quietWindows = 0
                 } else {
-                    quietWindows += 1
+                    return true
                 }
             }
-            guard quietWindows == 2 else { return false }
+            return false
         }
 
-        // Widget and reminder publishers mark themselves busy immediately when
-        // they receive the query change, including their debounce interval.
-        let refreshDeadline = clock.now.advanced(by: .seconds(10))
-        var derivedWorkDidFinish = !expectsQueryChange && !agendaDataRefreshState.isBusy
-        while clock.now < refreshDeadline, !Task.isCancelled {
-            let observedDerivedWork = !expectsQueryChange
-                || agendaDataRefreshState.revision > dataRefreshRevision
-            if observedDerivedWork && !agendaDataRefreshState.isBusy {
-                derivedWorkDidFinish = true
-                break
-            }
-            try? await Task.sleep(for: .milliseconds(25))
-        }
-        guard derivedWorkDidFinish, !Task.isCancelled else { return false }
-
-        // Leave one final quiet frame between the last derived task and the
-        // success animation.
         await Task.yield()
-        try? await Task.sleep(for: .milliseconds(100))
-        return !Task.isCancelled && !agendaDataRefreshState.isBusy
+        return !Task.isCancelled
     }
 
     private func loadMoreFutureWeeks(ifCurrentLimitIs expectedLimit: Int) {
@@ -2851,10 +2828,22 @@ struct AgendaEntryLine: View {
     }
 
     private func toggleDone() {
-        entry.toggleDone()
-        _ = PersistenceSafety.save(modelContext)
-        if entry.isDone {
-            completed(entry)
+        guard !isDeleting else { return }
+        isDeleting = true
+
+        // Present feedback before the model mutation invalidates the agenda,
+        // history, widget and reminder queries. This guarantees the bar gets a
+        // render frame even when saving a large store is temporarily expensive.
+        completed(entry)
+        var transaction = Transaction()
+        transaction.disablesAnimations = true
+        withTransaction(transaction) {
+            entry.toggleDone()
+        }
+        Task { @MainActor in
+            try? await Task.sleep(for: .milliseconds(300))
+            guard !Task.isCancelled else { return }
+            _ = PersistenceSafety.save(modelContext)
         }
     }
 
