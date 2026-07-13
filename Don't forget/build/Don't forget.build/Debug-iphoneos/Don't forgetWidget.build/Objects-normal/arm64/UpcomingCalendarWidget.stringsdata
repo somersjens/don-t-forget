@@ -1,0 +1,152 @@
+{
+  "source": "/Users/jenssomers/Desktop/Don't forget/Don't forget/Don't forgetWidget/UpcomingCalendarWidget.swift",
+  "tables": {
+    "Localizable": [
+      {
+        "comment": "",
+        "key": "Geen open taken ✓",
+        "location": {
+          "startingColumn": 54,
+          "startingLine": 191
+        }
+      },
+      {
+        "comment": "",
+        "key": "Taken",
+        "location": {
+          "startingColumn": 54,
+          "startingLine": 201
+        }
+      },
+      {
+        "comment": "",
+        "key": "Lege agenda ✓",
+        "location": {
+          "startingColumn": 54,
+          "startingLine": 212
+        }
+      },
+      {
+        "comment": "",
+        "key": "Kalender",
+        "location": {
+          "startingColumn": 38,
+          "startingLine": 326
+        }
+      },
+      {
+        "comment": "",
+        "key": "Lege agenda ✓",
+        "location": {
+          "startingColumn": 46,
+          "startingLine": 241
+        }
+      },
+      {
+        "comment": "",
+        "key": "Geen open taken ✓",
+        "location": {
+          "startingColumn": 46,
+          "startingLine": 251
+        }
+      },
+      {
+        "comment": "",
+        "key": "Taken",
+        "location": {
+          "startingColumn": 50,
+          "startingLine": 271
+        }
+      },
+      {
+        "comment": "",
+        "key": "Taken",
+        "location": {
+          "startingColumn": 50,
+          "startingLine": 287
+        }
+      },
+      {
+        "comment": "",
+        "key": "Lege agenda ✓",
+        "location": {
+          "startingColumn": 43,
+          "startingLine": 434
+        }
+      },
+      {
+        "comment": "",
+        "key": "Geen open taken",
+        "location": {
+          "startingColumn": 39,
+          "startingLine": 435
+        }
+      },
+      {
+        "comment": "",
+        "key": "%lldd",
+        "location": {
+          "startingColumn": 18,
+          "startingLine": 394
+        }
+      },
+      {
+        "comment": "",
+        "key": "widget.noUpcomingItems",
+        "location": {
+          "startingColumn": 22,
+          "startingLine": 445
+        }
+      },
+      {
+        "comment": "",
+        "key": "%lld",
+        "location": {
+          "startingColumn": 34,
+          "startingLine": 587
+        }
+      },
+      {
+        "comment": "",
+        "key": "%lld",
+        "location": {
+          "startingColumn": 18,
+          "startingLine": 585
+        }
+      },
+      {
+        "comment": "",
+        "key": "widget.gallery.name",
+        "location": {
+          "startingColumn": 35,
+          "startingLine": 602
+        }
+      },
+      {
+        "comment": "",
+        "key": "widget.gallery.description",
+        "location": {
+          "startingColumn": 22,
+          "startingLine": 603
+        }
+      },
+      {
+        "comment": "",
+        "key": "1",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 629
+        }
+      },
+      {
+        "comment": "",
+        "key": "%lld",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 631
+        }
+      }
+    ]
+  },
+  "version": 1
+}

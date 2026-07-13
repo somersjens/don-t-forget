@@ -1,0 +1,264 @@
+{
+  "source": "/Users/jenssomers/Desktop/Don't forget/Don't forget/Don't forget/TodoView.swift",
+  "tables": {
+    "Localizable": [
+      {
+        "comment": "",
+        "key": "category.todo.soon",
+        "location": {
+          "startingColumn": 42,
+          "startingLine": 70
+        }
+      },
+      {
+        "comment": "",
+        "key": "category.todo.longTerm",
+        "location": {
+          "startingColumn": 42,
+          "startingLine": 76
+        }
+      },
+      {
+        "comment": "",
+        "key": "category.todo.groceries",
+        "location": {
+          "startingColumn": 42,
+          "startingLine": 82
+        }
+      },
+      {
+        "comment": "",
+        "key": "Laatste wijziging terugdraaien",
+        "location": {
+          "startingColumn": 45,
+          "startingLine": 349
+        }
+      },
+      {
+        "comment": "",
+        "key": "Toetsenbord sluiten",
+        "location": {
+          "startingColumn": 35,
+          "startingLine": 387
+        }
+      },
+      {
+        "comment": "",
+        "key": "Zoeken sluiten",
+        "location": {
+          "startingColumn": 56,
+          "startingLine": 388
+        }
+      },
+      {
+        "comment": "",
+        "key": "Zoeken",
+        "location": {
+          "startingColumn": 75,
+          "startingLine": 388
+        }
+      },
+      {
+        "comment": "",
+        "key": "Kleur en icoon van %@ aanpassen",
+        "location": {
+          "startingColumn": 37,
+          "startingLine": 1218
+        }
+      },
+      {
+        "comment": "",
+        "key": "Groep",
+        "location": {
+          "startingColumn": 25,
+          "startingLine": 1222
+        }
+      },
+      {
+        "comment": "",
+        "key": "Volgorde van %@ aanpassen",
+        "location": {
+          "startingColumn": 29,
+          "startingLine": 1313
+        }
+      },
+      {
+        "comment": "",
+        "key": "Omhoog verplaatsen",
+        "location": {
+          "startingColumn": 34,
+          "startingLine": 1334
+        }
+      },
+      {
+        "comment": "",
+        "key": "Omlaag verplaatsen",
+        "location": {
+          "startingColumn": 34,
+          "startingLine": 1338
+        }
+      },
+      {
+        "comment": "",
+        "key": "Categorie verwijderen",
+        "location": {
+          "startingColumn": 27,
+          "startingLine": 1348
+        }
+      },
+      {
+        "comment": "",
+        "key": "Kleur",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 1426
+        }
+      },
+      {
+        "comment": "",
+        "key": "Icoon",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 1458
+        }
+      },
+      {
+        "comment": "",
+        "key": "Gereed",
+        "location": {
+          "startingColumn": 28,
+          "startingLine": 1496
+        }
+      },
+      {
+        "comment": "",
+        "key": "%@, taak verplaatsen",
+        "location": {
+          "startingColumn": 29,
+          "startingLine": 1803
+        }
+      },
+      {
+        "comment": "",
+        "key": "Kies datum",
+        "location": {
+          "startingColumn": 34,
+          "startingLine": 1620
+        }
+      },
+      {
+        "comment": "",
+        "key": "Datum",
+        "location": {
+          "startingColumn": 25,
+          "startingLine": 1610
+        }
+      },
+      {
+        "comment": "",
+        "key": "Annuleer",
+        "location": {
+          "startingColumn": 32,
+          "startingLine": 1624
+        }
+      },
+      {
+        "comment": "",
+        "key": "Verplaats",
+        "location": {
+          "startingColumn": 32,
+          "startingLine": 1630
+        }
+      },
+      {
+        "comment": "",
+        "key": "Taak bewerken",
+        "location": {
+          "startingColumn": 49,
+          "startingLine": 1661
+        }
+      },
+      {
+        "comment": "",
+        "key": "",
+        "location": {
+          "startingColumn": 23,
+          "startingLine": 1674
+        }
+      },
+      {
+        "comment": "",
+        "key": "Geen andere categorieën",
+        "location": {
+          "startingColumn": 27,
+          "startingLine": 1744
+        }
+      },
+      {
+        "comment": "",
+        "key": "Naar vandaag %@",
+        "location": {
+          "startingColumn": 23,
+          "startingLine": 1755
+        }
+      },
+      {
+        "comment": "",
+        "key": "Andere datum in agenda...",
+        "location": {
+          "startingColumn": 23,
+          "startingLine": 1772
+        }
+      },
+      {
+        "comment": "",
+        "key": "Verwijderen",
+        "location": {
+          "startingColumn": 23,
+          "startingLine": 1781
+        }
+      },
+      {
+        "comment": "",
+        "key": "Nieuwe taak invoeren",
+        "location": {
+          "startingColumn": 33,
+          "startingLine": 1908
+        }
+      },
+      {
+        "comment": "",
+        "key": "typ iets",
+        "location": {
+          "startingColumn": 23,
+          "startingLine": 1910
+        }
+      },
+      {
+        "comment": "",
+        "key": "",
+        "location": {
+          "startingColumn": 19,
+          "startingLine": 2050
+        }
+      },
+      {
+        "comment": "",
+        "key": "Nieuwe categorie invoeren",
+        "location": {
+          "startingColumn": 33,
+          "startingLine": 2078
+        }
+      },
+      {
+        "comment": "",
+        "key": "Nieuwe groep",
+        "location": {
+          "startingColumn": 23,
+          "startingLine": 2080
+        }
+      }
+    ]
+  },
+  "version": 1
+}

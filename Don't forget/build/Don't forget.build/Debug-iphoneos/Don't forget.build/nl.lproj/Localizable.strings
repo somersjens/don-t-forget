@@ -1,0 +1,1463 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key></key>
+	<string></string>
+	<key> over de app</key>
+	<string> over de app</string>
+	<key>%@ bewerken</key>
+	<string>%@ bewerken</string>
+	<key>%@ · %@</key>
+	<string>%1$@ · %2$@</string>
+	<key>%@ — %@</key>
+	<string>%1$@ — %2$@</string>
+	<key>%@%@</key>
+	<string>%1$@%2$@</string>
+	<key>%@, %lld items</key>
+	<string>%@, %lld items</string>
+	<key>%@, taak verplaatsen</key>
+	<string>%@, taak verplaatsen</string>
+	<key>%lld</key>
+	<string>%lld</string>
+	<key>%lld afgerond</key>
+	<string>%lld afgerond</string>
+	<key>%lld dagen vooraf</key>
+	<string>%lld dagen vooraf</string>
+	<key>%lld graden</key>
+	<string>%lld graden</string>
+	<key>%lld graden, afvinken</key>
+	<string>%lld graden, afvinken</string>
+	<key>%lld graden, afvinken als afgerond</key>
+	<string>%lld graden, afvinken als afgerond</string>
+	<key>%lld in afgelopen 7 dagen</key>
+	<string>%lld in afgelopen 7 dagen</string>
+	<key>%lld open</key>
+	<string>%lld open</string>
+	<key>%lld/%lld</key>
+	<string>%1$lld/%2$lld</string>
+	<key>%llde</key>
+	<string>%llde</string>
+	<key>%lld°</key>
+	<string>%lld°</string>
+	<key>0</key>
+	<string>0</string>
+	<key>0 = vandaag, 1 = morgen</key>
+	<string>0 = vandaag, 1 = morgen</string>
+	<key>1 jaar</key>
+	<string>1 jaar</string>
+	<key>1 januari in week 1</key>
+	<string>1 januari in week 1</string>
+	<key>1 open</key>
+	<string>1 open</string>
+	<key>1,5 jaar</key>
+	<string>1,5 jaar</string>
+	<key>2 jaar</key>
+	<string>2 jaar</string>
+	<key>2000</key>
+	<string>2000</string>
+	<key>3 maanden</key>
+	<string>3 maanden</string>
+	<key>6 maanden</key>
+	<string>6 maanden</string>
+	<key>7</key>
+	<string>7</string>
+	<key>9 maanden</key>
+	<string>9 maanden</string>
+	<key>Aan de slag</key>
+	<string>Aan de slag</string>
+	<key>Aangemaakt</key>
+	<string>Aangemaakt</string>
+	<key>Aantal</key>
+	<string>Aantal</string>
+	<key>Aantal dagen vooraf</key>
+	<string>Aantal dagen vooraf</string>
+	<key>Aantal weergeven</key>
+	<string>Aantal weergeven</string>
+	<key>Account</key>
+	<string>Account</string>
+	<key>Actieknop</key>
+	<string>Actieknop</string>
+	<key>Actieknop configureren</key>
+	<string>Actieknop configureren</string>
+	<key>Acties voor %@</key>
+	<string>Acties voor %@</string>
+	<key>Add Item</key>
+	<string>Voeg item toe</string>
+	<key>Afgelopen 10 weken</key>
+	<string>Afgelopen 10 weken</string>
+	<key>Afgelopen 12 maanden</key>
+	<string>Afgelopen 12 maanden</string>
+	<key>Afgelopen 7 dagen</key>
+	<string>Afgelopen 7 dagen</string>
+	<key>Afgerond</key>
+	<string>Afgerond</string>
+	<key>Afgerond opschonen</key>
+	<string>Afgeronde items opschonen</string>
+	<key>Afgerond verwijderen?</key>
+	<string>Afgerond verwijderen?</string>
+	<key>Afgeronde items downloaden als CSV</key>
+	<string>Afgeronde items downloaden als CSV</string>
+	<key>Afgeronde items per dag over de afgelopen zeven dagen</key>
+	<string>Afgeronde items per dag over de afgelopen zeven dagen</string>
+	<key>Afgeronde items verschijnen hier automatisch en kun je altijd weer terugzetten.</key>
+	<string>Afgeronde items verschijnen hier automatisch en kun je altijd weer terugzetten.</string>
+	<key>Afsnijden als het te lang is</key>
+	<string>Lange tekst afsnijden</string>
+	<key>Afvinken</key>
+	<string>Afvinken</string>
+	<key>Agenda</key>
+	<string>Agenda</string>
+	<key>Agenda vooruit laden</key>
+	<string>Agenda vooruit laden</string>
+	<key>Agenda-item</key>
+	<string>Agenda-item</string>
+	<key>Algemeen</key>
+	<string>Algemeen</string>
+	<key>Alle afgeronde en verwijderde items worden definitief verwijderd. Dit kan niet ongedaan worden gemaakt.</key>
+	<string>Alle afgeronde en verwijderde items worden definitief verwijderd. Dit kan niet ongedaan worden gemaakt.</string>
+	<key>Alle agenda-items, taken, herhalingen, afgeronde items en instellingen worden definitief verwijderd. De app start daarna alsof je hem voor het eerst hebt gedownload.</key>
+	<string>Alle agenda-items, taken, herhalingen, afgeronde items en instellingen worden definitief verwijderd. De app start daarna alsof je hem voor het eerst hebt gedownload.</string>
+	<key>Alleen dit item</key>
+	<string>Alleen dit item</string>
+	<key>Alleen snel invoerveld</key>
+	<string>Alleen snel invoerveld</string>
+	<key>Alleen vandaag</key>
+	<string>Alleen vandaag</string>
+	<key>Alles</key>
+	<string>Alles</string>
+	<key>Alles bij de hand. Ook als je je telefoon verliest.</key>
+	<string>Alles bij de hand. Ook als je je telefoon verliest.</string>
+	<key>Alles wat je niet wilt vergeten, op één plek.</key>
+	<string>Alles wat je niet wilt vergeten, op één plek.</string>
+	<key>Alles wat past</key>
+	<string>Alles wat past</string>
+	<key>Als je apparaat kwijt raakt, zijn je gegevens niet terug te halen.</key>
+	<string>Als je apparaat kwijtraakt, zijn je gegevens niet terug te halen.</string>
+	<key>Andere datum in agenda...</key>
+	<string>Andere datum</string>
+	<key>Andere datum in agenda…</key>
+	<string>Andere datum in agenda…</string>
+	<key>Annuleer</key>
+	<string>Annuleer</string>
+	<key>App Color</key>
+	<string>Appkleur</string>
+	<key>App-taal</key>
+	<string>App-taal</string>
+	<key>Apple ID</key>
+	<string>Apple ID</string>
+	<key>Apple Weather</key>
+	<string>Apple Weather</string>
+	<key>Apple Weather, broninformatie</key>
+	<string>Apple Weather, broninformatie</string>
+	<key>Apple kon deze app niet aanmelden bij WeatherKit. Controleer of WeatherKit voor deze App ID bij zowel App Services als App Capabilities aanstaat. Staat dat al goed, probeer dan later opnieuw; Apple heeft mogelijk een tijdelijke authenticatiestoring.</key>
+	<string>Apple kon deze app niet aanmelden bij WeatherKit. Controleer of WeatherKit voor deze App ID bij zowel App Services als App Capabilities aanstaat. Staat dat al goed, probeer dan later opnieuw; Apple heeft mogelijk een tijdelijke authenticatiestoring.</string>
+	<key>Automatische iCloud-synchronisatie</key>
+	<string>Automatische iCloud-synchronisatie</string>
+	<key>Backup</key>
+	<string>Backup</string>
+	<key>Backup en herstel</key>
+	<string>Backup en herstel</string>
+	<key>Backup mislukt</key>
+	<string>Backup mislukt</string>
+	<key>Backup teruggezet. Heropen de app om alle instellingen opnieuw te laden.</key>
+	<string>Backup teruggezet. Heropen de app om alle instellingen opnieuw te laden.</string>
+	<key>Backupbestand terugzetten</key>
+	<string>Backupbestand terugzetten</string>
+	<key>Beginscherm-widget</key>
+	<string>Beginscherm-widget</string>
+	<key>Beginscherm-widget configureren</key>
+	<string>Beginscherm-widget configureren</string>
+	<key>Bekijk WeatherKit-instellingen bij Apple</key>
+	<string>Bekijk WeatherKit-instellingen bij Apple</string>
+	<key>Beschrijf nog een taak, of tik rechtsboven op het vinkje om de invoer af te ronden.</key>
+	<string>Schrijf nog een taak, of tik rechtsboven op het vinkje om het toetsenbord te sluiten.</string>
+	<key>Bestemming</key>
+	<string>Bestemming</string>
+	<key>Bewaar</key>
+	<string>Bewaar</string>
+	<key>Bewaren mislukt</key>
+	<string>Bewaren mislukt</string>
+	<key>Bewerken afsluiten</key>
+	<string>Bewerken afsluiten</string>
+	<key>Bij indrukken</key>
+	<string>Bij indrukken</string>
+	<key>Bij slimme weergave worden Taken over de volledige breedte getoond als er geen kalenderitems zijn, en andersom. Zo wordt er minder snel tekst afgesneden.</key>
+	<string>Bij slimme weergave worden Taken over de volledige breedte getoond als er geen kalenderitems zijn, en andersom. Zo wordt er minder snel tekst afgesneden.</string>
+	<key>Binnenkort</key>
+	<string>Binnenkort</string>
+	<key>Blauw</key>
+	<string>Blauw</string>
+	<key>Bovenste taken</key>
+	<string>Bovenste taken</string>
+	<key>Bron</key>
+	<string>Bron</string>
+	<key>Bruin</key>
+	<string>Bruin</string>
+	<key>Cadeau-idee of andere herinnering...</key>
+	<string>Cadeau-idee of andere herinnering...</string>
+	<key>Categorie</key>
+	<string>Categorie</string>
+	<key>Categorie in Taken kiezen</key>
+	<string>Categorie in Taken kiezen</string>
+	<key>Categorie verwijderen</key>
+	<string>Categorie verwijderen</string>
+	<key>Compacte categorieën tonen alleen de titel en eerstvolgende datum. Feestdagen staan standaard compact.</key>
+	<string>Compacte categorieën tonen alleen de titel en eerstvolgende datum. Feestdagen staan standaard compact.</string>
+	<key>Compacte rij voor %@</key>
+	<string>Compacte rij voor %@</string>
+	<key>Compacte rijen</key>
+	<string>Compacte rijen</string>
+	<key>Cyaan</key>
+	<string>Cyaan</string>
+	<key>Dag</key>
+	<string>Dag</string>
+	<key>Dag van maand</key>
+	<string>Dag van maand</string>
+	<key>Dag/Maand</key>
+	<string>Dag/Maand</string>
+	<key>Dagelijks</key>
+	<string>Dagelijks</string>
+	<key>Dagen</key>
+	<string>Dagen</string>
+	<key>Dagen tellen</key>
+	<string>Dagen tellen</string>
+	<key>Dagen tellen (0 = vandaag)</key>
+	<string>Dagen tellen (0 = vandaag)</string>
+	<key>Dagen vooraf</key>
+	<string>Dagen vooraf</string>
+	<key>Datum</key>
+	<string>Datum</string>
+	<key>Datum (dd/mm)</key>
+	<string>Datum (dd/mm)</string>
+	<key>Datum formattering</key>
+	<string>Datum formattering</string>
+	<key>Datum in agenda kiezen</key>
+	<string>Datum in agenda kiezen</string>
+	<key>Datumweergave</key>
+	<string>Datumweergave</string>
+	<key>De Actieknop is alleen beschikbaar op iPhone 15 Pro en nieuwere modellen. Stel op je iPhone bij Instellingen › Actieknop › Opdracht de opdracht ‘Nieuwe taak’ in.</key>
+	<string>De Actieknop is alleen beschikbaar op iPhone 15 Pro en nieuwere modellen. Ga op je iPhone naar Instellingen › Actieknop › Opdracht en kies ‘Nieuwe taak’.</string>
+	<key>De app varieert de datum deterministisch rond dit interval. Zo blijft het spontaan, maar verspringt de planning niet bij iedere sync.</key>
+	<string>De app varieert de datum voorspelbaar rond dit interval. Zo blijft het spontaan, maar verspringt de planning niet bij iedere synchronisatie.</string>
+	<key>De app varieert de datum voorspelbaar rond deze gekozen periode. Zo blijft het spontaan, maar verspringt de planning niet bij iedere synchronisatie.</key>
+	<string>De app varieert de datum voorspelbaar rond deze gekozen periode. Zo blijft het spontaan, maar verspringt de planning niet bij iedere synchronisatie.</string>
+	<key>De backup bevat %lld items. Er wordt eerst automatisch een veiligheidskopie gemaakt.</key>
+	<string>De backup bevat %lld items. Er wordt eerst automatisch een veiligheidskopie gemaakt.</string>
+	<key>De backup bevat actieve en afgeronde items, herhalingen en instellingen. Voor een herstelactie wordt eerst nog een kopie van de huidige gegevens gemaakt.</key>
+	<string>De backup bevat actieve en afgeronde items, herhalingen en instellingen. Voor een herstelactie wordt eerst nog een kopie van de huidige gegevens gemaakt.</string>
+	<key>De bovenste link verschijnt klikbaar in het overzicht. Na het invullen verschijnt automatisch een volgend veld, tot maximaal vijf links.</key>
+	<string>De bovenste link verschijnt klikbaar in het overzicht. Na het invullen verschijnt automatisch een volgend veld, tot maximaal vijf links.</string>
+	<key>De datum varieert voorspelbaar rond deze periode.</key>
+	<string>De datum varieert voorspelbaar rond deze periode.</string>
+	<key>De lockscreen-widget is beschikbaar op iPhone 11 en nieuwere modellen en op iPhone SE (2e generatie) en nieuwer. Houd het toegangsscherm ingedrukt en tik op Pas aan › Toegangsscherm › Voeg widgets toe. Kies daarna de widget van Don’t forget.</key>
+	<string>De toegangsschermwidget is beschikbaar op iPhone 11 en nieuwere modellen en op iPhone SE (2e generatie) en nieuwer. Houd het toegangsscherm ingedrukt en tik op Pas aan › Toegangsscherm › Voeg widgets toe. Kies daarna de widget van Forget It.</string>
+	<key>De standaardselectie van het nieuwe land vervangt je huidige geselecteerde feestdagen. Eigen feestdagen worden niet verwijderd.</key>
+	<string>De standaardselectie van het nieuwe land vervangt je huidige geselecteerde feestdagen. Eigen feestdagen worden niet verwijderd.</string>
+	<key>De wijziging wordt actief nadat je de app volledig hebt afgesloten en opnieuw hebt geopend.</key>
+	<string>De wijziging wordt actief nadat je de app volledig hebt afgesloten en opnieuw hebt geopend.</string>
+	<key>Definitief verwijderen</key>
+	<string>Definitief verwijderen</string>
+	<key>Demodata activeren</key>
+	<string>Demodata activeren</string>
+	<key>Demodata verwijderen</key>
+	<string>Demodata verwijderen</string>
+	<key>Derde</key>
+	<string>Derde</string>
+	<key>Deselecteer alles</key>
+	<string>Deselecteer alles</string>
+	<key>Details</key>
+	<string>Details</string>
+	<key>Deze Mac gebruikt dezelfde private iCloud-container als je iPhone en iPad. Wijzigingen worden automatisch op alle apparaten bijgewerkt.</key>
+	<string>Deze Mac gebruikt dezelfde private iCloud-container als je iPhone en iPad. Wijzigingen worden automatisch op alle apparaten bijgewerkt.</string>
+	<key>Deze leeftijd hoort niet bij een geboortejaar met 29 februari. Kies een passende leeftijd.</key>
+	<string>Deze leeftijd hoort niet bij een geboortejaar met 29 februari. Kies een passende leeftijd.</string>
+	<key>Deze reminder gebruikt dezelfde kleur als de verjaardagscategorie.</key>
+	<string>Deze herinnering gebruikt dezelfde kleur als de verjaardagscategorie.</string>
+	<key>Direct spraak opnemen</key>
+	<string>Direct spraak opnemen</string>
+	<key>Dit is een voorbeeld</key>
+	<string>Dit is een voorbeeld</string>
+	<key>Don't Forget</key>
+	<string>Forget It</string>
+	<key>Don't forget</key>
+	<string>Forget It</string>
+	<key>Doorgaan</key>
+	<string>Doorgaan</string>
+	<key>Doorgaan zonder Apple ID</key>
+	<string>Doorgaan zonder Apple ID</string>
+	<key>Doorlopen op nieuwe regel</key>
+	<string>Doorlopen op nieuwe regel</string>
+	<key>Druk op de Actieknop</key>
+	<string>Druk op de Actieknop</string>
+	<key>Een geel gearceerde weekdag bevat een tijd en blijft binnen de dag automatisch op tijd gesorteerd.</key>
+	<string>Een geel gemarkeerde weekdag bevat een tijd. Items met een tijd worden binnen die dag automatisch op volgorde gezet.</string>
+	<key>Een landwissel vervangt deze selectie. Eigen feestdagen blijven bewaard. Data uit de islamitische kalender kunnen door lokale maanwaarneming één dag verschillen.</key>
+	<string>Een landwissel vervangt deze selectie. Eigen feestdagen blijven bewaard. Data uit de islamitische kalender kunnen door lokale maanwaarneming één dag verschillen.</string>
+	<key>Een positie omhoog</key>
+	<string>Een positie omhoog</string>
+	<key>Een positie omlaag</key>
+	<string>Een positie omlaag</string>
+	<key>Een volledige backup bevat actieve en afgeronde items, herhalingen en instellingen. CSV is alleen bedoeld als leesbaar historie-overzicht.</key>
+	<string>Een volledige backup bevat actieve en afgeronde items, herhalingen en instellingen. CSV is alleen bedoeld als leesbaar historie-overzicht.</string>
+	<key>Eenheid</key>
+	<string>Eenheid</string>
+	<key>Eerste</key>
+	<string>Eerste</string>
+	<key>Eerste herhaling toevoegen</key>
+	<string>Eerste herhaling toevoegen</string>
+	<key>Eerste verjaardag toevoegen</key>
+	<string>Eerste verjaardag toevoegen</string>
+	<key>Eerstvolgende datum</key>
+	<string>Eerstvolgende datum</string>
+	<key>Eigen feestdag toevoegen</key>
+	<string>Eigen feestdag toevoegen</string>
+	<key>Eigen feestdagen kun je ook toevoegen met de plusknop bij de oranje categorie.</key>
+	<string>Eigen feestdagen kun je ook toevoegen met de plusknop bij de oranje categorie.</string>
+	<key>Einde-dagherinnering</key>
+	<string>Einde-dagherinnering</string>
+	<key>Elk kwartaal</key>
+	<string>Elk kwartaal</string>
+	<key>Elke %lld</key>
+	<string>Elke %lld</string>
+	<key>Elke %llde van de maand</key>
+	<string>Elke %llde van de maand</string>
+	<key>Er is geen tekst ingevoerd.</key>
+	<string>Er is geen tekst ingevoerd.</string>
+	<key>Er is nog geen automatische veiligheidskopie beschikbaar.</key>
+	<string>Er is nog geen automatische veiligheidskopie beschikbaar.</string>
+	<key>Exporteren mislukt</key>
+	<string>Exporteren mislukt</string>
+	<key>Extra notitie...</key>
+	<string>Extra notitie...</string>
+	<key>Eén dag meer</key>
+	<string>Eén dag meer</string>
+	<key>Eén dag minder</key>
+	<string>Eén dag minder</string>
+	<key>Feestdag op vaste dag</key>
+	<string>Feestdag op vaste dag</string>
+	<key>Feestdagen</key>
+	<string>Feestdagen</string>
+	<key>Feestdagen kiezen</key>
+	<string>Feestdagen kiezen</string>
+	<key>Flexibel (ongeveer)</key>
+	<string>Flexibel (ongeveer)</string>
+	<key>Frequentie</key>
+	<string>Frequentie</string>
+	<key>Ga terug naar de kalender om je herhaling te vinden. Een herhaling wordt steeds opnieuw vooruit gepland.</key>
+	<string>Ga terug naar de agenda om je herhaling te bekijken. De app plant deze automatisch eindeloos vooruit.</string>
+	<key>Geboortedatum</key>
+	<string>Geboortedatum</string>
+	<key>Geboortejaar</key>
+	<string>Geboortejaar</string>
+	<key>Geboortejaar onzeker</key>
+	<string>Geboortejaar onzeker</string>
+	<key>Gebruik de controls, of tik op een andere weekdag om direct te verplaatsen.</key>
+	<string>Gebruik de knoppen om te verplaatsen, of tik op een andere weekdag om het direct daar te plaatsen.</string>
+	<key>Gebruik de filterknoppen om alleen afgeronde items van een bepaalde tab te zien.</key>
+	<string>Gebruik de filters om alleen afgeronde items uit een bepaalde tab te zien.</string>
+	<key>Gebruik deze plaats</key>
+	<string>Gebruik deze plaats</string>
+	<key>Gebruik mijn huidige locatie</key>
+	<string>Gebruik mijn huidige locatie</string>
+	<key>Geef ‘Don’t forget’ toestemming voor meldingen via de iOS-instellingen.</key>
+	<string>Geef ‘Forget It’ toestemming voor meldingen via de iOS-instellingen.</string>
+	<key>Geel</key>
+	<string>Geel</string>
+	<key>Geen afgeronde %@-items</key>
+	<string>Geen afgeronde %@-items</string>
+	<key>Geen andere categorieën</key>
+	<string>Geen andere categorieën</string>
+	<key>Geen iCloud-account aangemeld; gegevens blijven alleen op dit apparaat</key>
+	<string>Geen iCloud-account aangemeld; gegevens blijven alleen op dit apparaat</string>
+	<key>Geen openstaande taken voor vandaag</key>
+	<string>Geen openstaande taken voor vandaag</string>
+	<key>Geen toegang. Je kunt dit later wijzigen in iOS-instellingen.</key>
+	<string>Geen toegang. Je kunt dit later wijzigen in iOS-instellingen.</string>
+	<key>Geen zoekresultaten</key>
+	<string>Geen zoekresultaten</string>
+	<key>Gegevens niet geopend</key>
+	<string>Gegevens niet geopend</string>
+	<key>Gereed</key>
+	<string>Gereed</string>
+	<key>Gisteren</key>
+	<string>Gisteren</string>
+	<key>Grafieken inklappen</key>
+	<string>Grafieken inklappen</string>
+	<key>Grafieken uitklappen</key>
+	<string>Grafieken uitklappen</string>
+	<key>Grey</key>
+	<string>Grijs</string>
+	<key>Grijs</key>
+	<string>Grijs</string>
+	<key>Groen</key>
+	<string>Groen</string>
+	<key>Groep</key>
+	<string>Groep</string>
+	<key>Groepsnaam</key>
+	<string>Groepsnaam</string>
+	<key>Hele app openen</key>
+	<string>Hele app openen</string>
+	<key>Hele app resetten</key>
+	<string>Hele app resetten</string>
+	<key>Hele app resetten?</key>
+	<string>Hele app resetten?</string>
+	<key>Herhaling</key>
+	<string>Herhaling</string>
+	<key>Herhaling toevoegen</key>
+	<string>Herhaling toevoegen</string>
+	<key>Herhaling toevoegen aan %@</key>
+	<string>Herhaling toevoegen aan %@</string>
+	<key>Herhalingen</key>
+	<string>Herhalingen</string>
+	<key>Herhalingen beheren</key>
+	<string>Herhalingen beheren</string>
+	<key>Heropen de app</key>
+	<string>Open de app opnieuw</string>
+	<key>Hoe lang open; klik voor verplaatsen</key>
+	<string>Hoe lang open; klik voor verplaatsen</string>
+	<key>Houd 3 seconden ingedrukt om de hele app te resetten.</key>
+	<string>Houd 3 seconden ingedrukt om de hele app te resetten.</string>
+	<key>Houd 3 seconden ingedrukt om demodata te activeren.</key>
+	<string>Houd 3 seconden ingedrukt om demodata te activeren.</string>
+	<key>Huidige gegevens vervangen?</key>
+	<string>Huidige gegevens vervangen?</string>
+	<key>Huidige leeftijd</key>
+	<string>Huidige leeftijd</string>
+	<key>Huidige selectie overschrijven?</key>
+	<string>Huidige selectie vervangen?</string>
+	<key>Hulp nodig? Stuur ons een </key>
+	<string>Idee voor de app? Stuur ons een </string>
+	<key>Hulp nodig? Stuur ons een email</key>
+	<string>Idee voor de app? Stuur ons een e-mail</string>
+	<key>Icoon</key>
+	<string>Icoon</string>
+	<key>Icoon en kleur wijzigen</key>
+	<string>Icoon en kleur wijzigen</string>
+	<key>Iets afgerond? Tik op de cirkel rechts. Het verhuist naar Afgerond.</key>
+	<string>Iets afgerond? Tik op de cirkel rechts. Het item wordt dan verplaatst naar de laatste categorie: Afgerond.</string>
+	<key>In niet-schrikkeljaren wordt de verjaardag op 28 februari getoond.</key>
+	<string>In niet-schrikkeljaren wordt de verjaardag op 28 februari getoond.</string>
+	<key>Indigo</key>
+	<string>Indigo</string>
+	<key>Ingeklapt</key>
+	<string>Ingeklapt</string>
+	<key>Inhoud</key>
+	<string>Inhoud</string>
+	<key>Instellingen</key>
+	<string>Instellingen</string>
+	<key>Invoer</key>
+	<string>Invoer</string>
+	<key>Islamitische kalender</key>
+	<string>Islamitische kalender</string>
+	<key>Item at %@</key>
+	<string>Item op %@</string>
+	<key>Item verplaatst\nnaar Afgerond</key>
+	<string>Item verplaatst\nnaar Afgerond</string>
+	<key>Items ouder dan de gekozen periode worden verwijderd. Eerst wordt automatisch een volledige veiligheidskopie gemaakt.</key>
+	<string>Items ouder dan de gekozen periode worden verwijderd. Eerst wordt automatisch een volledige veiligheidskopie gemaakt.</string>
+	<key>Ja graag</key>
+	<string>Ja graag</string>
+	<key>Jaar</key>
+	<string>Jaar</string>
+	<key>Jaarlijks (jubileum)</key>
+	<string>Jaarlijks (jubileum)</string>
+	<key>Jaren</key>
+	<string>Jaren</string>
+	<key>Je agenda staat klaar voor alles wat komt.</key>
+	<string>Deze kalender heeft geen geheimen meer voor jou. Tijd om leuke dingen te plannen!</string>
+	<key>Je gegevens worden privé via iCloud bewaard en automatisch teruggezet op je Apple-apparaten.</key>
+	<string>Je gegevens worden privé via iCloud bewaard en automatisch teruggezet op je Apple-apparaten.</string>
+	<key>Je gegevens zijn niet verwijderd. Sluit de app niet opnieuw af en installeer hem niet opnieuw. Probeer het nogmaals of neem contact op met support.
+
+%@</key>
+	<string>Je gegevens zijn niet verwijderd. Sluit de app niet opnieuw af en installeer hem niet opnieuw. Probeer het nogmaals of neem contact op met support.
+
+%@</string>
+	<key>Je hebt je taken helemaal in de hand.</key>
+	<string>Deze taak mag van je lijstje. Je hoeft niks meer te onthouden: vanaf nu schrijf je het gewoon hierop.</string>
+	<key>Je herhalingen regelen voortaan zichzelf.</key>
+	<string>Lekker bezig! Hier regel je alle taken die terugkomen. Ze worden eindeloos doorgepland op basis van jouw instellingen.</string>
+	<key>Je krijgt een overzicht van de openstaande taken van vandaag. Zijn er geen openstaande taken, dan wordt op de geplande tijd niets verstuurd. De melding is mogelijk niet zichtbaar als je telefoon in slaap- of nachtmodus staat.</key>
+	<string>Je krijgt een overzicht van de openstaande taken van vandaag. Zijn er geen openstaande taken, dan wordt op de geplande tijd niets verstuurd. De melding is mogelijk niet zichtbaar als je telefoon in Slaap of een andere focusmodus staat.</string>
+	<key>Je land is automatisch gekozen op basis van je regio. Zet de schakelaar uit om ook feestdagen en vieringen uit andere landen te zien.</key>
+	<string>Je land is automatisch gekozen op basis van je regio. Zet de schakelaar uit om ook feestdagen en vieringen uit andere landen te zien.</string>
+	<key>Je locatie wordt alleen gebruikt om het weer op te halen. De gekozen plaats wordt op dit apparaat bewaard.</key>
+	<string>Je locatie wordt alleen gebruikt om het weer op te halen. De gekozen plaats wordt op dit apparaat bewaard.</string>
+	<key>Je weet nu precies hoe Afgerond werkt.</key>
+	<string>Dat was ’m! Veel plezier met de app. Deel hem ook met vrienden en familie, hij is helemaal gratis.</string>
+	<key>Kalender</key>
+	<string>Kalender</string>
+	<key>Kalender + taken</key>
+	<string>Kalender + taken</string>
+	<key>Kalender synchroniseren…</key>
+	<string>Kalender synchroniseren…</string>
+	<key>Kalender vandaag</key>
+	<string>Kalender vandaag</string>
+	<key>Kalenderperiode</key>
+	<string>Kalenderperiode</string>
+	<key>Kalenderweergave</key>
+	<string>Kalenderweergave</string>
+	<key>Kies datum</key>
+	<string>Kies datum</string>
+	<key>Kies een datum</key>
+	<string>Kies een datum</string>
+	<key>Kies hoe Don’t forget de plaats voor je weersverwachting bepaalt.</key>
+	<string>Kies hoe Forget It de plaats voor je weersverwachting bepaalt.</string>
+	<key>Klaar met verplaatsen</key>
+	<string>Klaar met verplaatsen</string>
+	<key>Kleur</key>
+	<string>Kleur</string>
+	<key>Kleur en icoon van %@ aanpassen</key>
+	<string>Kleur en icoon van %@ aanpassen</string>
+	<key>Kleur voor %@</key>
+	<string>Kleur voor %@</string>
+	<key>Kleuren</key>
+	<string>Kleuren</string>
+	<key>Koppel Don't forget veilig aan je Apple-account. Je kunt deze koppeling later weer uitschakelen.</key>
+	<string>Koppel Forget It veilig aan je Apple-account. Je kunt deze koppeling later weer uitschakelen.</string>
+	<key>Laat alleen lokale feestdagen zien</key>
+	<string>Laat alleen lokale feestdagen zien</string>
+	<key>Laatste</key>
+	<string>Laatste</string>
+	<key>Laatste veiligheidskopie bewaren</key>
+	<string>Laatste veiligheidskopie bewaren</string>
+	<key>Laatste veiligheidskopie terugzetten</key>
+	<string>Laatste veiligheidskopie terugzetten</string>
+	<key>Laatste wijziging terugdraaien</key>
+	<string>Laatste wijziging terugdraaien</string>
+	<key>Lange tekst</key>
+	<string>Lange tekst</string>
+	<key>Later</key>
+	<string>Later</string>
+	<key>Later aanpasbaar in Instellingen</key>
+	<string>Later aanpasbaar in Instellingen</string>
+	<key>Leeftijd</key>
+	<string>Leeftijd</string>
+	<key>Leeftijd/jaar</key>
+	<string>Leeftijd/jaar</string>
+	<key>Leeftijd/jaar onzeker</key>
+	<string>Leeftijd/jaar onzeker</string>
+	<key>Leeg linkveld verwijderen</key>
+	<string>Leeg linkveld verwijderen</string>
+	<key>Lichtblauw</key>
+	<string>Lichtblauw</string>
+	<key>Lichtblauwe widgetkleur</key>
+	<string>Lichtblauwe widgetkleur</string>
+	<key>Light blue</key>
+	<string>Lichtblauw</string>
+	<key>Lijst</key>
+	<string>Lijst</string>
+	<key>Link %lld</key>
+	<string>Link %lld</string>
+	<key>Link verwijderen</key>
+	<string>Link verwijderen</string>
+	<key>Linknaam aanpassen</key>
+	<string>Linknaam aanpassen</string>
+	<key>Links</key>
+	<string>Links</string>
+	<key>Locatie bepalen…</key>
+	<string>Locatie bepalen…</string>
+	<key>Lockscreen-widget</key>
+	<string>Toegangsschermwidget</string>
+	<key>Lockscreen-widget configureren</key>
+	<string>Toegangsschermwidget configureren</string>
+	<key>Log in met Apple ID</key>
+	<string>Log in met Apple ID</string>
+	<key>Luistert…</key>
+	<string>Luistert…</string>
+	<key>Maak binnen je categorie een nieuwe herhaling door op het plusje te tikken.</key>
+	<string>Tik binnen je categorie op het plusje om een nieuwe herhaling te maken.</string>
+	<key>Maak een taak in een categorie door in het invoerveld iets te schrijven.</key>
+	<string>Schrijf iets in het invoerveld van een categorie om daar een taak te maken.</string>
+	<key>Maak zelf een categorie. Tik op de tekst in het nieuwe blok en kies een naam.</key>
+	<string>Maak je eigen categorie. Tik op de tekst in het nieuwe blok en geef de categorie een naam.</string>
+	<key>Maand</key>
+	<string>Maand</string>
+	<key>Maandag</key>
+	<string>Maandag</string>
+	<key>Maandelijks op datum</key>
+	<string>Maandelijks op datum</string>
+	<key>Maandelijks op weekdag</key>
+	<string>Maandelijks op weekdag</string>
+	<key>Maanden</key>
+	<string>Maanden</string>
+	<key>Markeer als afgerond</key>
+	<string>Markeer als afgerond</string>
+	<key>Melding</key>
+	<string>Melding</string>
+	<key>Meldingen niet beschikbaar</key>
+	<string>Meldingen niet beschikbaar</string>
+	<key>Met -</key>
+	<string>Met -</string>
+	<key>Met …</key>
+	<string>Met …</string>
+	<key>Na 1 jaar</key>
+	<string>Na 1 jaar</string>
+	<key>Na 1 maand</key>
+	<string>Na 1 maand</string>
+	<key>Na 1 week</key>
+	<string>Na 1 week</string>
+	<key>Naam</key>
+	<string>Naam</string>
+	<key>Naar agenda</key>
+	<string>Naar agenda</string>
+	<key>Naar agenda verplaatsen</key>
+	<string>Naar agenda verplaatsen</string>
+	<key>Naar agenda...</key>
+	<string>Naar agenda...</string>
+	<key>Naar vandaag</key>
+	<string>Naar vandaag</string>
+	<key>Naar vandaag %@</key>
+	<string>Naar vandaag %@</string>
+	<key>Niet</key>
+	<string>Geen</string>
+	<key>Nieuw</key>
+	<string>Nieuw</string>
+	<key>Nieuw agenda-item</key>
+	<string>Nieuw agenda-item</string>
+	<key>Nieuw item</key>
+	<string>Nieuw item</string>
+	<key>Nieuwe categorie</key>
+	<string>Nieuwe categorie</string>
+	<key>Nieuwe categorie invoeren</key>
+	<string>Nieuwe categorie invoeren</string>
+	<key>Nieuwe datum</key>
+	<string>Nieuwe datum</string>
+	<key>Nieuwe groep</key>
+	<string>Nieuwe groep</string>
+	<key>Nieuwe herhaling</key>
+	<string>Nieuwe herhaling</string>
+	<key>Nieuwe taak</key>
+	<string>Nieuwe taak</string>
+	<key>Nieuwe taak invoeren</key>
+	<string>Nieuwe taak invoeren</string>
+	<key>Nieuwe to-do</key>
+	<string>Nieuwe to-do</string>
+	<key>Nog niets afgerond</key>
+	<string>Nog niets afgerond</string>
+	<key>Nog veel meer handige instellingen vind je achter het menu rechtsbovenin.</key>
+	<string>In het menu rechtsboven vind je nog meer handige instellingen.</string>
+	<key>Nooit</key>
+	<string>Nooit</string>
+	<key>Notitie</key>
+	<string>Notitie</string>
+	<key>Notities</key>
+	<string>Notities</string>
+	<key>Nu %lld jaar</key>
+	<string>Nu %lld jaar</string>
+	<key>OK</key>
+	<string>OK</string>
+	<key>Of stel zelf een plaats in</key>
+	<string>Of stel zelf een plaats in</string>
+	<key>Omhoog</key>
+	<string>Omhoog</string>
+	<key>Omhoog verplaatsen</key>
+	<string>Omhoog verplaatsen</string>
+	<key>Omlaag</key>
+	<string>Omlaag</string>
+	<key>Omlaag verplaatsen</key>
+	<string>Omlaag verplaatsen</string>
+	<key>Omschrijving</key>
+	<string>Omschrijving</string>
+	<key>Onbekende iCloud-status</key>
+	<string>Onbekende iCloud-status</string>
+	<key>Ongedaan maken</key>
+	<string>Ongedaan maken</string>
+	<key>Ongeveer / spontaan</key>
+	<string>Ongeveer / spontaan</string>
+	<key>Ongeveer dagelijks</key>
+	<string>Ongeveer dagelijks</string>
+	<key>Ongeveer jaarlijks</key>
+	<string>Ongeveer jaarlijks</string>
+	<key>Ongeveer maandelijks</key>
+	<string>Ongeveer maandelijks</string>
+	<key>Ongeveer wekelijks</key>
+	<string>Ongeveer wekelijks</string>
+	<key>Onzeker</key>
+	<string>Onzeker</string>
+	<key>Ook toekomstige items verplaatsen</key>
+	<string>Ook toekomstige items verplaatsen</string>
+	<key>Open kalender</key>
+	<string>Open kalender</string>
+	<key>Open link</key>
+	<string>Open link</string>
+	<key>Openen</key>
+	<string>Openen</string>
+	<key>Opent direct een invoerveld voor een nieuwe taak.</key>
+	<string>Opent direct een invoerveld voor een nieuwe taak.</string>
+	<key>Opnieuw</key>
+	<string>Opnieuw</string>
+	<key>Opnieuw proberen</key>
+	<string>Opnieuw proberen</string>
+	<key>Oranje</key>
+	<string>Oranje</string>
+	<key>Oude geschiedenis opruimen?</key>
+	<string>Oude geschiedenis opruimen?</string>
+	<key>Overschrijf</key>
+	<string>Overschrijf</string>
+	<key>Overzicht</key>
+	<string>Overzicht</string>
+	<key>Paars</key>
+	<string>Paars</string>
+	<key>Pas de volgorde van categorieën aan via de chevrons.</key>
+	<string>Gebruik de pijltjes om de volgorde van je categorieën aan te passen.</string>
+	<key>Pas het icoon en de kleur van je categorie aan door op het logo te tikken.</key>
+	<string>Tik op het logo om het icoon en de kleur van je categorie aan te passen.</string>
+	<key>Periode</key>
+	<string>Periode</string>
+	<key>Persoonlijk</key>
+	<string>Persoonlijk</string>
+	<key>Plaats, bijvoorbeeld Amsterdam</key>
+	<string>Plaats, bijvoorbeeld Amsterdam</string>
+	<key>Plak link</key>
+	<string>Plak link</string>
+	<key>Probeer een andere zoekopdracht of wis de zoekbalk.</key>
+	<string>Probeer een andere zoekopdracht of wis de zoekbalk.</string>
+	<key>Probeer weer opnieuw</key>
+	<string>Probeer weer opnieuw</string>
+	<key>Recurring</key>
+	<string>Herhalingen</string>
+	<key>Regel</key>
+	<string>Regel</string>
+	<key>Regel bewerken</key>
+	<string>Regel bewerken</string>
+	<key>Reminder vooraf</key>
+	<string>Herinnering vooraf</string>
+	<key>Reset alles</key>
+	<string>Reset alles</string>
+	<key>Resetten mislukt</key>
+	<string>Resetten mislukt</string>
+	<key>Rond Pasen</key>
+	<string>Rond Pasen</string>
+	<key>Rood</key>
+	<string>Rood</string>
+	<key>Roze</key>
+	<string>Roze</string>
+	<key>Schrijf een </key>
+	<string>Schrijf een </string>
+	<key>Schrijf een review over de app</key>
+	<string>Schrijf een review over de app</string>
+	<key>Select an item</key>
+	<string>Selecteer een item</string>
+	<key>Selecteer alles</key>
+	<string>Selecteer alles</string>
+	<key>Selecteer een item</key>
+	<string>Selecteer een item</string>
+	<key>Selectie</key>
+	<string>Selectie</string>
+	<key>Sla snelle invoer op</key>
+	<string>Sla snelle invoer op</string>
+	<key>Slimme weergave</key>
+	<string>Slimme weergave</string>
+	<key>Sluiten</key>
+	<string>Sluiten</string>
+	<key>Snel toevoegen</key>
+	<string>Snel toevoegen</string>
+	<key>Snelle invoer</key>
+	<string>Snelle invoer</string>
+	<key>Sorteer eerstvolgende bovenaan</key>
+	<string>Eerstvolgende bovenaan sorteren</string>
+	<key>Spraakinvoer</key>
+	<string>Spraakinvoer</string>
+	<key>Spraakopname starten</key>
+	<string>Spraakopname starten</string>
+	<key>Spraakopname stoppen</key>
+	<string>Spraakopname stoppen</string>
+	<key>Standaard (%@)</key>
+	<string>Standaard (%@)</string>
+	<key>Standaardbestemming</key>
+	<string>Standaardbestemming</string>
+	<key>Standaardland</key>
+	<string>Standaardland</string>
+	<key>Startdatum</key>
+	<string>Startdatum</string>
+	<key>Synchronisatie</key>
+	<string>Synchronisatie</string>
+	<key>Synchroniseer met iPhone Kalender</key>
+	<string>Synchroniseer met iPhone-kalender</string>
+	<key>Synchroniseer nu</key>
+	<string>Synchroniseer nu</string>
+	<key>Systeemtaal</key>
+	<string>Systeemtaal</string>
+	<key>Taak</key>
+	<string>Taak</string>
+	<key>Taak bewerken</key>
+	<string>Taak bewerken</string>
+	<key>Taak verplaatst
+naar Afgerond</key>
+	<string>Taak verplaatst
+naar Afgerond</string>
+	<key>Taak verplaatst\nnaar Afgerond</key>
+	<string>Taak verplaatst
+naar Afgerond</string>
+	<key>Taal en invoer</key>
+	<string>Taal en invoer</string>
+	<key>Taken</key>
+	<string>Taken</string>
+	<key>Takenweergave</key>
+	<string>Takenweergave</string>
+	<key>Teal</key>
+	<string>Blauwgroen</string>
+	<key>Tekst</key>
+	<string>Tekst</string>
+	<key>Terug</key>
+	<string>Terug</string>
+	<key>Terughalen</key>
+	<string>Terughalen</string>
+	<key>Terugkerend item</key>
+	<string>Terugkerend item</string>
+	<key>Terugzetten</key>
+	<string>Terugzetten</string>
+	<key>Terugzetten naar %@</key>
+	<string>Terugzetten naar %@</string>
+	<key>Testmelding versturen</key>
+	<string>Testmelding versturen</string>
+	<key>Testmelding versturen…</key>
+	<string>Testmelding versturen…</string>
+	<key>Tijd</key>
+	<string>Tijd</string>
+	<key>Tik achter een dag om iets te schrijven. Klaar? Tik rechtsboven op ✓.</key>
+	<string>Tik achter een dag om iets toe te voegen. Klaar? Tik rechtsboven op ✓.</string>
+	<key>Tik eerst op het icoon van het item. Tik daarna op het prullenbakje om het definitief te verwijderen.</key>
+	<string>Tik eerst op het icoon van het item. Daarna kun je op het prullenbakje tikken om het definitief te verwijderen.</string>
+	<key>Tik linksboven op de pijlen om de instellingen voor herhalingen aan te passen.</key>
+	<string>Tik linksboven op de pijlen om de instellingen voor herhalingen te openen.</string>
+	<key>Tik nu op het prullenbakje om het item definitief te verwijderen.</key>
+	<string>Tik nu op het prullenbakje om dit item definitief te verwijderen.</string>
+	<key>Tik om de uitleg in of uit te klappen</key>
+	<string>Tik om de uitleg in of uit te klappen</string>
+	<key>Tik om demodata te verwijderen.</key>
+	<string>Tik om demodata te verwijderen.</string>
+	<key>Tik op de gekleurde stip om de kleur te wijzigen. Compacte categorieën tonen alleen de titel en eerstvolgende datum.</key>
+	<string>Tik op de gekleurde stip om de kleur te wijzigen. Compacte categorieën tonen alleen de titel en eerstvolgende datum.</string>
+	<key>Tik op de pijl linksboven om je laatste invoer ongedaan te maken. Dit kan voor maximaal drie invoeren.</key>
+	<string>Tik op de pijl linksboven om je laatste invoer ongedaan te maken. Dit kan voor maximaal drie laatste invoeren.</string>
+	<key>Tik op de weekdag vóór de lijn om de verplaatsmodus te openen.</key>
+	<string>Tik op de weekdag links van de lijn om iets te verplaatsen.</string>
+	<key>Tik op het plusje om direct nog een taak aan te maken.</key>
+	<string>Tik op het plusje om meteen nog een taak toe te voegen.</string>
+	<key>Titel</key>
+	<string>Titel</string>
+	<key>Titel laten zien</key>
+	<string>Titel laten zien</string>
+	<key>Toch niet? Tik onderin op Ongedaan maken. Normaal heb je hiervoor 5 seconden; tijdens deze uitleg blijft de melding staan.</key>
+	<string>Toch niet? Tik onderaan op ‘Ongedaan maken’. Normaal kan dat 5 seconden lang; tijdens deze uitleg blijft de melding staan.</string>
+	<key>Toegevoegd</key>
+	<string>Toegevoegd</string>
+	<key>Toegevoegd.</key>
+	<string>Toegevoegd.</string>
+	<key>Toekomstige items ook verplaatsen?</key>
+	<string>Toekomstige items ook verplaatsen?</string>
+	<key>Toetsenbord sluiten</key>
+	<string>Toetsenbord sluiten</string>
+	<key>Toon details</key>
+	<string>Toon details</string>
+	<key>Toon feestdagen in overzicht</key>
+	<string>Toon feestdagen in overzicht</string>
+	<key>Toon in widget</key>
+	<string>Toon in widget</string>
+	<key>Toon ook items die eerder zijn verwijderd</key>
+	<string>Toon ook items die eerder zijn verwijderd</string>
+	<key>Toon volgende datum</key>
+	<string>Toon volgende datum</string>
+	<key>Tweede</key>
+	<string>Tweede</string>
+	<key>Type</key>
+	<string>Type</string>
+	<key>Uitgeklapt</key>
+	<string>Uitgeklapt</string>
+	<key>Uitleg over Afgerond</key>
+	<string>Uitleg over Afgerond</string>
+	<key>Uitleg over Agenda</key>
+	<string>Uitleg over Agenda</string>
+	<key>Uitleg over Taken</key>
+	<string>Uitleg over Taken</string>
+	<key>Uitleg over herhalingen</key>
+	<string>Uitleg over herhalingen</string>
+	<key>Vandaag</key>
+	<string>Vandaag</string>
+	<key>Vandaag &amp; morgen</key>
+	<string>Vandaag &amp; morgen</string>
+	<key>Vandaag + morgen</key>
+	<string>Vandaag + morgen</string>
+	<key>Vast interval</key>
+	<string>Vast interval</string>
+	<key>Vaste regelmaat</key>
+	<string>Vaste regelmaat</string>
+	<key>Veiligheidskopie</key>
+	<string>Veiligheidskopie</string>
+	<key>Verbonden</key>
+	<string>Verbonden</string>
+	<key>Verjaardag</key>
+	<string>Verjaardag</string>
+	<key>Verplaats</key>
+	<string>Verplaats</string>
+	<key>Verplaats agenda-item</key>
+	<string>Verplaats agenda-item</string>
+	<key>Verplaats item</key>
+	<string>Verplaats item</string>
+	<key>Verplaats naar %@</key>
+	<string>Verplaats naar %@</string>
+	<key>Verplaats naar andere datum</key>
+	<string>Verplaats naar andere datum</string>
+	<key>Verplaats naar:</key>
+	<string>Verplaats naar:</string>
+	<key>Verplaatsen of verwijderen</key>
+	<string>Verplaatsen of verwijderen</string>
+	<key>Verplaatsmodus afsluiten</key>
+	<string>Verplaatsmodus afsluiten</string>
+	<key>Verplaatsopties</key>
+	<string>Verplaatsopties</string>
+	<key>Verwijder</key>
+	<string>Verwijder</string>
+	<key>Verwijder alle afgeronde taken</key>
+	<string>Verwijder alle afgeronde taken</string>
+	<key>Verwijder groep</key>
+	<string>Verwijder groep</string>
+	<key>Verwijder herhaling</key>
+	<string>Verwijder herhaling</string>
+	<key>Verwijderde items</key>
+	<string>Verwijderde items</string>
+	<key>Verwijderde items tonen</key>
+	<string>Verwijderde items tonen</string>
+	<key>Verwijderen</key>
+	<string>Verwijderen</string>
+	<key>Verwijderen mislukt</key>
+	<string>Verwijderen mislukt</string>
+	<key>Vierde</key>
+	<string>Vierde</string>
+	<key>Voeg item toe</key>
+	<string>Voeg item toe</string>
+	<key>Voeg toe</key>
+	<string>Voeg toe</string>
+	<key>Voeg toe en ga door</key>
+	<string>Voeg toe en ga door</string>
+	<key>Voeg toe en maak nog een item</key>
+	<string>Voeg toe en maak nog een item</string>
+	<key>Volgende 3 maanden laden…</key>
+	<string>Volgende 3 maanden laden…</string>
+	<key>Volgende datum</key>
+	<string>Volgende datum</string>
+	<key>Volgende herhalingen meeverschuiven?</key>
+	<string>Volgende herhalingen meeverschuiven?</string>
+	<key>Volgende herhalingen zijn meeverschoven</key>
+	<string>Volgende herhalingen zijn meeverschoven</string>
+	<key>Volgende stap</key>
+	<string>Volgende stap</string>
+	<key>Volgende: %@</key>
+	<string>Volgende: %@</string>
+	<key>Volgorde en uiterlijk</key>
+	<string>Volgorde en uiterlijk</string>
+	<key>Volgorde van %@ aanpassen</key>
+	<string>Volgorde van %@ aanpassen</string>
+	<key>Volledige backup bewaard.</key>
+	<string>Volledige backup bewaard.</string>
+	<key>Volledige backup maken</key>
+	<string>Volledige backup maken</string>
+	<key>Voor elke taak staat hoe lang die openstaat. Tik hierop om de taak naar een andere categorie of de kalender te verplaatsen.</key>
+	<string>Voor elke taak staat hoelang die al openstaat. Tik daarop om de taak naar een andere categorie of naar de agenda te verplaatsen.</string>
+	<key>Voorbeeld</key>
+	<string>Voorbeeld</string>
+	<key>Voorbeeld van de Actieknop</key>
+	<string>Voorbeeld van de Actieknop</string>
+	<key>Voorvoegsel</key>
+	<string>Voorvoegsel</string>
+	<key>Vorige stap</key>
+	<string>Vorige stap</string>
+	<key>Vul een geldig geboortejaar in.</key>
+	<string>Vul een geldig geboortejaar in.</string>
+	<key>Wat</key>
+	<string>Wat</string>
+	<key>Wat wil je niet vergeten?</key>
+	<string>Wat wil je niet vergeten?</string>
+	<key>Week begint op</key>
+	<string>Week begint op</string>
+	<key>Weekdag</key>
+	<string>Weekdag</string>
+	<key>Weekdag van een maand</key>
+	<string>Weekdag van een maand</string>
+	<key>Weekdag van maand</key>
+	<string>Weekdag van de maand</string>
+	<key>Weeknummering</key>
+	<string>Weeknummering</string>
+	<key>Weer bij toekomstige dagen</key>
+	<string>Weer bij toekomstige dagen</string>
+	<key>Weer kon niet worden geladen: %@</key>
+	<string>Weer kon niet worden geladen: %1$@</string>
+	<key>Weergave</key>
+	<string>Weergave</string>
+	<key>Weerlocatie</key>
+	<string>Weerlocatie</string>
+	<key>Weken</key>
+	<string>Weken</string>
+	<key>Welke</key>
+	<string>Welke</string>
+	<key>Widgetformaat</key>
+	<string>Widgetformaat</string>
+	<key>Wie</key>
+	<string>Wie</string>
+	<key>Wijzig en ruim op</key>
+	<string>Wijzig en ruim op</string>
+	<key>Wijzig herhaling</key>
+	<string>Wijzig herhaling</string>
+	<key>Wil je dezelfde datumverschuiving toepassen op alle volgende voorkomens van dit terugkerende item?</key>
+	<string>Wil je dezelfde datumverschuiving toepassen op alle volgende voorkomens van dit terugkerende item?</string>
+	<key>Wit</key>
+	<string>Wit</string>
+	<key>Woorden afsnijden</key>
+	<string>Woorden afsnijden</string>
+	<key>Wordt ieder jaar herhaald op de datum hierboven.</key>
+	<string>Wordt ieder jaar herhaald op de datum hierboven.</string>
+	<key>Wordt iedere drie maanden herhaald vanaf de eerstvolgende datum.</key>
+	<string>Wordt iedere drie maanden herhaald vanaf de eerstvolgende datum.</string>
+	<key>Zet backup terug</key>
+	<string>Zet backup terug</string>
+	<key>Zet een item terug naar waar het vandaan kwam met de terugzetknop.</key>
+	<string>Wil je iets terugzetten? Tik op de terugzetknop om het item terug te plaatsen waar het vandaan kwam.</string>
+	<key>Zet terug naar %@</key>
+	<string>Zet terug naar %@</string>
+	<key>Zoek in Afgerond</key>
+	<string>Zoek in Afgerond</string>
+	<key>Zoeken</key>
+	<string>Zoeken</string>
+	<key>Zoeken sluiten</key>
+	<string>Zoeken sluiten</string>
+	<key>Zoekopdracht wissen</key>
+	<string>Zoekopdracht wissen</string>
+	<key>Zondag</key>
+	<string>Zondag</string>
+	<key>app.name</key>
+	<string>Forget It</string>
+	<key>birthday.status.birthdayInDays</key>
+	<string>Is over %lld dagen jarig</string>
+	<key>birthday.status.birthdayInOneDay</key>
+	<string>Is over %lld dag jarig</string>
+	<key>birthday.status.today</key>
+	<string>Is vandaag jarig</string>
+	<key>birthday.status.turnedToday</key>
+	<string>Is vandaag %lld geworden</string>
+	<key>birthday.status.turnsInDays</key>
+	<string>Wordt over %2$lld dagen %1$lld</string>
+	<key>birthday.status.turnsInOneDay</key>
+	<string>Wordt over %2$lld dag %1$lld</string>
+	<key>category.recurring.birthdays</key>
+	<string>Verjaardagen</string>
+	<key>category.recurring.general</key>
+	<string>Algemeen</string>
+	<key>category.recurring.holidays</key>
+	<string>Feestdagen</string>
+	<key>category.todo.groceries</key>
+	<string>Boodschappen</string>
+	<key>category.todo.longTerm</key>
+	<string>Lange termijn</string>
+	<key>category.todo.soon</key>
+	<string>Binnenkort</string>
+	<key>country.BE</key>
+	<string>België</string>
+	<key>country.DE</key>
+	<string>Duitsland</string>
+	<key>country.FR</key>
+	<string>Frankrijk</string>
+	<key>country.GB</key>
+	<string>Verenigd Koninkrijk</string>
+	<key>country.MA</key>
+	<string>Marokko</string>
+	<key>country.NL</key>
+	<string>Nederland</string>
+	<key>country.SR</key>
+	<string>Suriname</string>
+	<key>country.TR</key>
+	<string>Turkije</string>
+	<key>country.US</key>
+	<string>Verenigde Staten</string>
+	<key>csv.header.category</key>
+	<string>categorie</string>
+	<key>csv.header.content</key>
+	<string>inhoud</string>
+	<key>csv.header.dateTime</key>
+	<string>datumtijd</string>
+	<key>csv.header.deleted</key>
+	<string>verwijderd 1/0</string>
+	<key>csv.header.type</key>
+	<string>soort</string>
+	<key>error.syncFailed</key>
+	<string>Synchroniseren is mislukt: %@</string>
+	<key>even</key>
+	<string>even</string>
+	<key>feedback.deleted</key>
+	<string>‘%@’ verwijderd</string>
+	<key>feedback.movedTo</key>
+	<string>‘%1$@’ verplaatst naar %2$@</string>
+	<key>feedback.movedToFinished</key>
+	<string>‘%@’ is verplaatst naar Afgerond</string>
+	<key>feedback.permanentlyDeleted</key>
+	<string>‘%@’ definitief verwijderd</string>
+	<key>feedback.restored</key>
+	<string>‘%@’ teruggezet</string>
+	<key>history.loadOlder</key>
+	<string>Oudere items laden (%lld)</string>
+	<key>history.noCompletedFilter</key>
+	<string>Geen afgeronde %@-items</string>
+	<key>history.restoreTo</key>
+	<string>Zet terug naar %@</string>
+	<key>holiday.all-saints</key>
+	<string>Allerheiligen</string>
+	<key>holiday.amazigh-new-year</key>
+	<string>Amazigh Nieuwjaar</string>
+	<key>holiday.armistice</key>
+	<string>Wapenstilstand</string>
+	<key>holiday.ascension</key>
+	<string>Hemelvaartsdag</string>
+	<key>holiday.assumption</key>
+	<string>Maria-Hemelvaart</string>
+	<key>holiday.bastille-day</key>
+	<string>Quatorze Juillet</string>
+	<key>holiday.boxing-day</key>
+	<string>Tweede kerstdag</string>
+	<key>holiday.children-day</key>
+	<string>Dag van het Kind</string>
+	<key>holiday.christmas</key>
+	<string>Eerste kerstdag</string>
+	<key>holiday.columbus-day</key>
+	<string>Columbusdag</string>
+	<key>holiday.democracy-day</key>
+	<string>Dag van Democratie en Nationale Eenheid</string>
+	<key>holiday.early-may</key>
+	<string>Feestdag begin mei</string>
+	<key>holiday.easter-monday</key>
+	<string>Paasmaandag</string>
+	<key>holiday.easter-sunday</key>
+	<string>Eerste paasdag</string>
+	<key>holiday.eid-al-adha</key>
+	<string>Offerfeest (Eid al-Adha)</string>
+	<key>holiday.eid-al-fitr</key>
+	<string>Suikerfeest (Eid al-Fitr)</string>
+	<key>holiday.fathers-day</key>
+	<string>Vaderdag</string>
+	<key>holiday.flemish-community</key>
+	<string>Feestdag van de Vlaamse Gemeenschap</string>
+	<key>holiday.french-community</key>
+	<string>Feestdag van de Franse Gemeenschap</string>
+	<key>holiday.german-community</key>
+	<string>Feestdag van de Duitstalige Gemeenschap</string>
+	<key>holiday.good-friday</key>
+	<string>Goede Vrijdag</string>
+	<key>holiday.green-march</key>
+	<string>Groene Mars</string>
+	<key>holiday.independence-day</key>
+	<string>Onafhankelijkheidsdag</string>
+	<key>holiday.independence-manifesto</key>
+	<string>Manifest van de Onafhankelijkheid</string>
+	<key>holiday.indigenous-day</key>
+	<string>Dag der Inheemsen</string>
+	<key>holiday.islamic-new-year</key>
+	<string>Islamitisch Nieuwjaar</string>
+	<key>holiday.juneteenth</key>
+	<string>Juneteenth</string>
+	<key>holiday.keti-koti</key>
+	<string>Keti Koti</string>
+	<key>holiday.kings-day</key>
+	<string>Koningsdag</string>
+	<key>holiday.labor-day</key>
+	<string>Dag van de Arbeid</string>
+	<key>holiday.labour-day</key>
+	<string>Dag van de Arbeid</string>
+	<key>holiday.labour-solidarity-day</key>
+	<string>Dag van de Arbeid en Solidariteit</string>
+	<key>holiday.liberation-day</key>
+	<string>Bevrijdingsdag</string>
+	<key>holiday.maroons-day</key>
+	<string>Dag der Marrons</string>
+	<key>holiday.mawlid</key>
+	<string>Geboortedag van de profeet (Mawlid)</string>
+	<key>holiday.memorial-day</key>
+	<string>Herdenkingsdag</string>
+	<key>holiday.mlk-day</key>
+	<string>Martin Luther King Jr.-dag</string>
+	<key>holiday.morocco-independence</key>
+	<string>Onafhankelijkheidsdag</string>
+	<key>holiday.mothers-day</key>
+	<string>Moederdag</string>
+	<key>holiday.national-day</key>
+	<string>Nationale feestdag</string>
+	<key>holiday.new-year</key>
+	<string>Nieuwjaarsdag</string>
+	<key>holiday.oued-eddahab-day</key>
+	<string>Terugkeer van Oued Eddahab</string>
+	<key>holiday.presidents-day</key>
+	<string>Presidentendag</string>
+	<key>holiday.prinsjesdag</key>
+	<string>Prinsjesdag</string>
+	<key>holiday.ramadan-start</key>
+	<string>Begin van Ramadan</string>
+	<key>holiday.remembrance-day</key>
+	<string>Dodenherdenking</string>
+	<key>holiday.republic-day</key>
+	<string>Dag van de Republiek</string>
+	<key>holiday.revolution-day-ma</key>
+	<string>Revolutie van de Koning en het Volk</string>
+	<key>holiday.sinterklaas</key>
+	<string>Sinterklaas</string>
+	<key>holiday.spring-bank</key>
+	<string>Voorjaarsbankfeestdag</string>
+	<key>holiday.summer-bank</key>
+	<string>Zomerbankfeestdag</string>
+	<key>holiday.suriname-independence</key>
+	<string>Srefidensi</string>
+	<key>holiday.thanksgiving</key>
+	<string>Thanksgiving</string>
+	<key>holiday.throne-day</key>
+	<string>Troonfeest</string>
+	<key>holiday.unity-day</key>
+	<string>Dag van de Duitse Eenheid</string>
+	<key>holiday.unity-day-ma</key>
+	<string>Dag van de Eenheid</string>
+	<key>holiday.veterans-day</key>
+	<string>Veteranendag</string>
+	<key>holiday.victory-day</key>
+	<string>Dag van de Overwinning</string>
+	<key>holiday.victory-day-tr</key>
+	<string>Dag van de Overwinning</string>
+	<key>holiday.whit-monday</key>
+	<string>Pinkstermaandag</string>
+	<key>holiday.whit-sunday</key>
+	<string>Eerste pinksterdag</string>
+	<key>holiday.youth-day</key>
+	<string>Jeugd- en Sportdag</string>
+	<key>holiday.youth-day-ma</key>
+	<string>Dag van de Jeugd</string>
+	<key>iCloud</key>
+	<string>iCloud</string>
+	<key>iCloud is beperkt op dit apparaat</key>
+	<string>iCloud is beperkt op dit apparaat</string>
+	<key>iCloud is tijdelijk niet beschikbaar</key>
+	<string>iCloud is tijdelijk niet beschikbaar</string>
+	<key>iCloud moet op dit apparaat zijn ingeschakeld. Zonder iCloud blijven gegevens alleen op dit apparaat beschikbaar.</key>
+	<string>iCloud moet op dit apparaat zijn ingeschakeld. Zonder iCloud blijven gegevens alleen op dit apparaat beschikbaar.</string>
+	<key>iCloud-instelling niet gewijzigd: %@</key>
+	<string>iCloud-instelling niet gewijzigd: %@</string>
+	<key>iCloud-status kon niet worden bepaald</key>
+	<string>iCloud-status kon niet worden bepaald</string>
+	<key>iCloud-synchronisatie</key>
+	<string>iCloud-synchronisatie</string>
+	<key>kalender vandaag</key>
+	<string>kalender vandaag</string>
+	<key>language.system</key>
+	<string>Systeem</string>
+	<key>lockscreen.widget.instructions</key>
+	<string>De toegangsschermwidget is beschikbaar op iPhone 11 en nieuwere modellen en op iPhone SE (2e generatie) en nieuwer. Houd het toegangsscherm ingedrukt en tik op Pas aan › Toegangsscherm › Voeg widgets toe. Kies daarna de widget van %@.</string>
+	<key>notification.title</key>
+	<string>Forget It</string>
+	<key>notifications.permission.settings</key>
+	<string>Geef ‘%@’ toestemming voor meldingen via de iOS-instellingen.</string>
+	<key>onboarding.agenda.example.dinner</key>
+	<string>18u uit eten</string>
+	<key>onboarding.agenda.example.sports</key>
+	<string>16u sporten</string>
+	<key>onboarding.history.emailAccent</key>
+	<string>e-mail</string>
+	<key>onboarding.history.example</key>
+	<string>Dit is een voorbeeld</string>
+	<key>onboarding.history.searchInstruction</key>
+	<string>Gebruik de zoekbalk om alleen afgeronde items weer te geven die aan je zoekterm voldoen. Zoek nu op ‘voorbeeld’.</string>
+	<key>onboarding.history.searchTerm</key>
+	<string>voorbeeld</string>
+	<key>oneven</key>
+	<string>oneven</string>
+	<key>ordinal.first</key>
+	<string>eerste</string>
+	<key>ordinal.fourth</key>
+	<string>vierde</string>
+	<key>ordinal.last</key>
+	<string>laatste</string>
+	<key>ordinal.second</key>
+	<string>tweede</string>
+	<key>ordinal.third</key>
+	<string>derde</string>
+	<key>quick.addedTo</key>
+	<string>Toegevoegd aan %@</string>
+	<key>recurrence.annuallyOn</key>
+	<string>Jaarlijks op %@</string>
+	<key>recurrence.approximatelyEveryDays</key>
+	<string>Ongeveer elke %lld dagen</string>
+	<key>recurrence.approximatelyEveryMonths</key>
+	<string>Ongeveer elke %lld maanden</string>
+	<key>recurrence.approximatelyEveryWeeks</key>
+	<string>Ongeveer elke %lld weken</string>
+	<key>recurrence.approximatelyEveryYears</key>
+	<string>Ongeveer elke %lld jaar</string>
+	<key>recurrence.everyDays</key>
+	<string>Elke %lld dagen</string>
+	<key>recurrence.everyMonthsOn</key>
+	<string>Elke %1$lld maanden op de %2$@</string>
+	<key>recurrence.everyParityWeekOn</key>
+	<string>Elke %1$@ week op %2$@</string>
+	<key>recurrence.everyWeeksOn</key>
+	<string>Elke %1$lld weken op %2$@</string>
+	<key>recurrence.everyYearsOn</key>
+	<string>Elke %1$lld jaar op %2$@</string>
+	<key>recurrence.frequency.add</key>
+	<string>Voeg frequentie toe</string>
+	<key>recurrence.frequency.unrecognized</key>
+	<string>Frequentie nog niet herkend</string>
+	<key>recurrence.monthlyOn</key>
+	<string>Maandelijks op de %@</string>
+	<key>recurrence.ordinalWeekdayOfMonth</key>
+	<string>%1$@ %2$@ van de maand</string>
+	<key>recurrence.ordinalWeekdayOfNamedMonth</key>
+	<string>%1$@ %2$@ van %3$@</string>
+	<key>recurrence.quarterlyOn</key>
+	<string>Elk kwartaal op de %@</string>
+	<key>recurrence.weeklyOn</key>
+	<string>Wekelijks op %@</string>
+	<key>recurring.loading</key>
+	<string>Herhalingen worden geladen…</string>
+	<key>recurring.rescheduling</key>
+	<string>Bezig met opnieuw doorplannen…</string>
+	<key>recurring.reschedulingFailed</key>
+	<string>Opnieuw doorplannen is mislukt</string>
+	<key>recurring.retry</key>
+	<string>Opnieuw</string>
+	<key>section.calendar</key>
+	<string>Kalender</string>
+	<key>section.finished</key>
+	<string>Afgerond</string>
+	<key>section.recurring</key>
+	<string>Herhalingen</string>
+	<key>section.todo</key>
+	<string>Taken</string>
+	<key>settings.language</key>
+	<string>Taal</string>
+	<key>settings.testAgainInSeconds</key>
+	<string>Opnieuw testen over %lld sec.</string>
+	<key>settings.weekdayFormatting</key>
+	<string>Weekdagnotatie</string>
+	<key>speech.error.microphone</key>
+	<string>Geen toegang tot de microfoon.</string>
+	<key>speech.error.permission</key>
+	<string>Geen toestemming voor spraakherkenning.</string>
+	<key>speech.error.startFailed</key>
+	<string>Spraakopname kon niet starten.</string>
+	<key>speech.error.unavailable</key>
+	<string>Spraakherkenning is momenteel niet beschikbaar.</string>
+	<key>speech.stopWord</key>
+	<string>klaar</string>
+	<key>todo.age.createdToday</key>
+	<string>Vandaag aangemaakt</string>
+	<key>todo.age.daysOpen</key>
+	<string>%lld dagen open</string>
+	<key>todo.age.daysShort</key>
+	<string>%lldd</string>
+	<key>todo.age.monthsShort</key>
+	<string>%lldm</string>
+	<key>todo.age.now</key>
+	<string>nu</string>
+	<key>todo.age.weeksShort</key>
+	<string>%lldw</string>
+	<key>todo.movedToDate</key>
+	<string>‘%1$@’ verplaatst naar %2$@</string>
+	<key>tutorial.highlight.yellowWord</key>
+	<string>geel</string>
+	<key>tutorial.step</key>
+	<string>Stap %1$lld/%2$lld</string>
+	<key>typ iets</key>
+	<string>Typ iets</string>
+	<key>unit.day.one</key>
+	<string>dag</string>
+	<key>unit.day.other</key>
+	<string>dagen</string>
+	<key>unit.month.one</key>
+	<string>maand</string>
+	<key>unit.month.other</key>
+	<string>maanden</string>
+	<key>unit.week.one</key>
+	<string>week</string>
+	<key>unit.week.other</key>
+	<string>weken</string>
+	<key>unit.year.one</key>
+	<string>jaar</string>
+	<key>unit.year.other</key>
+	<string>jaar</string>
+	<key>weather.location.explanation</key>
+	<string>Kies hoe %@ de plaats voor je weersverwachting bepaalt.</string>
+	<key>widget.preview.calendar.blindDate</key>
+	<string>18:00 Blind date</string>
+	<key>widget.preview.calendar.bungeeJumping</key>
+	<string>14:30 Bungeejumpen</string>
+	<key>widget.preview.calendar.dinnerWithFriends</key>
+	<string>19:30 Uit eten met vrienden</string>
+	<key>widget.preview.calendar.gymSession</key>
+	<string>16:00 Sportsessie</string>
+	<key>widget.preview.calendar.jobInterview</key>
+	<string>10:00 Sollicitatiegesprek</string>
+	<key>widget.preview.calendar.justinBieber</key>
+	<string>16:30 Afspreken met Justin Bieber</string>
+	<key>widget.preview.calendar.karaokeBattle</key>
+	<string>21:00 Karaokewedstrijd</string>
+	<key>widget.preview.calendar.pizzaTasting</key>
+	<string>17:00 Pizzaproeverij</string>
+	<key>widget.preview.calendar.rooftopParty</key>
+	<string>22:00 Geheim dakfeest</string>
+	<key>widget.preview.calendar.tattooAppointment</key>
+	<string>15:30 Tattooafspraak</string>
+	<key>widget.preview.task.annualShower</key>
+	<string>Jaarlijkse douche nemen</string>
+	<key>widget.preview.task.cleanHouse</key>
+	<string>Het huis schoonmaken</string>
+	<key>widget.preview.task.deleteSocialMedia</key>
+	<string>Alle social media van telefoon verwijderen</string>
+	<key>widget.preview.task.finishPlaylist</key>
+	<string>De afspeellijst afmaken</string>
+	<key>widget.preview.task.newHobby</key>
+	<string>Nieuwe hobby zoeken</string>
+	<key>widget.preview.task.newRecipe</key>
+	<string>Een nieuw recept proberen</string>
+	<key>widget.preview.task.planRoadTrip</key>
+	<string>De roadtrip plannen</string>
+	<key>widget.preview.task.printPhotos</key>
+	<string>Foto’s afdrukken in de winkel</string>
+	<key>widget.preview.task.replyFanMail</key>
+	<string>Fanmail beantwoorden</string>
+	<key>widget.preview.task.sellClothes</key>
+	<string>Oude kleding online verkopen</string>
+	<key>zodiac.aquarius</key>
+	<string>Waterman</string>
+	<key>zodiac.aries</key>
+	<string>Ram</string>
+	<key>zodiac.cancer</key>
+	<string>Kreeft</string>
+	<key>zodiac.capricorn</key>
+	<string>Steenbok</string>
+	<key>zodiac.gemini</key>
+	<string>Tweelingen</string>
+	<key>zodiac.leo</key>
+	<string>Leeuw</string>
+	<key>zodiac.libra</key>
+	<string>Weegschaal</string>
+	<key>zodiac.pisces</key>
+	<string>Vissen</string>
+	<key>zodiac.sagittarius</key>
+	<string>Boogschutter</string>
+	<key>zodiac.scorpio</key>
+	<string>Schorpioen</string>
+	<key>zodiac.taurus</key>
+	<string>Stier</string>
+	<key>zodiac.virgo</key>
+	<string>Maagd</string>
+	<key>°</key>
+	<string>°</string>
+	<key>·</key>
+	<string>·</string>
+	<key>· reminder %lld</key>
+	<string>· herinnering %lld</string>
+	<key>‘%@’ definitief verwijderd</key>
+	<string>‘%@’ definitief verwijderd</string>
+	<key>‘%@’ teruggezet</key>
+	<string>‘%@’ teruggezet</string>
+	<key>‘%@’ verwijderd</key>
+	<string>‘%@’ verwijderd</string>
+	<key>↓</key>
+	<string>↓</string>
+</dict>
+</plist>

@@ -1,0 +1,23 @@
+{
+  "/Users/jenssomers/Desktop/Don't forget/Don't forget/Don't forget/AppModelStore.swift" : {
+    "const-values" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/AppModelStore.swiftconstvalues",
+    "dependencies" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/AppModelStore.d",
+    "diagnostics" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/AppModelStore.dia",
+    "object" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/AppModelStore.o",
+    "swift-dependencies" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/AppModelStore.swiftdeps"
+  },
+  "/Users/jenssomers/Desktop/Don't forget/Don't forget/Don't forget/AppResetService.swift" : {
+    "const-values" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/AppResetService.swiftconstvalues",
+    "dependencies" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/AppResetService.d",
+    "diagnostics" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/AppResetService.dia",
+    "object" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/AppResetService.o",
+    "swift-dependencies" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/AppResetService.swiftdeps"
+  },
+  "/Users/jenssomers/Desktop/Don't forget/Don't forget/Don't forget/AppSchema.swift" : {
+    "const-values" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/AppSchema.swiftconstvalues",
+    "dependencies" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/AppSchema.d",
+    "diagnostics" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/AppSchema.dia",
+    "object" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/AppSchema.o",
+    "swift-dependencies" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/AppSchema.swiftdeps"
+  }
+}

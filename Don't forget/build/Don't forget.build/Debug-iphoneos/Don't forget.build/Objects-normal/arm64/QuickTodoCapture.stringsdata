@@ -1,0 +1,232 @@
+{
+  "source": "/Users/jenssomers/Desktop/Don't forget/Don't forget/Don't forget/QuickTodoCapture.swift",
+  "tables": {
+    "Localizable": [
+      {
+        "comment": "",
+        "key": "Nieuwe taak",
+        "location": {
+          "startingColumn": 49,
+          "startingLine": 57
+        }
+      },
+      {
+        "comment": "",
+        "key": "Opent direct een invoerveld voor een nieuwe taak.",
+        "location": {
+          "startingColumn": 9,
+          "startingLine": 59
+        }
+      },
+      {
+        "comment": "",
+        "key": "Tekst",
+        "location": {
+          "startingColumn": 16,
+          "startingLine": 66
+        }
+      },
+      {
+        "comment": "",
+        "key": "Wat wil je niet vergeten?",
+        "location": {
+          "startingColumn": 29,
+          "startingLine": 67
+        }
+      },
+      {
+        "comment": "",
+        "key": "Wat wil je niet vergeten?",
+        "location": {
+          "startingColumn": 44,
+          "startingLine": 88
+        }
+      },
+      {
+        "comment": "",
+        "key": "Snelle invoer",
+        "location": {
+          "startingColumn": 49,
+          "startingLine": 135
+        }
+      },
+      {
+        "comment": "",
+        "key": "Luistert…",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 181
+        }
+      },
+      {
+        "comment": "",
+        "key": "Snel toevoegen",
+        "location": {
+          "startingColumn": 23,
+          "startingLine": 177
+        }
+      },
+      {
+        "comment": "",
+        "key": "Wat wil je niet vergeten?",
+        "location": {
+          "startingColumn": 27,
+          "startingLine": 188
+        }
+      },
+      {
+        "comment": "",
+        "key": "Datum",
+        "location": {
+          "startingColumn": 25,
+          "startingLine": 228
+        }
+      },
+      {
+        "comment": "",
+        "key": "Kalender",
+        "location": {
+          "startingColumn": 31,
+          "startingLine": 217
+        }
+      },
+      {
+        "comment": "",
+        "key": "Voeg toe",
+        "location": {
+          "startingColumn": 23,
+          "startingLine": 248
+        }
+      },
+      {
+        "comment": "",
+        "key": "Sla snelle invoer op",
+        "location": {
+          "startingColumn": 49,
+          "startingLine": 303
+        }
+      },
+      {
+        "comment": "",
+        "key": "Tekst",
+        "location": {
+          "startingColumn": 23,
+          "startingLine": 306
+        }
+      },
+      {
+        "comment": "",
+        "key": "Bestemming",
+        "location": {
+          "startingColumn": 23,
+          "startingLine": 307
+        }
+      },
+      {
+        "comment": "",
+        "key": "Datum",
+        "location": {
+          "startingColumn": 23,
+          "startingLine": 308
+        }
+      },
+      {
+        "comment": "",
+        "key": "Toegevoegd.",
+        "location": {
+          "startingColumn": 32,
+          "startingLine": 339
+        }
+      },
+      {
+        "comment": "",
+        "key": "Er is geen tekst ingevoerd.",
+        "location": {
+          "startingColumn": 36,
+          "startingLine": 322
+        }
+      },
+      {
+        "comment": "",
+        "key": "Nieuwe taak",
+        "location": {
+          "startingColumn": 25,
+          "startingLine": 351
+        }
+      },
+      {
+        "comment": "",
+        "key": "Snel toevoegen",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 481
+        }
+      },
+      {
+        "comment": "",
+        "key": "Wat wil je niet vergeten?",
+        "location": {
+          "startingColumn": 31,
+          "startingLine": 397
+        }
+      },
+      {
+        "comment": "",
+        "key": "Spraakopname stoppen",
+        "location": {
+          "startingColumn": 70,
+          "startingLine": 415
+        }
+      },
+      {
+        "comment": "",
+        "key": "Spraakopname starten",
+        "location": {
+          "startingColumn": 95,
+          "startingLine": 415
+        }
+      },
+      {
+        "comment": "",
+        "key": "Categorie in Taken kiezen",
+        "location": {
+          "startingColumn": 41,
+          "startingLine": 443
+        }
+      },
+      {
+        "comment": "",
+        "key": "Datum in agenda kiezen",
+        "location": {
+          "startingColumn": 41,
+          "startingLine": 463
+        }
+      },
+      {
+        "comment": "",
+        "key": "Kies een datum",
+        "location": {
+          "startingColumn": 29,
+          "startingLine": 466
+        }
+      },
+      {
+        "comment": "",
+        "key": "Annuleer",
+        "location": {
+          "startingColumn": 28,
+          "startingLine": 485
+        }
+      },
+      {
+        "comment": "",
+        "key": "Voeg toe",
+        "location": {
+          "startingColumn": 28,
+          "startingLine": 489
+        }
+      }
+    ]
+  },
+  "version": 1
+}

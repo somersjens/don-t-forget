@@ -1,0 +1,19 @@
+{
+  "" : {
+    "diagnostics" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forgetWidget.build/Objects-normal/arm64/Don't forgetWidget-primary.dia",
+    "emit-module-dependencies" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forgetWidget.build/Objects-normal/arm64/Don't forgetWidget-primary-emit-module.d",
+    "emit-module-diagnostics" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forgetWidget.build/Objects-normal/arm64/Don't forgetWidget-primary-emit-module.dia",
+    "pch" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forgetWidget.build/Objects-normal/arm64/Don't forgetWidget-primary-Bridging-header.pch",
+    "swift-dependencies" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forgetWidget.build/Objects-normal/arm64/Don't forgetWidget-primary.swiftdeps"
+  },
+  "/Users/jenssomers/Desktop/Don't forget/Don't forget/Don't forgetWidget/UpcomingCalendarWidget.swift" : {
+    "const-values" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forgetWidget.build/Objects-normal/arm64/UpcomingCalendarWidget.swiftconstvalues",
+    "dependencies" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forgetWidget.build/Objects-normal/arm64/UpcomingCalendarWidget.d",
+    "diagnostics" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forgetWidget.build/Objects-normal/arm64/UpcomingCalendarWidget.dia",
+    "index-unit-output-path" : "/Don't forget.build/Debug-iphoneos/Don't forgetWidget.build/Objects-normal/arm64/UpcomingCalendarWidget.o",
+    "llvm-bc" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forgetWidget.build/Objects-normal/arm64/UpcomingCalendarWidget.bc",
+    "object" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forgetWidget.build/Objects-normal/arm64/UpcomingCalendarWidget.o",
+    "swift-dependencies" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forgetWidget.build/Objects-normal/arm64/UpcomingCalendarWidget.swiftdeps",
+    "swiftmodule" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forgetWidget.build/Objects-normal/arm64/UpcomingCalendarWidget~partial.swiftmodule"
+  }
+}

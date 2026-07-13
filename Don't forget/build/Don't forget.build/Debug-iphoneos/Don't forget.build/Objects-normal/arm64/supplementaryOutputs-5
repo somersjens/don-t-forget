@@ -1,0 +1,23 @@
+{
+  "/Users/jenssomers/Desktop/Don't forget/Don't forget/Don't forget/CalendarWidgetSnapshot.swift" : {
+    "const-values" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/CalendarWidgetSnapshot.swiftconstvalues",
+    "dependencies" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/CalendarWidgetSnapshot.d",
+    "diagnostics" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/CalendarWidgetSnapshot.dia",
+    "object" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/CalendarWidgetSnapshot.o",
+    "swift-dependencies" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/CalendarWidgetSnapshot.swiftdeps"
+  },
+  "/Users/jenssomers/Desktop/Don't forget/Don't forget/Don't forget/CloudSettingsSynchronizer.swift" : {
+    "const-values" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/CloudSettingsSynchronizer.swiftconstvalues",
+    "dependencies" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/CloudSettingsSynchronizer.d",
+    "diagnostics" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/CloudSettingsSynchronizer.dia",
+    "object" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/CloudSettingsSynchronizer.o",
+    "swift-dependencies" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/CloudSettingsSynchronizer.swiftdeps"
+  },
+  "/Users/jenssomers/Desktop/Don't forget/Don't forget/Don't forget/ContentView.swift" : {
+    "const-values" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/ContentView.swiftconstvalues",
+    "dependencies" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/ContentView.d",
+    "diagnostics" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/ContentView.dia",
+    "object" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/ContentView.o",
+    "swift-dependencies" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/ContentView.swiftdeps"
+  }
+}

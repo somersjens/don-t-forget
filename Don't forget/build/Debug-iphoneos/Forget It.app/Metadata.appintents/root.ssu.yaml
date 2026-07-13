@@ -1,0 +1,56 @@
+apiVersion: ssu/v1
+nlu:
+  shortcuts:
+    bundleIdentifier: Hakketjak.Don-t-forget
+    intents:
+    - metadata:
+        name: CaptureTodoIntent_0
+        title: Nieuwe taak
+      corpuses:
+        training:
+        - locale: en
+          utterances:
+          - '{${+prefix} }Nieuwe taak in ${+applicationName}'
+          - '{${+prefix} }Voeg een taak toe met ${+applicationName}'
+        - locale: nl
+          utterances:
+          - '{${+prefix} }Nieuwe taak in ${+applicationName}'
+          - '{${+prefix} }Voeg een taak toe met ${+applicationName}'
+    - metadata:
+        name: +negative
+      corpuses:
+        training:
+        - locale: en
+          utterances:
+          - '{${+prefix} }${+standardAppShortcutNegatives}'
+        - locale: nl
+          utterances:
+          - '{${+prefix} }${+standardAppShortcutNegatives}'
+variables:
+- name: +applicationName
+  type: ssu/expansion
+  definitions:
+  - locale: en
+    synomyms:
+    - Forget It
+  - locale: nl
+    synomyms:
+    - Forget It
+- name: +prefix
+  type: ssu/expansion
+  definitions:
+  - locale: en
+    synomyms:
+      $ref: ssu://Resources/prefix/en.yaml
+  - locale: nl
+    synomyms:
+      $ref: ssu://Resources/prefix/nl.yaml
+- name: +standardAppShortcutNegatives
+  type: ssu/expansion
+  definitions:
+  - locale: en
+    synomyms:
+      $ref: ssu://Resources/standardAppShortcutNegatives/en.yaml
+  - locale: nl
+    synomyms:
+      $ref: ssu://Resources/standardAppShortcutNegatives/nl.yaml

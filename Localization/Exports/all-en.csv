@@ -1,0 +1,759 @@
+﻿catalog,key,comment,translation
+app,,,
+app, over de app,, of the app
+app,%@ bewerken,,Edit %@
+app,%@ · %@,,%1$@ · %2$@
+app,%@ — %@,,%1$@ — %2$@
+app,%@%@,,%1$@%2$@
+app,"%@, %lld items",,"%1$@, %2$lld items"
+app,"%@, taak verplaatsen",,"%@, move task"
+app,%lld,,%lld
+app,%lld afgerond,,%lld completed
+app,%lld dagen,,
+app,%lld dagen vooraf,,%lld days in advance
+app,%lld graden,,%lld degrees
+app,"%lld graden, afvinken",,"%lld degrees, check off"
+app,"%lld graden, afvinken als afgerond",,"%lld degrees, mark as completed"
+app,%lld in afgelopen 7 dagen,,%lld in the last 7 days
+app,%lld open,,%lld open
+app,%lld/%lld,,%1$lld/%2$lld
+app,%llde,,%lldth
+app,%lld°,,%lld°
+app,0,,0
+app,"0 = vandaag, 1 = morgen",,"0 = today, 1 = tomorrow"
+app,1 jaar,,1 year
+app,1 januari in week 1,,January 1 in week 1
+app,1 open,,1 open
+app,"1,5 jaar",,1.5 years
+app,2 jaar,,2 years
+app,2000,,2000
+app,3 maanden,,3 months
+app,6 maanden,,6 months
+app,7,,7
+app,9 maanden,,9 months
+app,Aan de slag,,Get Started
+app,Aangemaakt,,Created
+app,Aantal,,Number
+app,Aantal dagen vooraf,,Number of Days Before
+app,Aantal weergeven,,Number to Show
+app,Account,,Account
+app,Actieknop,,Action Button
+app,Actieknop configureren,,Configure Action Button
+app,Acties voor %@,,Actions for %@
+app,Add Item,,Add Item
+app,Afgelopen 10 weken,,Last 10 Weeks
+app,Afgelopen 12 maanden,,Last 12 Months
+app,Afgelopen 7 dagen,,Last 7 Days
+app,Afgerond,,Finished
+app,Afgerond opschonen,,Clear completed items
+app,Afgerond verwijderen?,,Delete Finished?
+app,Afgeronde items downloaden als CSV,,Download completed items as CSV
+app,Afgeronde items per dag over de afgelopen zeven dagen,,Completed items per day over the past seven days
+app,Afgeronde items verschijnen hier automatisch en kun je altijd weer terugzetten.,,Completed items appear here automatically and can always be restored.
+app,Afsnijden als het te lang is,,Truncate long text
+app,Afvinken,,Mark as Done
+app,Agenda,,Calendar
+app,Agenda vooruit laden,,Load Calendar Ahead
+app,Agenda-item,,Calendar item
+app,Algemeen,,General
+app,Alle afgeronde en verwijderde items worden definitief verwijderd. Dit kan niet ongedaan worden gemaakt.,,All finished and deleted items will be permanently deleted. This cannot be undone.
+app,"Alle agenda-items, taken, herhalingen, afgeronde items en instellingen worden definitief verwijderd. De app start daarna alsof je hem voor het eerst hebt gedownload.",,"All calendar items, tasks, recurrences, finished items, and settings will be permanently deleted. The app will then start as if you downloaded it for the first time."
+app,Alleen dit item,,Only this item
+app,Alleen snel invoerveld,,Quick entry field only
+app,Alleen vandaag,,Today only
+app,Alles,,All
+app,Alles bij de hand. Ook als je je telefoon verliest.,,"Keep everything close at hand, even if you lose your phone."
+app,"Alles wat je niet wilt vergeten, op één plek.",,"Everything you don't want to forget, in one place."
+app,Alles wat past,,All that fits
+app,"Als je apparaat kwijt raakt, zijn je gegevens niet terug te halen.",,"If you lose your device, your data cannot be recovered."
+app,Andere datum in agenda...,,Different date
+app,Andere datum in agenda…,,Different date in calendar…
+app,Annuleer,,Cancel
+app,App Color,,App Color
+app,App-taal,,App Language
+app,Apple ID,,Apple ID
+app,Apple Weather,,Apple Weather
+app,"Apple Weather, broninformatie",,"Apple Weather, source information"
+app,"Apple kon deze app niet aanmelden bij WeatherKit. Controleer of WeatherKit voor deze App ID bij zowel App Services als App Capabilities aanstaat. Staat dat al goed, probeer dan later opnieuw; Apple heeft mogelijk een tijdelijke authenticatiestoring.",,"Apple could not authenticate this app with WeatherKit. Check that WeatherKit is enabled for this App ID under both App Services and App Capabilities. If both are already enabled, try again later; Apple may be experiencing a temporary authentication outage."
+app,Automatische iCloud-synchronisatie,,Automatic iCloud Sync
+app,Backup,,Backup
+app,Backup en herstel,,Backup and restore
+app,Backup mislukt,,Backup failed
+app,Backup teruggezet. Heropen de app om alle instellingen opnieuw te laden.,,Backup restored. Reopen the app to reload all settings.
+app,Backupbestand terugzetten,,Restore backup file
+app,Beginscherm-widget,,Home Screen widget
+app,Beginscherm-widget configureren,,Configure Home Screen widget
+app,Bekijk WeatherKit-instellingen bij Apple,,View WeatherKit settings at Apple
+app,"Beschrijf nog een taak, of tik rechtsboven op het vinkje om de invoer af te ronden.",,"Add another task, or tap the checkmark in the top right when you’re done entering tasks."
+app,Bestemming,,Destination
+app,Bewaar,,Save
+app,Bewaren mislukt,,Save failed
+app,Bewerken afsluiten,,Finish Editing
+app,Bij indrukken,,When Pressed
+app,"Bij slimme weergave worden Taken over de volledige breedte getoond als er geen kalenderitems zijn, en andersom. Zo wordt er minder snel tekst afgesneden.",,"Smart display shows Tasks at full width when there are no calendar items, and vice versa. This keeps more text visible."
+app,Binnenkort,,Soon
+app,Blauw,,Blue
+app,Bovenste taken,,Tasks on top
+app,Bron,,Source
+app,Bruin,,Brown
+app,Cadeau-idee of andere herinnering...,,Gift idea or another reminder…
+app,Categorie,,Category
+app,Categorie in Taken kiezen,,Choose Category in Tasks
+app,Categorie verwijderen,,Delete Category
+app,Compacte categorieën tonen alleen de titel en eerstvolgende datum. Feestdagen staan standaard compact.,,Compact categories show only the title and next date. Holidays are compact by default.
+app,Compacte rij voor %@,,Compact Row for %@
+app,Compacte rijen,,Compact Rows
+app,Cyaan,,Cyan
+app,Dag,,Day
+app,Dag van maand,,Day of Month
+app,Dag/Maand,,Day/Month
+app,Dagelijks,,Daily
+app,Dagen,,Days
+app,Dagen tellen,,Day count
+app,Dagen tellen (0 = vandaag),,Day count (0 = today)
+app,Dagen vooraf,,Days Before
+app,Datum,,Date
+app,Datum (dd/mm),,Date (mm/dd)
+app,Datum formattering,,Date formatting
+app,Datum in agenda kiezen,,Choose Calendar Date
+app,Datumweergave,,Date display
+app,De Actieknop is alleen beschikbaar op iPhone 15 Pro en nieuwere modellen. Stel op je iPhone bij Instellingen › Actieknop › Opdracht de opdracht ‘Nieuwe taak’ in.,,"The Action Button is only available on iPhone 15 Pro and newer models. On your iPhone, go to Settings › Action Button › Shortcut and choose ‘New Task’."
+app,"De app varieert de datum deterministisch rond dit interval. Zo blijft het spontaan, maar verspringt de planning niet bij iedere sync.",,The app varies the date predictably around this interval. This keeps it spontaneous without changing the schedule after every sync.
+app,"De app varieert de datum voorspelbaar rond deze gekozen periode. Zo blijft het spontaan, maar verspringt de planning niet bij iedere synchronisatie.",,The app varies the date predictably around the selected period. This keeps it spontaneous without changing the schedule after every sync.
+app,De backup bevat %lld items. Er wordt eerst automatisch een veiligheidskopie gemaakt.,,The backup contains %lld items. A safety copy of the current data will be created first.
+app,"De backup bevat actieve en afgeronde items, herhalingen en instellingen. Voor een herstelactie wordt eerst nog een kopie van de huidige gegevens gemaakt.",,"The backup contains active and finished items, recurrences, and settings. Before restoring, a safety copy of the current data will be created."
+app,"De bovenste link verschijnt klikbaar in het overzicht. Na het invullen verschijnt automatisch een volgend veld, tot maximaal vijf links.",,"The first link appears as a clickable link in the overview. A new field appears automatically after entry, up to five links."
+app,De datum varieert voorspelbaar rond deze periode.,,The date varies predictably around this period.
+app,De lockscreen-widget is beschikbaar op iPhone 11 en nieuwere modellen en op iPhone SE (2e generatie) en nieuwer. Houd het toegangsscherm ingedrukt en tik op Pas aan › Toegangsscherm › Voeg widgets toe. Kies daarna de widget van Don’t forget.,,"The Lock Screen widget is available on iPhone 11 and newer models and on iPhone SE (2nd generation) and newer. Touch and hold the Lock Screen, then tap Customize › Lock Screen › Add Widgets. Then select the Forget It widget."
+app,De standaardselectie van het nieuwe land vervangt je huidige geselecteerde feestdagen. Eigen feestdagen worden niet verwijderd.,,The new country’s default selection replaces your currently selected holidays. Custom holidays are not deleted.
+app,De wijziging wordt actief nadat je de app volledig hebt afgesloten en opnieuw hebt geopend.,,The change takes effect after you fully close and reopen the app.
+app,Definitief verwijderen,,Delete Permanently
+app,Demodata activeren,,Enable Demo Data
+app,Demodata verwijderen,,Remove Demo Data
+app,Derde,,Third
+app,Deselecteer alles,,Deselect All
+app,Details,,Details
+app,Deze Mac gebruikt dezelfde private iCloud-container als je iPhone en iPad. Wijzigingen worden automatisch op alle apparaten bijgewerkt.,,This Mac uses the same private iCloud container as your iPhone and iPad. Changes are updated automatically on all devices.
+app,Deze leeftijd hoort niet bij een geboortejaar met 29 februari. Kies een passende leeftijd.,,This age does not correspond to a leap year with February 29. Choose an appropriate age.
+app,Deze reminder gebruikt dezelfde kleur als de verjaardagscategorie.,,This reminder uses the same color as the birthday category.
+app,Direct spraak opnemen,,Start Voice Recording Immediately
+app,Dit is een voorbeeld,,This is an example
+app,Don't Forget,,Forget It
+app,Don't forget,,Forget It
+app,Doorgaan,,Continue
+app,Doorgaan zonder Apple ID,,Continue Without Apple ID
+app,Doorlopen op nieuwe regel,,Wrap onto new line
+app,Druk op de Actieknop,,Press the Action Button
+app,Een geel gearceerde weekdag bevat een tijd en blijft binnen de dag automatisch op tijd gesorteerd.,,A yellow-highlighted weekday contains a time. Items with a time are automatically sorted within that day.
+app,Een landwissel vervangt deze selectie. Eigen feestdagen blijven bewaard. Data uit de islamitische kalender kunnen door lokale maanwaarneming één dag verschillen.,,Changing countries replaces this selection. Custom holidays are preserved. Islamic calendar dates may differ by one day due to local moon sightings.
+app,Een positie omhoog,,Move Up One Position
+app,Een positie omlaag,,Move Down One Position
+app,"Een volledige backup bevat actieve en afgeronde items, herhalingen en instellingen. CSV is alleen bedoeld als leesbaar historie-overzicht.",,"A full backup contains active and finished items, recurrences, and settings. CSV is only intended as a readable history overview."
+app,Eenheid,,Unit
+app,Eerste,,First
+app,Eerste herhaling toevoegen,,Add First Recurrence
+app,Eerste verjaardag toevoegen,,Add First Birthday
+app,Eerstvolgende datum,,Next date
+app,Eigen feestdag,,
+app,Eigen feestdag toevoegen,,Add Custom Holiday
+app,Eigen feestdagen kun je ook toevoegen met de plusknop bij de oranje categorie.,,You can also add custom holidays with the plus button in the orange category.
+app,Einde-dagherinnering,,End-of-Day Reminder
+app,Elk kwartaal,,Quarterly
+app,Elke %lld,,Every %lld
+app,Elke %llde van de maand,,Every %lldth of the Month
+app,Er is geen tekst ingevoerd.,,No text was entered.
+app,Er is nog geen automatische veiligheidskopie beschikbaar.,,No automatic safety copy is available yet.
+app,Exporteren mislukt,,Export failed
+app,Extra notitie...,,Additional note…
+app,Eén dag meer,,One Day More
+app,Eén dag minder,,One Day Less
+app,Feestdag op vaste dag,,Holiday on a Fixed Date
+app,Feestdagen,,Holidays
+app,Feestdagen kiezen,,Choose Holidays
+app,Flexibel (ongeveer),,Flexible (approximate)
+app,Frequentie,,Frequency
+app,Ga terug naar de kalender om je herhaling te vinden. Een herhaling wordt steeds opnieuw vooruit gepland.,,Go back to the calendar to see your recurring item. The app automatically schedules it endlessly into the future.
+app,Geboortedatum,,Date of Birth
+app,Geboortejaar,,Birth year
+app,Geboortejaar onzeker,,Birth year uncertain
+app,"Gebruik de controls, of tik op een andere weekdag om direct te verplaatsen.",,"Use the buttons to move step by step, or tap another weekday to move it there directly."
+app,Gebruik de filterknoppen om alleen afgeronde items van een bepaalde tab te zien.,,Use the filters to show completed items from one specific tab only.
+app,Gebruik deze plaats,,Use this place
+app,Gebruik mijn huidige locatie,,Use my current location
+app,Geef ‘Don’t forget’ toestemming voor meldingen via de iOS-instellingen.,,Allow notifications for ‘Forget It’ in iOS Settings.
+app,Geel,,Yellow
+app,Geen afgeronde %@-items,,No completed %@ items
+app,Geen andere categorieën,,No other categories
+app,Geen iCloud-account aangemeld; gegevens blijven alleen op dit apparaat,,No iCloud account is signed in; data remains only on this device
+app,Geen openstaande taken voor vandaag,,No unfinished tasks for today
+app,Geen toegang. Je kunt dit later wijzigen in iOS-instellingen.,,Access denied. You can change this later in iOS Settings.
+app,Geen zoekresultaten,,No search results
+app,Gegevens niet geopend,,Data could not be opened
+app,Gereed,,Done
+app,Gisteren,,Yesterday
+app,Grafieken inklappen,,Collapse Charts
+app,Grafieken uitklappen,,Expand Charts
+app,Grey,,Grey
+app,Grijs,,Gray
+app,Groen,,Green
+app,Groep,,Group
+app,Groepsnaam,,Group name
+app,Hele app openen,,Open full app
+app,Hele app resetten,,Reset the entire app
+app,Hele app resetten?,,Reset the Entire App?
+app,Herhaling,,Recurrence
+app,Herhaling toevoegen,,Add recurring item
+app,Herhaling toevoegen aan %@,,Add Recurrence to %@
+app,Herhalingen,,Recurring
+app,Herhalingen beheren,,Manage Recurrences
+app,Heropen de app,,Reopen the app
+app,Hoe lang open; klik voor verplaatsen,,How long open; click to move
+app,Houd 3 seconden ingedrukt om de hele app te resetten.,,Press and hold for 3 seconds to reset the entire app.
+app,Houd 3 seconden ingedrukt om demodata te activeren.,,Press and hold for 3 seconds to activate demo data.
+app,Huidige gegevens vervangen?,,Replace current data?
+app,Huidige leeftijd,,Current Age
+app,Huidige selectie overschrijven?,,Replace current selection?
+app,Hulp nodig? Stuur ons een ,,Ideas for the app? Send us an 
+app,Hulp nodig? Stuur ons een email,,Ideas for the app? Send us an email
+app,Icoon,,Icon
+app,Icoon en kleur wijzigen,,Change icon and color
+app,Iets afgerond? Tik op de cirkel rechts. Het verhuist naar Afgerond.,,Finished something? Tap the circle on the right. The item will move to the last category: Finished.
+app,In niet-schrikkeljaren wordt de verjaardag op 28 februari getoond.,,"In non-leap years, the birthday is shown on February 28."
+app,Indigo,,Indigo
+app,Ingeklapt,,Collapsed
+app,Inhoud,,Content
+app,Instellingen,,Settings
+app,Invoer,,Input
+app,Islamitische kalender,,Islamic calendar
+app,Item at %@,,Item at %@
+app,Item verplaatst\nnaar Afgerond,,Item moved\nto Finished
+app,Items ouder dan de gekozen periode worden verwijderd. Eerst wordt automatisch een volledige veiligheidskopie gemaakt.,,Items older than the selected period will be deleted. A full safety copy will be created automatically first.
+app,Ja graag,,Yes please
+app,Jaar,,Year
+app,Jaarlijks (jubileum),,Yearly (anniversary)
+app,Jaren,,Years
+app,Je agenda staat klaar voor alles wat komt.,,This calendar has no more secrets left for you. Time to start planning the fun stuff!
+app,Je gegevens worden privé via iCloud bewaard en automatisch teruggezet op je Apple-apparaten.,,Your data is stored privately in iCloud and restored automatically on your Apple devices.
+app,"Je gegevens zijn niet verwijderd. Sluit de app niet opnieuw af en installeer hem niet opnieuw. Probeer het nogmaals of neem contact op met support.
+
+%@",,"Your data has not been deleted. Do not reinstall the app. Try again or contact support.
+
+%@"
+app,Je hebt je taken helemaal in de hand.,,"This one’s off your list. No need to keep everything in your head anymore. From now on, just write it down here."
+app,Je herhalingen regelen voortaan zichzelf.,,"Nice work! This is where you manage everything that repeats. Your recurring items are scheduled endlessly, based on your settings."
+app,"Je krijgt een overzicht van de openstaande taken van vandaag. Zijn er geen openstaande taken, dan wordt op de geplande tijd niets verstuurd. De melding is mogelijk niet zichtbaar als je telefoon in slaap- of nachtmodus staat.",,"You’ll receive a summary of today’s unfinished tasks. If there are no unfinished tasks, nothing is sent at the scheduled time. The notification may not appear while your phone is in Sleep or another Focus mode."
+app,Je land is automatisch gekozen op basis van je regio. Zet de schakelaar uit om ook feestdagen en vieringen uit andere landen te zien.,,Your country was selected automatically based on your region. Turn off the switch to also see holidays and observances from other countries.
+app,Je locatie wordt alleen gebruikt om het weer op te halen. De gekozen plaats wordt op dit apparaat bewaard.,,Your location is only used to retrieve the weather. The selected place is stored on this device.
+app,Je weet nu precies hoe Afgerond werkt.,,"That’s it! Enjoy using the app. Share it with friends and family too, it’s 100% free."
+app,Kalender,,Calendar
+app,Kalender + taken,,Calendar + tasks
+app,Kalender synchroniseren…,,Syncing Calendar…
+app,Kalender vandaag,,Calendar Today
+app,Kalenderperiode,,Calendar period
+app,Kalenderweergave,,Calendar View
+app,Kies datum,,Choose Date
+app,Kies een datum,,Choose a Date
+app,Kies hoe Don’t forget de plaats voor je weersverwachting bepaalt.,,Choose how Forget It determines the place for your weather forecast.
+app,Klaar met verplaatsen,,Finish Moving
+app,Kleur,,Color
+app,Kleur en icoon van %@ aanpassen,,Change color and icon for %@
+app,Kleur voor %@,,Color for %@
+app,Kleuren,,Colors
+app,Koppel Don't forget veilig aan je Apple-account. Je kunt deze koppeling later weer uitschakelen.,,Securely connect Forget It to your Apple Account. You can disconnect it later.
+app,Laat alleen lokale feestdagen zien,,Show Local Holidays Only
+app,Laatste,,Last
+app,Laatste veiligheidskopie bewaren,,Save latest safety copy
+app,Laatste veiligheidskopie terugzetten,,Restore latest safety copy
+app,Laatste wijziging terugdraaien,,Undo last change
+app,Lange tekst,,Long text
+app,Later,,Later
+app,Later aanpasbaar in Instellingen,,You can change this later in Settings
+app,Leeftijd,,Age
+app,Leeftijd/jaar,,Age/year
+app,Leeftijd/jaar onzeker,,Age/year uncertain
+app,Leeg linkveld verwijderen,,Delete empty link field
+app,Lichtblauw,,Light blue
+app,Lichtblauwe widgetkleur,,Light blue widget color
+app,Light blue,,Light blue
+app,Lijst,,List
+app,Link %lld,,Link %lld
+app,Link verwijderen,,Delete link
+app,Linknaam aanpassen,,Edit link name
+app,Links,,Links
+app,Locatie bepalen…,,Determining location…
+app,Lockscreen-widget,,Lock Screen widget
+app,Lockscreen-widget configureren,,Configure Lock Screen widget
+app,Log in met Apple ID,,Sign in with Apple ID
+app,Luistert…,,Listening…
+app,Maak binnen je categorie een nieuwe herhaling door op het plusje te tikken.,,Tap the plus button in your category to create a new recurring item.
+app,Maak een eigen feestdag met een vaste datum of een weekdag van de maand.,,
+app,Maak een taak in een categorie door in het invoerveld iets te schrijven.,,Type in a category’s input field to create a task there.
+app,Maak zelf een categorie. Tik op de tekst in het nieuwe blok en kies een naam.,,Create your own category. Tap the text in the new block and give the category a name.
+app,Maand,,Month
+app,Maandag,,Monday
+app,Maandelijks op datum,,Monthly on a date
+app,Maandelijks op weekdag,,Monthly on a weekday
+app,Maanden,,Months
+app,Markeer als afgerond,,Mark as completed
+app,Melding,,Message
+app,Meldingen niet beschikbaar,,Notifications Unavailable
+app,Met -,,With -
+app,Met …,,With …
+app,Na 1 jaar,,After 1 year
+app,Na 1 maand,,After 1 month
+app,Na 1 week,,After 1 week
+app,Naam,,Name
+app,Naar agenda,,Move to Calendar
+app,Naar agenda verplaatsen,,Move to calendar
+app,Naar agenda...,,Move to Calendar…
+app,Naar vandaag,,Move to today
+app,Naar vandaag %@,,To today %@
+app,Niet,,None
+app,Nieuw,,New
+app,Nieuw agenda-item,,New calendar item
+app,Nieuw item,,New item
+app,Nieuwe categorie,,New Category
+app,Nieuwe categorie invoeren,,Enter new category
+app,Nieuwe datum,,New date
+app,Nieuwe groep,,New Group
+app,Nieuwe herhaling,,New Recurrence
+app,Nieuwe taak,,New Task
+app,Nieuwe taak invoeren,,Enter New Task
+app,Nieuwe to-do,,New To-do
+app,Nog niets afgerond,,Nothing finished yet
+app,Nog veel meer handige instellingen vind je achter het menu rechtsbovenin.,,You’ll find more useful settings in the menu at the top right.
+app,Nooit,,Never
+app,Notitie,,Note
+app,Notities,,Notes
+app,Nu %lld jaar,,Now %lld years old
+app,OK,,OK
+app,Of stel zelf een plaats in,,Or enter a place yourself
+app,Omhoog,,Move up
+app,Omhoog verplaatsen,,Move Up
+app,Omlaag,,Move down
+app,Omlaag verplaatsen,,Move Down
+app,Omschrijving,,Description
+app,Onbekende iCloud-status,,Unknown iCloud status
+app,Ongedaan maken,,Undo
+app,Ongeveer / spontaan,,Approximate / spontaneous
+app,Ongeveer dagelijks,,Approximately daily
+app,Ongeveer jaarlijks,,Approximately annually
+app,Ongeveer maandelijks,,Approximately monthly
+app,Ongeveer wekelijks,,Approximately weekly
+app,Onzeker,,Uncertain
+app,Ook toekomstige items verplaatsen,,Also move future items
+app,Open kalender,,Open calendar
+app,Open link,,Open link
+app,Openen,,Open
+app,Opent direct een invoerveld voor een nieuwe taak.,,Immediately opens an input field for a new task.
+app,Opnieuw,,Replay
+app,Opnieuw proberen,,Try again
+app,Oranje,,Orange
+app,Oude geschiedenis opruimen?,,Clean up old history?
+app,Overschrijf,,Replace
+app,Overzicht,,Overview
+app,Paars,,Purple
+app,Pas de volgorde van categorieën aan via de chevrons.,,Use the arrows to change the order of your categories.
+app,Pas het icoon en de kleur van je categorie aan door op het logo te tikken.,,Tap the logo to change the category’s icon and color.
+app,Periode,,Period
+app,Persoonlijk,,Personal
+app,"Plaats, bijvoorbeeld Amsterdam",,"Place, for example Amsterdam"
+app,Plak link,,Paste link
+app,Probeer een andere zoekopdracht of wis de zoekbalk.,,Try another search or clear the search bar.
+app,Probeer weer opnieuw,,Try weather again
+app,Recurring,,Recurring
+app,Regel,,Rule
+app,Regel bewerken,,Edit Entry
+app,Reminder vooraf,,Reminder in advance
+app,Reset alles,,Reset Everything
+app,Resetten mislukt,,Reset Failed
+app,Rond Pasen,,Around Easter
+app,Rood,,Red
+app,Roze,,Pink
+app,Schrijf een ,,Write a 
+app,Schrijf een review over de app,,Write a review of the app
+app,Select an item,,Select an Item
+app,Selecteer alles,,Select All
+app,Selecteer een item,,Select an item
+app,Selectie,,Selection
+app,Sla snelle invoer op,,Save Quick Entry
+app,Slimme weergave,,Smart display
+app,Sluiten,,Close
+app,Snel toevoegen,,Quick Add
+app,Snelle invoer,,Quick Entry
+app,Sorteer eerstvolgende bovenaan,,Sort next date first
+app,Spraakinvoer,,Voice Input
+app,Spraakopname starten,,Start Voice Recording
+app,Spraakopname stoppen,,Stop Voice Recording
+app,Standaard (%@),,Default (%@)
+app,Standaardbestemming,,Default Destination
+app,Standaardland,,Default Country
+app,Startdatum,,Start date
+app,Synchronisatie,,Sync
+app,Synchroniseer met iPhone Kalender,,Sync with iPhone Calendar
+app,Synchroniseer nu,,Sync Now
+app,Systeemtaal,,System Language
+app,Taak,,Task
+app,Taak bewerken,,Edit task
+app,"Taak verplaatst
+naar Afgerond",,"Task Moved
+to Finished"
+app,Taak verplaatst\nnaar Afgerond,,"Task moved
+to Finished"
+app,Taal en invoer,,Language and Input
+app,Taken,,Tasks
+app,Takenweergave,,Tasks display
+app,Teal,,Teal
+app,Tekst,,Text
+app,Terug,,Back
+app,Terughalen,,Undo
+app,Terugkerend item,,Recurring item
+app,Terugzetten,,Restore
+app,Terugzetten naar %@,,Restore to %@
+app,Testmelding versturen,,Send Test Notification
+app,Testmelding versturen…,,Sending Test Notification…
+app,Tijd,,Time
+app,Tik achter een dag om iets te schrijven. Klaar? Tik rechtsboven op ✓.,,Tap next to a day to add something. Done? Tap ✓ in the top right.
+app,Tik eerst op het icoon van het item. Tik daarna op het prullenbakje om het definitief te verwijderen.,,First tap the item’s icon. Then you can tap the trash button to delete it permanently.
+app,Tik linksboven op de pijlen om de instellingen voor herhalingen aan te passen.,,Tap the arrows in the top left to open the recurrence settings.
+app,Tik nu op het prullenbakje om het item definitief te verwijderen.,,Now tap the trash button to delete this item permanently.
+app,Tik om de uitleg in of uit te klappen,,Tap to expand or collapse help
+app,Tik om demodata te verwijderen.,,Tap to remove demo data.
+app,Tik op de gekleurde stip om de kleur te wijzigen. Compacte categorieën tonen alleen de titel en eerstvolgende datum.,,Tap the colored dot to change the color. Compact categories show only the title and next date.
+app,Tik op de pijl linksboven om je laatste invoer ongedaan te maken. Dit kan voor maximaal drie invoeren.,,Tap the arrow in the top left to undo your last entry. You can undo up to three entries.
+app,Tik op de weekdag vóór de lijn om de verplaatsmodus te openen.,,Tap the weekday to the left of the line to move an item.
+app,Tik op het plusje om direct nog een taak aan te maken.,,Tap the plus button to add another task right away.
+app,Titel,,Title
+app,Titel is verplicht,,Title is required
+app,Titel laten zien,,Show title
+app,Toch niet? Tik onderin op Ongedaan maken. Normaal heb je hiervoor 5 seconden; tijdens deze uitleg blijft de melding staan.,,"Changed your mind? Tap Undo at the bottom. Normally, you have 5 seconds; during this guide, the message stays visible."
+app,Toegevoegd,,Added
+app,Toegevoegd.,,Added.
+app,Toekomstige items ook verplaatsen?,,Move future items too?
+app,Toetsenbord sluiten,,Dismiss Keyboard
+app,Toon details,,Show Details
+app,Toon feestdagen in overzicht,,Show Holidays in Overview
+app,Toon in widget,,Show in widget
+app,Toon ook items die eerder zijn verwijderd,,Also show previously deleted items
+app,Toon volgende datum,,Show Next Date
+app,Tweede,,Second
+app,Type,,Type
+app,Uitgeklapt,,Expanded
+app,Uitleg over Afgerond,,Finished help
+app,Uitleg over Agenda,,Calendar help
+app,Uitleg over Taken,,Tasks help
+app,Uitleg over herhalingen,,Recurring help
+app,Vandaag,,Today
+app,Vandaag & morgen,,Today & tomorrow
+app,Vandaag + morgen,,Today + tomorrow
+app,Vast interval,,Fixed Interval
+app,Vaste regelmaat,,Fixed schedule
+app,Veiligheidskopie,,Safety copy
+app,Verbonden,,Connected
+app,Verjaardag,,Birthday
+app,Verplaats,,Move
+app,Verplaats agenda-item,,Move calendar item
+app,Verplaats item,,Move item
+app,Verplaats naar %@,,Move to %@
+app,Verplaats naar andere datum,,Move to another date
+app,Verplaats naar:,,Move to:
+app,Verplaatsen of verwijderen,,Move or delete
+app,Verplaatsmodus afsluiten,,Exit Move Mode
+app,Verplaatsopties,,Move Options
+app,Verwijder,,Delete
+app,Verwijder alle afgeronde taken,,Delete all finished tasks
+app,Verwijder groep,,Delete group
+app,Verwijder herhaling,,Delete Recurrence
+app,Verwijderde items,,Deleted items
+app,Verwijderde items tonen,,Show Deleted Items
+app,Verwijderen,,Delete
+app,Verwijderen mislukt,,Deletion failed
+app,Vierde,,Fourth
+app,Voeg item toe,,Add item
+app,Voeg toe,,Add
+app,Voeg toe en ga door,,Add and continue
+app,Voeg toe en maak nog een item,,Add and create another item
+app,Volgende 3 maanden laden…,,Loading the next 3 months…
+app,Volgende datum,,Next date
+app,Volgende herhalingen meeverschuiven?,,Shift following recurrences too?
+app,Volgende herhalingen zijn meeverschoven,,Following recurrences were shifted
+app,Volgende stap,,Next step
+app,Volgende: %@,,Next: %@
+app,Volgorde en uiterlijk,,Order and appearance
+app,Volgorde van %@ aanpassen,,Reorder %@
+app,Volledige backup bewaard.,,Full backup saved.
+app,Volledige backup maken,,Create full backup
+app,Voor elke taak staat hoe lang die openstaat. Tik hierop om de taak naar een andere categorie of de kalender te verplaatsen.,,Each task shows how long it has been open. Tap that time to move the task to another category or to the calendar.
+app,Voorbeeld,,Preview
+app,Voorbeeld van de Actieknop,,Action Button preview
+app,Voorvoegsel,,Prefix
+app,Vorige stap,,Previous step
+app,Vul een geldig geboortejaar in.,,Enter a valid birth year.
+app,Vul een titel in om deze herhaling te bewaren.,,Enter a title to save this recurrence.
+app,Wat,,What
+app,Wat wil je niet vergeten?,,What don’t you want to forget?
+app,Week begint op,,Week Starts On
+app,Weekdag,,Weekday
+app,Weekdag van een maand,,Weekday of a Month
+app,Weekdag van maand,,Weekday of the month
+app,Weeknummering,,Week Numbering
+app,Weer bij toekomstige dagen,,Weather for future days
+app,Weer kon niet worden geladen: %@,,Weather could not be loaded: %1$@
+app,Weergave,,Display
+app,Weerlocatie,,Weather location
+app,Weken,,Weeks
+app,Welke,,Which
+app,Widgetformaat,,Widget size
+app,Wie,,Who
+app,Wijzig en ruim op,,Change and clean up
+app,Wijzig herhaling,,Edit Recurrence
+app,Wil je dezelfde datumverschuiving toepassen op alle volgende voorkomens van dit terugkerende item?,,Do you want to apply the same date shift to all future occurrences of this recurring item?
+app,Wit,,White
+app,Woorden afsnijden,,Truncate Words
+app,Wordt ieder jaar herhaald op de datum hierboven.,,Repeats every year on the date above.
+app,Wordt iedere drie maanden herhaald vanaf de eerstvolgende datum.,,Repeats every three months from the next date.
+app,Zet backup terug,,Restore backup
+app,Zet een item terug naar waar het vandaan kwam met de terugzetknop.,,Want to bring something back? Tap the restore button to return the item to where it came from.
+app,Zet terug naar %@,,Restore to %@
+app,Zoek in Afgerond,,Search Finished
+app,Zoeken,,Search
+app,Zoeken sluiten,,Close search
+app,Zoekopdracht wissen,,Clear search
+app,Zondag,,Sunday
+app,app.name,,Forget It
+app,birthday.status.birthdayInDays,,Has a birthday in %lld days
+app,birthday.status.birthdayInOneDay,,Has a birthday in %lld day
+app,birthday.status.today,,Has a birthday today
+app,birthday.status.turnedToday,,Turned %lld today
+app,birthday.status.turnsInDays,,Turns %1$lld in %2$lld days
+app,birthday.status.turnsInOneDay,,Turns %1$lld in %2$lld day
+app,category.recurring.birthdays,,Birthdays
+app,category.recurring.general,,General
+app,category.recurring.holidays,,Holidays
+app,category.todo.groceries,,Groceries
+app,category.todo.longTerm,,Long term
+app,category.todo.soon,,Soon
+app,country.BE,,Belgium
+app,country.DE,,Germany
+app,country.FR,,France
+app,country.GB,,United Kingdom
+app,country.MA,,Morocco
+app,country.NL,,Netherlands
+app,country.SR,,Suriname
+app,country.TR,,Türkiye
+app,country.US,,United States
+app,csv.header.category,,category
+app,csv.header.content,,content
+app,csv.header.dateTime,,date and time
+app,csv.header.deleted,,deleted 1/0
+app,csv.header.type,,type
+app,error.syncFailed,,Sync failed: %@
+app,even,,even
+app,feedback.deleted,,‘%@’ deleted
+app,feedback.movedTo,,‘%1$@’ moved to %2$@
+app,feedback.movedToFinished,,‘%@’ was moved to Finished
+app,feedback.permanentlyDeleted,,‘%@’ permanently deleted
+app,feedback.restored,,‘%@’ restored
+app,history.loadOlder,,Load older items (%lld)
+app,history.noCompletedFilter,,No completed %@ items
+app,history.restoreTo,,Restore to %@
+app,holiday.all-saints,,All Saints’ Day
+app,holiday.amazigh-new-year,,Amazigh New Year
+app,holiday.armistice,,Armistice Day
+app,holiday.ascension,,Ascension Day
+app,holiday.assumption,,Assumption of Mary
+app,holiday.bastille-day,,Bastille Day
+app,holiday.boxing-day,,Boxing Day
+app,holiday.children-day,,Children’s Day
+app,holiday.christmas,,Christmas Day
+app,holiday.columbus-day,,Columbus Day
+app,holiday.democracy-day,,Democracy and National Unity Day
+app,holiday.early-may,,Early May Bank Holiday
+app,holiday.easter-monday,,Easter Monday
+app,holiday.easter-sunday,,Easter Sunday
+app,holiday.eid-al-adha,,Feast of Sacrifice (Eid al-Adha)
+app,holiday.eid-al-fitr,,Feast of Breaking the Fast (Eid al-Fitr)
+app,holiday.fathers-day,,Father’s Day
+app,holiday.flemish-community,,Day of the Flemish Community
+app,holiday.french-community,,Day of the French Community
+app,holiday.german-community,,Day of the German-speaking Community
+app,holiday.good-friday,,Good Friday
+app,holiday.green-march,,Green March
+app,holiday.independence-day,,Independence Day
+app,holiday.independence-manifesto,,Proclamation of Independence
+app,holiday.indigenous-day,,Indigenous Peoples’ Day
+app,holiday.islamic-new-year,,Islamic New Year
+app,holiday.juneteenth,,Juneteenth
+app,holiday.keti-koti,,Keti Koti
+app,holiday.kings-day,,King’s Day
+app,holiday.labor-day,,Labor Day
+app,holiday.labour-day,,Labor Day
+app,holiday.labour-solidarity-day,,Labour and Solidarity Day
+app,holiday.liberation-day,,Liberation Day
+app,holiday.maroons-day,,Day of the Maroons
+app,holiday.mawlid,,Prophet’s Birthday (Mawlid)
+app,holiday.memorial-day,,Memorial Day
+app,holiday.mlk-day,,Martin Luther King Jr. Day
+app,holiday.morocco-independence,,Independence Day
+app,holiday.mothers-day,,Mother’s Day
+app,holiday.national-day,,National Day
+app,holiday.new-year,,New Year’s Day
+app,holiday.oued-eddahab-day,,Recovery of Oued Eddahab
+app,holiday.presidents-day,,Presidents’ Day
+app,holiday.prinsjesdag,,Prince’s Day
+app,holiday.ramadan-start,,Start of Ramadan
+app,holiday.remembrance-day,,Remembrance of the Dead
+app,holiday.republic-day,,Republic Day
+app,holiday.revolution-day-ma,,Revolution of the King and the People
+app,holiday.sinterklaas,,Saint Nicholas
+app,holiday.spring-bank,,Spring Bank Holiday
+app,holiday.summer-bank,,Summer Bank Holiday
+app,holiday.suriname-independence,,Independence Day
+app,holiday.thanksgiving,,Thanksgiving
+app,holiday.throne-day,,Throne Day
+app,holiday.unity-day,,German Unity Day
+app,holiday.unity-day-ma,,Unity Day
+app,holiday.veterans-day,,Veterans Day
+app,holiday.victory-day,,Victory Day
+app,holiday.victory-day-tr,,Victory Day
+app,holiday.whit-monday,,Whit Monday
+app,holiday.whit-sunday,,Whit Sunday
+app,holiday.youth-day,,Youth and Sports Day
+app,holiday.youth-day-ma,,Youth Day
+app,iCloud,,iCloud
+app,iCloud is beperkt op dit apparaat,,iCloud is restricted on this device
+app,iCloud is tijdelijk niet beschikbaar,,iCloud is temporarily unavailable
+app,iCloud moet op dit apparaat zijn ingeschakeld. Zonder iCloud blijven gegevens alleen op dit apparaat beschikbaar.,,"iCloud must be enabled on this device. Without iCloud, data remains available only on this device."
+app,iCloud-instelling niet gewijzigd: %@,,iCloud setting was not changed: %@
+app,iCloud-status kon niet worden bepaald,,iCloud status could not be determined
+app,iCloud-synchronisatie,,iCloud Sync
+app,kalender vandaag,,calendar today
+app,language.system,,System
+app,lockscreen.widget.instructions,,"The Lock Screen widget is available on iPhone 11 and newer models and on iPhone SE (2nd generation) and newer. Touch and hold the Lock Screen, then tap Customize › Lock Screen › Add Widgets. Then select the %@ widget."
+app,notification.title,,Forget It
+app,notifications.permission.settings,,Allow notifications for ‘%@’ in iOS Settings.
+app,onboarding.agenda.example.dinner,,6PM dinner
+app,onboarding.agenda.example.sports,,4PM sports
+app,onboarding.history.emailAccent,,email
+app,onboarding.history.example,,This is an example
+app,onboarding.history.searchInstruction,,Use the search bar to show only completed items that match your search term. Try searching for ‘example’ now.
+app,onboarding.history.searchTerm,,example
+app,oneven,,odd
+app,ordinal.first,,first
+app,ordinal.fourth,,fourth
+app,ordinal.last,,last
+app,ordinal.second,,second
+app,ordinal.third,,third
+app,quick.addedTo,,Added to %@
+app,recurrence.annuallyOn,,Annually on %@
+app,recurrence.approximatelyEveryDays,,Approximately every %lld days
+app,recurrence.approximatelyEveryMonths,,Approximately every %lld months
+app,recurrence.approximatelyEveryWeeks,,Approximately every %lld weeks
+app,recurrence.approximatelyEveryYears,,Approximately every %lld years
+app,recurrence.everyDays,,Every %lld days
+app,recurrence.everyMonthsOn,,Every %1$lld months on the %2$@
+app,recurrence.everyParityWeekOn,,Every %1$@ week on %2$@
+app,recurrence.everyWeeksOn,,Every %1$lld weeks on %2$@
+app,recurrence.everyYearsOn,,Every %1$lld years on %2$@
+app,recurrence.frequency.add,,Add frequency
+app,recurrence.frequency.unrecognized,,Frequency not recognized yet
+app,recurrence.monthlyOn,,Monthly on the %@
+app,recurrence.ordinalWeekdayOfMonth,,%1$@ %2$@ of the month
+app,recurrence.ordinalWeekdayOfNamedMonth,,%1$@ %2$@ of %3$@
+app,recurrence.quarterlyOn,,Every quarter on the %@
+app,recurrence.weeklyOn,,Weekly on %@
+app,recurring.loading,,Loading recurring items…
+app,recurring.rescheduling,,Rescheduling recurring items…
+app,recurring.reschedulingFailed,,Rescheduling failed
+app,recurring.retry,,Retry
+app,recurring.subtitle.birthday.many,,%lld birthdays
+app,recurring.subtitle.birthday.one,,%lld birthday
+app,recurring.subtitle.custom.many,,%lld custom
+app,recurring.subtitle.custom.one,,%lld custom
+app,recurring.subtitle.holiday.many,,%lld holidays
+app,recurring.subtitle.holiday.one,,%lld holiday
+app,recurring.subtitle.recurrence.many,,%lld recurrences
+app,recurring.subtitle.recurrence.one,,%lld recurrence
+app,recurring.subtitle.reminder.many,,%lld reminders
+app,recurring.subtitle.reminder.one,,%lld reminder
+app,section.calendar,,Calendar
+app,section.finished,,Finished
+app,section.recurring,,Recurring
+app,section.todo,,To-do
+app,settings.language,,Language
+app,settings.testAgainInSeconds,,Test again in %lld sec.
+app,settings.weekdayFormatting,,Weekday formatting
+app,speech.error.microphone,,No access to the microphone.
+app,speech.error.permission,,No permission for speech recognition.
+app,speech.error.startFailed,,Speech recording could not start.
+app,speech.error.unavailable,,Speech recognition is currently unavailable.
+app,speech.stopWord,,done
+app,todo.age.createdToday,,Created today
+app,todo.age.daysOpen,,Open for %lld days
+app,todo.age.daysShort,,%lldd
+app,todo.age.monthsShort,,%lldm
+app,todo.age.now,,now
+app,todo.age.weeksShort,,%lldw
+app,todo.movedToDate,,‘%1$@’ moved to %2$@
+app,tutorial.highlight.yellowWord,,yellow
+app,tutorial.step,,Step %1$lld/%2$lld
+app,typ iets,,Type something
+app,unit.day.one,,day
+app,unit.day.other,,days
+app,unit.month.one,,month
+app,unit.month.other,,months
+app,unit.week.one,,week
+app,unit.week.other,,weeks
+app,unit.year.one,,year
+app,unit.year.other,,years
+app,weather.location.explanation,,Choose how %@ determines the place for your weather forecast.
+app,widget.preview.calendar.blindDate,,18:00 Blind date
+app,widget.preview.calendar.bungeeJumping,,14:30 Bungee jumping
+app,widget.preview.calendar.dinnerWithFriends,,19:30 Dinner with friends
+app,widget.preview.calendar.gymSession,,16:00 Gym session
+app,widget.preview.calendar.jobInterview,,10:00 Job interview
+app,widget.preview.calendar.justinBieber,,16:30 Hang out with Justin Bieber
+app,widget.preview.calendar.karaokeBattle,,21:00 Karaoke battle
+app,widget.preview.calendar.pizzaTasting,,17:00 Pizza tasting
+app,widget.preview.calendar.rooftopParty,,22:00 Secret rooftop party
+app,widget.preview.calendar.tattooAppointment,,15:30 Tattoo appointment
+app,widget.preview.task.annualShower,,Take my annual shower
+app,widget.preview.task.cleanHouse,,Clean the house
+app,widget.preview.task.deleteSocialMedia,,Delete all social media apps from my phone
+app,widget.preview.task.finishPlaylist,,Finish the playlist
+app,widget.preview.task.newHobby,,Find a new hobby
+app,widget.preview.task.newRecipe,,Try a new recipe
+app,widget.preview.task.planRoadTrip,,Plan the road trip
+app,widget.preview.task.printPhotos,,Print photos at the store
+app,widget.preview.task.replyFanMail,,Reply to fan mail
+app,widget.preview.task.sellClothes,,Sell old clothes online
+app,zodiac.aquarius,,Aquarius
+app,zodiac.aries,,Aries
+app,zodiac.cancer,,Cancer
+app,zodiac.capricorn,,Capricorn
+app,zodiac.gemini,,Gemini
+app,zodiac.leo,,Leo
+app,zodiac.libra,,Libra
+app,zodiac.pisces,,Pisces
+app,zodiac.sagittarius,,Sagittarius
+app,zodiac.scorpio,,Scorpio
+app,zodiac.taurus,,Taurus
+app,zodiac.virgo,,Virgo
+app,°,,°
+app,·,,·
+app,· reminder %lld,,· reminder %lld
+app,‘%@’ definitief verwijderd,,‘%@’ permanently deleted
+app,‘%@’ teruggezet,,‘%@’ restored
+app,‘%@’ verwijderd,,‘%@’ deleted
+app,↓,,↓
+widget,%lld,,%lld
+widget,%lldd,,%lldd
+widget,1,,1
+widget,Geen open taken,,No open tasks
+widget,Geen open taken ✓,,No open tasks ✓
+widget,Kalender,,Calendar
+widget,Lege agenda ✓,,Clean calendar ✓
+widget,Taken,,Tasks
+widget,widget.gallery.description,,Automatically shows the next upcoming items from your calendar.
+widget,widget.gallery.name,,Upcoming calendar items
+widget,widget.noUpcomingItems,,No upcoming items

@@ -1,0 +1,24 @@
+{
+  "source": "/Users/jenssomers/Desktop/Don't forget/Don't forget/Don't forget/AppSettings.swift",
+  "tables": {
+    "Localizable": [
+      {
+        "comment": "",
+        "key": "0",
+        "location": {
+          "startingColumn": 44,
+          "startingLine": 1001
+        }
+      },
+      {
+        "comment": "",
+        "key": "%lld/%lld",
+        "location": {
+          "startingColumn": 50,
+          "startingLine": 1001
+        }
+      }
+    ]
+  },
+  "version": 1
+}

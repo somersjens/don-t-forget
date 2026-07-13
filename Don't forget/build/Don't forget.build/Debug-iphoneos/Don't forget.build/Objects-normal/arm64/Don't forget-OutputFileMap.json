@@ -1,0 +1,419 @@
+{
+  "" : {
+    "diagnostics" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/Don't forget-primary.dia",
+    "emit-module-dependencies" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/Don't forget-primary-emit-module.d",
+    "emit-module-diagnostics" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/Don't forget-primary-emit-module.dia",
+    "pch" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/Don't forget-primary-Bridging-header.pch",
+    "swift-dependencies" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/Don't forget-primary.swiftdeps"
+  },
+  "/Users/jenssomers/Desktop/Don't forget/Don't forget/Don't forget/AdaptiveLayout.swift" : {
+    "const-values" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/AdaptiveLayout.swiftconstvalues",
+    "dependencies" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/AdaptiveLayout.d",
+    "diagnostics" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/AdaptiveLayout.dia",
+    "index-unit-output-path" : "/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/AdaptiveLayout.o",
+    "llvm-bc" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/AdaptiveLayout.bc",
+    "object" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/AdaptiveLayout.o",
+    "swift-dependencies" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/AdaptiveLayout.swiftdeps",
+    "swiftmodule" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/AdaptiveLayout~partial.swiftmodule"
+  },
+  "/Users/jenssomers/Desktop/Don't forget/Don't forget/Don't forget/AgendaView.swift" : {
+    "const-values" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/AgendaView.swiftconstvalues",
+    "dependencies" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/AgendaView.d",
+    "diagnostics" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/AgendaView.dia",
+    "index-unit-output-path" : "/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/AgendaView.o",
+    "llvm-bc" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/AgendaView.bc",
+    "object" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/AgendaView.o",
+    "swift-dependencies" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/AgendaView.swiftdeps",
+    "swiftmodule" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/AgendaView~partial.swiftmodule"
+  },
+  "/Users/jenssomers/Desktop/Don't forget/Don't forget/Don't forget/AppBackupService.swift" : {
+    "const-values" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/AppBackupService.swiftconstvalues",
+    "dependencies" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/AppBackupService.d",
+    "diagnostics" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/AppBackupService.dia",
+    "index-unit-output-path" : "/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/AppBackupService.o",
+    "llvm-bc" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/AppBackupService.bc",
+    "object" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/AppBackupService.o",
+    "swift-dependencies" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/AppBackupService.swiftdeps",
+    "swiftmodule" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/AppBackupService~partial.swiftmodule"
+  },
+  "/Users/jenssomers/Desktop/Don't forget/Don't forget/Don't forget/AppCalendar.swift" : {
+    "const-values" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/AppCalendar.swiftconstvalues",
+    "dependencies" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/AppCalendar.d",
+    "diagnostics" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/AppCalendar.dia",
+    "index-unit-output-path" : "/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/AppCalendar.o",
+    "llvm-bc" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/AppCalendar.bc",
+    "object" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/AppCalendar.o",
+    "swift-dependencies" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/AppCalendar.swiftdeps",
+    "swiftmodule" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/AppCalendar~partial.swiftmodule"
+  },
+  "/Users/jenssomers/Desktop/Don't forget/Don't forget/Don't forget/AppModelStore.swift" : {
+    "const-values" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/AppModelStore.swiftconstvalues",
+    "dependencies" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/AppModelStore.d",
+    "diagnostics" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/AppModelStore.dia",
+    "index-unit-output-path" : "/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/AppModelStore.o",
+    "llvm-bc" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/AppModelStore.bc",
+    "object" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/AppModelStore.o",
+    "swift-dependencies" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/AppModelStore.swiftdeps",
+    "swiftmodule" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/AppModelStore~partial.swiftmodule"
+  },
+  "/Users/jenssomers/Desktop/Don't forget/Don't forget/Don't forget/AppResetService.swift" : {
+    "const-values" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/AppResetService.swiftconstvalues",
+    "dependencies" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/AppResetService.d",
+    "diagnostics" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/AppResetService.dia",
+    "index-unit-output-path" : "/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/AppResetService.o",
+    "llvm-bc" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/AppResetService.bc",
+    "object" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/AppResetService.o",
+    "swift-dependencies" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/AppResetService.swiftdeps",
+    "swiftmodule" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/AppResetService~partial.swiftmodule"
+  },
+  "/Users/jenssomers/Desktop/Don't forget/Don't forget/Don't forget/AppSchema.swift" : {
+    "const-values" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/AppSchema.swiftconstvalues",
+    "dependencies" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/AppSchema.d",
+    "diagnostics" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/AppSchema.dia",
+    "index-unit-output-path" : "/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/AppSchema.o",
+    "llvm-bc" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/AppSchema.bc",
+    "object" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/AppSchema.o",
+    "swift-dependencies" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/AppSchema.swiftdeps",
+    "swiftmodule" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/AppSchema~partial.swiftmodule"
+  },
+  "/Users/jenssomers/Desktop/Don't forget/Don't forget/Don't forget/AppSettings.swift" : {
+    "const-values" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/AppSettings.swiftconstvalues",
+    "dependencies" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/AppSettings.d",
+    "diagnostics" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/AppSettings.dia",
+    "index-unit-output-path" : "/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/AppSettings.o",
+    "llvm-bc" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/AppSettings.bc",
+    "object" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/AppSettings.o",
+    "swift-dependencies" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/AppSettings.swiftdeps",
+    "swiftmodule" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/AppSettings~partial.swiftmodule"
+  },
+  "/Users/jenssomers/Desktop/Don't forget/Don't forget/Don't forget/AppleAccountView.swift" : {
+    "const-values" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/AppleAccountView.swiftconstvalues",
+    "dependencies" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/AppleAccountView.d",
+    "diagnostics" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/AppleAccountView.dia",
+    "index-unit-output-path" : "/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/AppleAccountView.o",
+    "llvm-bc" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/AppleAccountView.bc",
+    "object" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/AppleAccountView.o",
+    "swift-dependencies" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/AppleAccountView.swiftdeps",
+    "swiftmodule" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/AppleAccountView~partial.swiftmodule"
+  },
+  "/Users/jenssomers/Desktop/Don't forget/Don't forget/Don't forget/AppleWeatherForecastService.swift" : {
+    "const-values" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/AppleWeatherForecastService.swiftconstvalues",
+    "dependencies" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/AppleWeatherForecastService.d",
+    "diagnostics" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/AppleWeatherForecastService.dia",
+    "index-unit-output-path" : "/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/AppleWeatherForecastService.o",
+    "llvm-bc" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/AppleWeatherForecastService.bc",
+    "object" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/AppleWeatherForecastService.o",
+    "swift-dependencies" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/AppleWeatherForecastService.swiftdeps",
+    "swiftmodule" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/AppleWeatherForecastService~partial.swiftmodule"
+  },
+  "/Users/jenssomers/Desktop/Don't forget/Don't forget/Don't forget/BackupSettingsView.swift" : {
+    "const-values" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/BackupSettingsView.swiftconstvalues",
+    "dependencies" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/BackupSettingsView.d",
+    "diagnostics" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/BackupSettingsView.dia",
+    "index-unit-output-path" : "/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/BackupSettingsView.o",
+    "llvm-bc" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/BackupSettingsView.bc",
+    "object" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/BackupSettingsView.o",
+    "swift-dependencies" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/BackupSettingsView.swiftdeps",
+    "swiftmodule" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/BackupSettingsView~partial.swiftmodule"
+  },
+  "/Users/jenssomers/Desktop/Don't forget/Don't forget/Don't forget/CalendarSyncService.swift" : {
+    "const-values" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/CalendarSyncService.swiftconstvalues",
+    "dependencies" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/CalendarSyncService.d",
+    "diagnostics" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/CalendarSyncService.dia",
+    "index-unit-output-path" : "/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/CalendarSyncService.o",
+    "llvm-bc" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/CalendarSyncService.bc",
+    "object" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/CalendarSyncService.o",
+    "swift-dependencies" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/CalendarSyncService.swiftdeps",
+    "swiftmodule" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/CalendarSyncService~partial.swiftmodule"
+  },
+  "/Users/jenssomers/Desktop/Don't forget/Don't forget/Don't forget/CalendarWidgetSnapshot.swift" : {
+    "const-values" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/CalendarWidgetSnapshot.swiftconstvalues",
+    "dependencies" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/CalendarWidgetSnapshot.d",
+    "diagnostics" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/CalendarWidgetSnapshot.dia",
+    "index-unit-output-path" : "/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/CalendarWidgetSnapshot.o",
+    "llvm-bc" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/CalendarWidgetSnapshot.bc",
+    "object" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/CalendarWidgetSnapshot.o",
+    "swift-dependencies" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/CalendarWidgetSnapshot.swiftdeps",
+    "swiftmodule" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/CalendarWidgetSnapshot~partial.swiftmodule"
+  },
+  "/Users/jenssomers/Desktop/Don't forget/Don't forget/Don't forget/CloudSettingsSynchronizer.swift" : {
+    "const-values" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/CloudSettingsSynchronizer.swiftconstvalues",
+    "dependencies" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/CloudSettingsSynchronizer.d",
+    "diagnostics" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/CloudSettingsSynchronizer.dia",
+    "index-unit-output-path" : "/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/CloudSettingsSynchronizer.o",
+    "llvm-bc" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/CloudSettingsSynchronizer.bc",
+    "object" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/CloudSettingsSynchronizer.o",
+    "swift-dependencies" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/CloudSettingsSynchronizer.swiftdeps",
+    "swiftmodule" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/CloudSettingsSynchronizer~partial.swiftmodule"
+  },
+  "/Users/jenssomers/Desktop/Don't forget/Don't forget/Don't forget/ContentView.swift" : {
+    "const-values" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/ContentView.swiftconstvalues",
+    "dependencies" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/ContentView.d",
+    "diagnostics" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/ContentView.dia",
+    "index-unit-output-path" : "/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/ContentView.o",
+    "llvm-bc" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/ContentView.bc",
+    "object" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/ContentView.o",
+    "swift-dependencies" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/ContentView.swiftdeps",
+    "swiftmodule" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/ContentView~partial.swiftmodule"
+  },
+  "/Users/jenssomers/Desktop/Don't forget/Don't forget/Don't forget/DeferredCommitTextField.swift" : {
+    "const-values" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/DeferredCommitTextField.swiftconstvalues",
+    "dependencies" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/DeferredCommitTextField.d",
+    "diagnostics" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/DeferredCommitTextField.dia",
+    "index-unit-output-path" : "/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/DeferredCommitTextField.o",
+    "llvm-bc" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/DeferredCommitTextField.bc",
+    "object" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/DeferredCommitTextField.o",
+    "swift-dependencies" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/DeferredCommitTextField.swiftdeps",
+    "swiftmodule" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/DeferredCommitTextField~partial.swiftmodule"
+  },
+  "/Users/jenssomers/Desktop/Don't forget/Don't forget/Don't forget/DemoData.swift" : {
+    "const-values" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/DemoData.swiftconstvalues",
+    "dependencies" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/DemoData.d",
+    "diagnostics" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/DemoData.dia",
+    "index-unit-output-path" : "/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/DemoData.o",
+    "llvm-bc" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/DemoData.bc",
+    "object" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/DemoData.o",
+    "swift-dependencies" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/DemoData.swiftdeps",
+    "swiftmodule" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/DemoData~partial.swiftmodule"
+  },
+  "/Users/jenssomers/Desktop/Don't forget/Don't forget/Don't forget/Don_t_forgetApp.swift" : {
+    "const-values" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/Don_t_forgetApp.swiftconstvalues",
+    "dependencies" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/Don_t_forgetApp.d",
+    "diagnostics" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/Don_t_forgetApp.dia",
+    "index-unit-output-path" : "/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/Don_t_forgetApp.o",
+    "llvm-bc" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/Don_t_forgetApp.bc",
+    "object" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/Don_t_forgetApp.o",
+    "swift-dependencies" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/Don_t_forgetApp.swiftdeps",
+    "swiftmodule" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/Don_t_forgetApp~partial.swiftmodule"
+  },
+  "/Users/jenssomers/Desktop/Don't forget/Don't forget/Don't forget/EndOfDayReminderService.swift" : {
+    "const-values" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/EndOfDayReminderService.swiftconstvalues",
+    "dependencies" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/EndOfDayReminderService.d",
+    "diagnostics" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/EndOfDayReminderService.dia",
+    "index-unit-output-path" : "/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/EndOfDayReminderService.o",
+    "llvm-bc" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/EndOfDayReminderService.bc",
+    "object" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/EndOfDayReminderService.o",
+    "swift-dependencies" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/EndOfDayReminderService.swiftdeps",
+    "swiftmodule" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/EndOfDayReminderService~partial.swiftmodule"
+  },
+  "/Users/jenssomers/Desktop/Don't forget/Don't forget/Don't forget/HistoryCSVDocument.swift" : {
+    "const-values" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/HistoryCSVDocument.swiftconstvalues",
+    "dependencies" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/HistoryCSVDocument.d",
+    "diagnostics" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/HistoryCSVDocument.dia",
+    "index-unit-output-path" : "/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/HistoryCSVDocument.o",
+    "llvm-bc" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/HistoryCSVDocument.bc",
+    "object" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/HistoryCSVDocument.o",
+    "swift-dependencies" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/HistoryCSVDocument.swiftdeps",
+    "swiftmodule" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/HistoryCSVDocument~partial.swiftmodule"
+  },
+  "/Users/jenssomers/Desktop/Don't forget/Don't forget/Don't forget/HistoryCleanupService.swift" : {
+    "const-values" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/HistoryCleanupService.swiftconstvalues",
+    "dependencies" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/HistoryCleanupService.d",
+    "diagnostics" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/HistoryCleanupService.dia",
+    "index-unit-output-path" : "/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/HistoryCleanupService.o",
+    "llvm-bc" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/HistoryCleanupService.bc",
+    "object" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/HistoryCleanupService.o",
+    "swift-dependencies" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/HistoryCleanupService.swiftdeps",
+    "swiftmodule" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/HistoryCleanupService~partial.swiftmodule"
+  },
+  "/Users/jenssomers/Desktop/Don't forget/Don't forget/Don't forget/HistoryView.swift" : {
+    "const-values" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/HistoryView.swiftconstvalues",
+    "dependencies" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/HistoryView.d",
+    "diagnostics" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/HistoryView.dia",
+    "index-unit-output-path" : "/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/HistoryView.o",
+    "llvm-bc" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/HistoryView.bc",
+    "object" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/HistoryView.o",
+    "swift-dependencies" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/HistoryView.swiftdeps",
+    "swiftmodule" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/HistoryView~partial.swiftmodule"
+  },
+  "/Users/jenssomers/Desktop/Don't forget/Don't forget/Don't forget/HolidayCatalog.swift" : {
+    "const-values" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/HolidayCatalog.swiftconstvalues",
+    "dependencies" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/HolidayCatalog.d",
+    "diagnostics" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/HolidayCatalog.dia",
+    "index-unit-output-path" : "/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/HolidayCatalog.o",
+    "llvm-bc" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/HolidayCatalog.bc",
+    "object" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/HolidayCatalog.o",
+    "swift-dependencies" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/HolidayCatalog.swiftdeps",
+    "swiftmodule" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/HolidayCatalog~partial.swiftmodule"
+  },
+  "/Users/jenssomers/Desktop/Don't forget/Don't forget/Don't forget/ICloudStatusService.swift" : {
+    "const-values" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/ICloudStatusService.swiftconstvalues",
+    "dependencies" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/ICloudStatusService.d",
+    "diagnostics" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/ICloudStatusService.dia",
+    "index-unit-output-path" : "/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/ICloudStatusService.o",
+    "llvm-bc" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/ICloudStatusService.bc",
+    "object" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/ICloudStatusService.o",
+    "swift-dependencies" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/ICloudStatusService.swiftdeps",
+    "swiftmodule" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/ICloudStatusService~partial.swiftmodule"
+  },
+  "/Users/jenssomers/Desktop/Don't forget/Don't forget/Don't forget/Item.swift" : {
+    "const-values" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/Item.swiftconstvalues",
+    "dependencies" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/Item.d",
+    "diagnostics" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/Item.dia",
+    "index-unit-output-path" : "/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/Item.o",
+    "llvm-bc" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/Item.bc",
+    "object" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/Item.o",
+    "swift-dependencies" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/Item.swiftdeps",
+    "swiftmodule" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/Item~partial.swiftmodule"
+  },
+  "/Users/jenssomers/Desktop/Don't forget/Don't forget/Don't forget/MacCalendarView.swift" : {
+    "const-values" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/MacCalendarView.swiftconstvalues",
+    "dependencies" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/MacCalendarView.d",
+    "diagnostics" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/MacCalendarView.dia",
+    "index-unit-output-path" : "/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/MacCalendarView.o",
+    "llvm-bc" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/MacCalendarView.bc",
+    "object" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/MacCalendarView.o",
+    "swift-dependencies" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/MacCalendarView.swiftdeps",
+    "swiftmodule" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/MacCalendarView~partial.swiftmodule"
+  },
+  "/Users/jenssomers/Desktop/Don't forget/Don't forget/Don't forget/MacRootView.swift" : {
+    "const-values" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/MacRootView.swiftconstvalues",
+    "dependencies" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/MacRootView.d",
+    "diagnostics" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/MacRootView.dia",
+    "index-unit-output-path" : "/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/MacRootView.o",
+    "llvm-bc" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/MacRootView.bc",
+    "object" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/MacRootView.o",
+    "swift-dependencies" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/MacRootView.swiftdeps",
+    "swiftmodule" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/MacRootView~partial.swiftmodule"
+  },
+  "/Users/jenssomers/Desktop/Don't forget/Don't forget/Don't forget/Models.swift" : {
+    "const-values" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/Models.swiftconstvalues",
+    "dependencies" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/Models.d",
+    "diagnostics" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/Models.dia",
+    "index-unit-output-path" : "/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/Models.o",
+    "llvm-bc" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/Models.bc",
+    "object" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/Models.o",
+    "swift-dependencies" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/Models.swiftdeps",
+    "swiftmodule" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/Models~partial.swiftmodule"
+  },
+  "/Users/jenssomers/Desktop/Don't forget/Don't forget/Don't forget/PersistenceSafety.swift" : {
+    "const-values" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/PersistenceSafety.swiftconstvalues",
+    "dependencies" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/PersistenceSafety.d",
+    "diagnostics" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/PersistenceSafety.dia",
+    "index-unit-output-path" : "/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/PersistenceSafety.o",
+    "llvm-bc" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/PersistenceSafety.bc",
+    "object" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/PersistenceSafety.o",
+    "swift-dependencies" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/PersistenceSafety.swiftdeps",
+    "swiftmodule" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/PersistenceSafety~partial.swiftmodule"
+  },
+  "/Users/jenssomers/Desktop/Don't forget/Don't forget/Don't forget/QuickTodoCapture.swift" : {
+    "const-values" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/QuickTodoCapture.swiftconstvalues",
+    "dependencies" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/QuickTodoCapture.d",
+    "diagnostics" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/QuickTodoCapture.dia",
+    "index-unit-output-path" : "/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/QuickTodoCapture.o",
+    "llvm-bc" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/QuickTodoCapture.bc",
+    "object" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/QuickTodoCapture.o",
+    "swift-dependencies" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/QuickTodoCapture.swiftdeps",
+    "swiftmodule" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/QuickTodoCapture~partial.swiftmodule"
+  },
+  "/Users/jenssomers/Desktop/Don't forget/Don't forget/Don't forget/RecurrenceEngine.swift" : {
+    "const-values" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/RecurrenceEngine.swiftconstvalues",
+    "dependencies" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/RecurrenceEngine.d",
+    "diagnostics" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/RecurrenceEngine.dia",
+    "index-unit-output-path" : "/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/RecurrenceEngine.o",
+    "llvm-bc" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/RecurrenceEngine.bc",
+    "object" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/RecurrenceEngine.o",
+    "swift-dependencies" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/RecurrenceEngine.swiftdeps",
+    "swiftmodule" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/RecurrenceEngine~partial.swiftmodule"
+  },
+  "/Users/jenssomers/Desktop/Don't forget/Don't forget/Don't forget/RecurrenceParser.swift" : {
+    "const-values" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/RecurrenceParser.swiftconstvalues",
+    "dependencies" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/RecurrenceParser.d",
+    "diagnostics" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/RecurrenceParser.dia",
+    "index-unit-output-path" : "/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/RecurrenceParser.o",
+    "llvm-bc" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/RecurrenceParser.bc",
+    "object" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/RecurrenceParser.o",
+    "swift-dependencies" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/RecurrenceParser.swiftdeps",
+    "swiftmodule" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/RecurrenceParser~partial.swiftmodule"
+  },
+  "/Users/jenssomers/Desktop/Don't forget/Don't forget/Don't forget/RecurringScheduler.swift" : {
+    "const-values" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/RecurringScheduler.swiftconstvalues",
+    "dependencies" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/RecurringScheduler.d",
+    "diagnostics" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/RecurringScheduler.dia",
+    "index-unit-output-path" : "/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/RecurringScheduler.o",
+    "llvm-bc" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/RecurringScheduler.bc",
+    "object" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/RecurringScheduler.o",
+    "swift-dependencies" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/RecurringScheduler.swiftdeps",
+    "swiftmodule" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/RecurringScheduler~partial.swiftmodule"
+  },
+  "/Users/jenssomers/Desktop/Don't forget/Don't forget/Don't forget/RecurringView.swift" : {
+    "const-values" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/RecurringView.swiftconstvalues",
+    "dependencies" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/RecurringView.d",
+    "diagnostics" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/RecurringView.dia",
+    "index-unit-output-path" : "/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/RecurringView.o",
+    "llvm-bc" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/RecurringView.bc",
+    "object" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/RecurringView.o",
+    "swift-dependencies" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/RecurringView.swiftdeps",
+    "swiftmodule" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/RecurringView~partial.swiftmodule"
+  },
+  "/Users/jenssomers/Desktop/Don't forget/Don't forget/Don't forget/RootTabView.swift" : {
+    "const-values" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/RootTabView.swiftconstvalues",
+    "dependencies" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/RootTabView.d",
+    "diagnostics" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/RootTabView.dia",
+    "index-unit-output-path" : "/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/RootTabView.o",
+    "llvm-bc" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/RootTabView.bc",
+    "object" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/RootTabView.o",
+    "swift-dependencies" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/RootTabView.swiftdeps",
+    "swiftmodule" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/RootTabView~partial.swiftmodule"
+  },
+  "/Users/jenssomers/Desktop/Don't forget/Don't forget/Don't forget/SettingsView.swift" : {
+    "const-values" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/SettingsView.swiftconstvalues",
+    "dependencies" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/SettingsView.d",
+    "diagnostics" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/SettingsView.dia",
+    "index-unit-output-path" : "/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/SettingsView.o",
+    "llvm-bc" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/SettingsView.bc",
+    "object" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/SettingsView.o",
+    "swift-dependencies" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/SettingsView.swiftdeps",
+    "swiftmodule" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/SettingsView~partial.swiftmodule"
+  },
+  "/Users/jenssomers/Desktop/Don't forget/Don't forget/Don't forget/SmartLedgerApp.swift" : {
+    "const-values" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/SmartLedgerApp.swiftconstvalues",
+    "dependencies" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/SmartLedgerApp.d",
+    "diagnostics" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/SmartLedgerApp.dia",
+    "index-unit-output-path" : "/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/SmartLedgerApp.o",
+    "llvm-bc" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/SmartLedgerApp.bc",
+    "object" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/SmartLedgerApp.o",
+    "swift-dependencies" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/SmartLedgerApp.swiftdeps",
+    "swiftmodule" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/SmartLedgerApp~partial.swiftmodule"
+  },
+  "/Users/jenssomers/Desktop/Don't forget/Don't forget/Don't forget/TimeParser.swift" : {
+    "const-values" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/TimeParser.swiftconstvalues",
+    "dependencies" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/TimeParser.d",
+    "diagnostics" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/TimeParser.dia",
+    "index-unit-output-path" : "/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/TimeParser.o",
+    "llvm-bc" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/TimeParser.bc",
+    "object" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/TimeParser.o",
+    "swift-dependencies" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/TimeParser.swiftdeps",
+    "swiftmodule" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/TimeParser~partial.swiftmodule"
+  },
+  "/Users/jenssomers/Desktop/Don't forget/Don't forget/Don't forget/TodoView.swift" : {
+    "const-values" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/TodoView.swiftconstvalues",
+    "dependencies" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/TodoView.d",
+    "diagnostics" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/TodoView.dia",
+    "index-unit-output-path" : "/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/TodoView.o",
+    "llvm-bc" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/TodoView.bc",
+    "object" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/TodoView.o",
+    "swift-dependencies" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/TodoView.swiftdeps",
+    "swiftmodule" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/TodoView~partial.swiftmodule"
+  },
+  "/Users/jenssomers/Desktop/Don't forget/Don't forget/Don't forget/UndoFeedbackBar.swift" : {
+    "const-values" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/UndoFeedbackBar.swiftconstvalues",
+    "dependencies" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/UndoFeedbackBar.d",
+    "diagnostics" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/UndoFeedbackBar.dia",
+    "index-unit-output-path" : "/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/UndoFeedbackBar.o",
+    "llvm-bc" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/UndoFeedbackBar.bc",
+    "object" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/UndoFeedbackBar.o",
+    "swift-dependencies" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/UndoFeedbackBar.swiftdeps",
+    "swiftmodule" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/UndoFeedbackBar~partial.swiftmodule"
+  },
+  "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/DerivedSources/GeneratedAssetSymbols.swift" : {
+    "const-values" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/GeneratedAssetSymbols.swiftconstvalues",
+    "dependencies" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/GeneratedAssetSymbols.d",
+    "diagnostics" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/GeneratedAssetSymbols.dia",
+    "index-unit-output-path" : "/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/GeneratedAssetSymbols.o",
+    "llvm-bc" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/GeneratedAssetSymbols.bc",
+    "object" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/GeneratedAssetSymbols.o",
+    "swift-dependencies" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/GeneratedAssetSymbols.swiftdeps",
+    "swiftmodule" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/GeneratedAssetSymbols~partial.swiftmodule"
+  }
+}

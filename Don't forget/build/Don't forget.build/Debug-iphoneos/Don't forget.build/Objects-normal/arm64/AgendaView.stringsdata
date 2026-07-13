@@ -1,0 +1,216 @@
+{
+  "source": "/Users/jenssomers/Desktop/Don't forget/Don't forget/Don't forget/AgendaView.swift",
+  "tables": {
+    "Localizable": [
+      {
+        "comment": "",
+        "key": "Laatste wijziging terugdraaien",
+        "location": {
+          "startingColumn": 49,
+          "startingLine": 490
+        }
+      },
+      {
+        "comment": "",
+        "key": "Toetsenbord sluiten",
+        "location": {
+          "startingColumn": 39,
+          "startingLine": 524
+        }
+      },
+      {
+        "comment": "",
+        "key": "Zoeken sluiten",
+        "location": {
+          "startingColumn": 60,
+          "startingLine": 525
+        }
+      },
+      {
+        "comment": "",
+        "key": "Bewerken afsluiten",
+        "location": {
+          "startingColumn": 109,
+          "startingLine": 525
+        }
+      },
+      {
+        "comment": "",
+        "key": "Zoeken",
+        "location": {
+          "startingColumn": 132,
+          "startingLine": 525
+        }
+      },
+      {
+        "comment": "",
+        "key": "Apple Weather, broninformatie",
+        "location": {
+          "startingColumn": 29,
+          "startingLine": 2098
+        }
+      },
+      {
+        "comment": "",
+        "key": "Apple Weather",
+        "location": {
+          "startingColumn": 22,
+          "startingLine": 2092
+        }
+      },
+      {
+        "comment": "",
+        "key": "Verplaatsopties",
+        "location": {
+          "startingColumn": 41,
+          "startingLine": 2367
+        }
+      },
+      {
+        "comment": "",
+        "key": "%lld graden, afvinken",
+        "location": {
+          "startingColumn": 37,
+          "startingLine": 2429
+        }
+      },
+      {
+        "comment": "",
+        "key": "Afvinken",
+        "location": {
+          "startingColumn": 37,
+          "startingLine": 2448
+        }
+      },
+      {
+        "comment": "",
+        "key": "Verplaatsmodus afsluiten",
+        "location": {
+          "startingColumn": 41,
+          "startingLine": 2469
+        }
+      },
+      {
+        "comment": "",
+        "key": "Regel bewerken",
+        "location": {
+          "startingColumn": 57,
+          "startingLine": 2493
+        }
+      },
+      {
+        "comment": "",
+        "key": "",
+        "location": {
+          "startingColumn": 23,
+          "startingLine": 2513
+        }
+      },
+      {
+        "comment": "",
+        "key": "",
+        "location": {
+          "startingColumn": 19,
+          "startingLine": 2682
+        }
+      },
+      {
+        "comment": "",
+        "key": "",
+        "location": {
+          "startingColumn": 35,
+          "startingLine": 2743
+        }
+      },
+      {
+        "comment": "",
+        "key": "Verplaatsmodus afsluiten",
+        "location": {
+          "startingColumn": 53,
+          "startingLine": 2762
+        }
+      },
+      {
+        "comment": "",
+        "key": "%lld graden",
+        "location": {
+          "startingColumn": 29,
+          "startingLine": 2876
+        }
+      },
+      {
+        "comment": "",
+        "key": "%lld",
+        "location": {
+          "startingColumn": 18,
+          "startingLine": 2881
+        }
+      },
+      {
+        "comment": "",
+        "key": "°",
+        "location": {
+          "startingColumn": 18,
+          "startingLine": 2889
+        }
+      },
+      {
+        "comment": "",
+        "key": "Verplaatsopties",
+        "location": {
+          "startingColumn": 33,
+          "startingLine": 2994
+        }
+      },
+      {
+        "comment": "",
+        "key": "",
+        "location": {
+          "startingColumn": 24,
+          "startingLine": 2998
+        }
+      },
+      {
+        "comment": "",
+        "key": "Een positie omhoog",
+        "location": {
+          "startingColumn": 33,
+          "startingLine": 3021
+        }
+      },
+      {
+        "comment": "",
+        "key": "Een positie omlaag",
+        "location": {
+          "startingColumn": 33,
+          "startingLine": 3033
+        }
+      },
+      {
+        "comment": "",
+        "key": "Verplaats naar:",
+        "location": {
+          "startingColumn": 25,
+          "startingLine": 2962
+        }
+      },
+      {
+        "comment": "",
+        "key": "Verwijderen",
+        "location": {
+          "startingColumn": 27,
+          "startingLine": 2980
+        }
+      },
+      {
+        "comment": "",
+        "key": "Klaar met verplaatsen",
+        "location": {
+          "startingColumn": 29,
+          "startingLine": 3051
+        }
+      }
+    ]
+  },
+  "version": 1
+}

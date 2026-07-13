@@ -1,0 +1,23 @@
+{
+  "/Users/jenssomers/Desktop/Don't forget/Don't forget/Don't forget/AppCalendar.swift" : {
+    "const-values" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/AppCalendar.swiftconstvalues",
+    "dependencies" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/AppCalendar.d",
+    "diagnostics" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/AppCalendar.dia",
+    "object" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/AppCalendar.o",
+    "swift-dependencies" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/AppCalendar.swiftdeps"
+  },
+  "/Users/jenssomers/Desktop/Don't forget/Don't forget/Don't forget/AppleAccountView.swift" : {
+    "const-values" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/AppleAccountView.swiftconstvalues",
+    "dependencies" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/AppleAccountView.d",
+    "diagnostics" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/AppleAccountView.dia",
+    "object" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/AppleAccountView.o",
+    "swift-dependencies" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/AppleAccountView.swiftdeps"
+  },
+  "/Users/jenssomers/Desktop/Don't forget/Don't forget/Don't forget/AppleWeatherForecastService.swift" : {
+    "const-values" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/AppleWeatherForecastService.swiftconstvalues",
+    "dependencies" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/AppleWeatherForecastService.d",
+    "diagnostics" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/AppleWeatherForecastService.dia",
+    "object" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/AppleWeatherForecastService.o",
+    "swift-dependencies" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/AppleWeatherForecastService.swiftdeps"
+  }
+}

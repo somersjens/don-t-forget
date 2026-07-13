@@ -1,0 +1,6 @@
+Target dependency graph (3 targets)
+Target 'Don't forgetTests' in project 'Don't forget'
+➜ Explicit dependency on target 'Don't forget' in project 'Don't forget'
+Target 'Don't forget' in project 'Don't forget'
+➜ Explicit dependency on target 'Don't forgetWidget' in project 'Don't forget'
+Target 'Don't forgetWidget' in project 'Don't forget' (no dependencies)

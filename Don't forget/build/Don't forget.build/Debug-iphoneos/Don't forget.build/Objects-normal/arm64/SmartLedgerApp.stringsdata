@@ -1,0 +1,72 @@
+{
+  "source": "/Users/jenssomers/Desktop/Don't forget/Don't forget/Don't forget/SmartLedgerApp.swift",
+  "tables": {
+    "Localizable": [
+      {
+        "comment": "",
+        "key": "Veiligheidskopie",
+        "location": {
+          "startingColumn": 16,
+          "startingLine": 95
+        }
+      },
+      {
+        "comment": "",
+        "key": "Gegevens niet geopend",
+        "location": {
+          "startingColumn": 27,
+          "startingLine": 67
+        }
+      },
+      {
+        "comment": "",
+        "key": "Je gegevens zijn niet verwijderd. Sluit de app niet opnieuw af en installeer hem niet opnieuw. Probeer het nogmaals of neem contact op met support.\n\n%@",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 69
+        }
+      },
+      {
+        "comment": "",
+        "key": "Opnieuw proberen",
+        "location": {
+          "startingColumn": 32,
+          "startingLine": 72
+        }
+      },
+      {
+        "comment": "",
+        "key": "Laatste veiligheidskopie bewaren",
+        "location": {
+          "startingColumn": 32,
+          "startingLine": 77
+        }
+      },
+      {
+        "comment": "",
+        "key": "OK",
+        "location": {
+          "startingColumn": 20,
+          "startingLine": 96
+        }
+      },
+      {
+        "comment": "",
+        "key": "Bewaren mislukt",
+        "location": {
+          "startingColumn": 17,
+          "startingLine": 138
+        }
+      },
+      {
+        "comment": "",
+        "key": "OK",
+        "location": {
+          "startingColumn": 24,
+          "startingLine": 144
+        }
+      }
+    ]
+  },
+  "version": 1
+}

@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>%lld</key>
+	<string>%lld</string>
+	<key>%lldd</key>
+	<string>%lldd</string>
+	<key>1</key>
+	<string>1</string>
+	<key>Geen open taken</key>
+	<string>No open tasks</string>
+	<key>Geen open taken ✓</key>
+	<string>No open tasks ✓</string>
+	<key>Kalender</key>
+	<string>Calendar</string>
+	<key>Lege agenda ✓</key>
+	<string>Clean calendar ✓</string>
+	<key>Taken</key>
+	<string>Tasks</string>
+	<key>widget.gallery.description</key>
+	<string>Automatically shows the next upcoming items from your calendar.</string>
+	<key>widget.gallery.name</key>
+	<string>Upcoming calendar items</string>
+	<key>widget.noUpcomingItems</key>
+	<string>No upcoming items</string>
+</dict>
+</plist>

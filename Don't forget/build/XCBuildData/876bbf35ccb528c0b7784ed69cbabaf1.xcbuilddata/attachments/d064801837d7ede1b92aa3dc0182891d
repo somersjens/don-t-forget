@@ -1,0 +1,19 @@
+{
+  "" : {
+    "diagnostics" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forgetTests.build/Objects-normal/arm64/Don't forgetTests-primary.dia",
+    "emit-module-dependencies" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forgetTests.build/Objects-normal/arm64/Don't forgetTests-primary-emit-module.d",
+    "emit-module-diagnostics" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forgetTests.build/Objects-normal/arm64/Don't forgetTests-primary-emit-module.dia",
+    "pch" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forgetTests.build/Objects-normal/arm64/Don't forgetTests-primary-Bridging-header.pch",
+    "swift-dependencies" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forgetTests.build/Objects-normal/arm64/Don't forgetTests-primary.swiftdeps"
+  },
+  "/Users/jenssomers/Desktop/Don't forget/Don't forget/Don't forgetTests/Don_t_forgetTests.swift" : {
+    "const-values" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forgetTests.build/Objects-normal/arm64/Don_t_forgetTests.swiftconstvalues",
+    "dependencies" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forgetTests.build/Objects-normal/arm64/Don_t_forgetTests.d",
+    "diagnostics" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forgetTests.build/Objects-normal/arm64/Don_t_forgetTests.dia",
+    "index-unit-output-path" : "/Don't forget.build/Debug-iphoneos/Don't forgetTests.build/Objects-normal/arm64/Don_t_forgetTests.o",
+    "llvm-bc" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forgetTests.build/Objects-normal/arm64/Don_t_forgetTests.bc",
+    "object" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forgetTests.build/Objects-normal/arm64/Don_t_forgetTests.o",
+    "swift-dependencies" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forgetTests.build/Objects-normal/arm64/Don_t_forgetTests.swiftdeps",
+    "swiftmodule" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/build/Don't forget.build/Debug-iphoneos/Don't forgetTests.build/Objects-normal/arm64/Don_t_forgetTests~partial.swiftmodule"
+  }
+}
