@@ -7,6 +7,10 @@ import UniformTypeIdentifiers
 struct SmartLedgerApp: App {
     @AppStorage(SettingsKeys.hasCompletedWelcome)
     private var hasCompletedWelcome = false
+#if os(macOS)
+    @AppStorage(SettingsKeys.language)
+    private var language = AppLanguage.system.rawValue
+#endif
 
     init() {
         EndOfDayReminderService.configureNotificationPresentation()
@@ -18,12 +22,14 @@ struct SmartLedgerApp: App {
     var body: some Scene {
 #if os(macOS)
         WindowGroup {
-            StoreRootView()
+            MacLocalizedContent {
+                StoreRootView()
+            }
         }
         .defaultSize(width: 480, height: 700)
         .commands {
             CommandGroup(replacing: .newItem) {
-                Button("Nieuw item") {
+                Button(AppLanguage.resolved(from: language).locale.localized("Nieuw item")) {
                     NotificationCenter.default.post(name: .macCreateItem, object: nil)
                 }
                 .keyboardShortcut("n", modifiers: .command)
@@ -31,7 +37,9 @@ struct SmartLedgerApp: App {
         }
 
         Settings {
-            MacCloudSettingsView()
+            MacLocalizedContent {
+                MacCloudSettingsView()
+            }
         }
 #else
         WindowGroup {
@@ -44,6 +52,39 @@ struct SmartLedgerApp: App {
 #endif
     }
 }
+
+#if os(macOS)
+/// Applies the portable language preference to every macOS scene. The setting
+/// is mirrored through iCloud, so changes made on iPhone/iPad also update an
+/// already-running Mac app.
+private struct MacLocalizedContent<Content: View>: View {
+    @AppStorage(SettingsKeys.language)
+    private var language = AppLanguage.system.rawValue
+
+    private let content: Content
+
+    init(@ViewBuilder content: () -> Content) {
+        self.content = content()
+    }
+
+    private var locale: Locale {
+        AppLanguage.resolved(from: language).locale
+    }
+
+    private var layoutDirection: LayoutDirection {
+        let languageCode = locale.language.languageCode?.identifier ?? "en"
+        return Locale.Language(identifier: languageCode).characterDirection == .rightToLeft
+            ? .rightToLeft
+            : .leftToRight
+    }
+
+    var body: some View {
+        content
+            .environment(\.locale, locale)
+            .environment(\.layoutDirection, layoutDirection)
+    }
+}
+#endif
 
 private struct StoreRootView: View {
     @State private var loadResult = AppModelStore.load()

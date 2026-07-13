@@ -609,11 +609,11 @@ struct SettingsView: View {
     }
 
     private var languagePickerTitle: String {
-        locale.language.languageCode?.identifier == "nl" ? "Taal" : "Language"
+        locale.localized("settings.language")
     }
 
     private var weekdayFormattingPickerTitle: String {
-        locale.language.languageCode?.identifier == "nl" ? "Weekdagnotatie" : "Weekday formatting"
+        locale.localized("settings.weekdayFormatting")
     }
 
     private var weatherAgendaSelection: Binding<Bool> {

@@ -1,143 +1,182 @@
 {
-  "sourceLanguage" : "en",
-  "strings" : {
-    "%lld" : {
-
-    },
-    "%lldd" : {
-
-    },
-    "1" : {
-
-    },
-    "Geen open taken" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "No open tasks"
+  "sourceLanguage": "en",
+  "strings": {
+    "%lld": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld"
           }
         },
-        "nl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Geen open taken"
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld"
           }
         }
       }
     },
-    "Geen open taken ✓" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "No open tasks ✓"
+    "%lldd": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lldd"
           }
         },
-        "nl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Geen open taken ✓"
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lldd"
           }
         }
       }
     },
-    "Kalender" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Calendar"
+    "1": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "1"
           }
         },
-        "nl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Kalender"
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "1"
           }
         }
       }
     },
-    "Lege agenda ✓" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Clean calendar ✓"
+    "Geen open taken": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No open tasks"
           }
         },
-        "nl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Lege agenda ✓"
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Geen open taken"
           }
         }
       }
     },
-    "Taken" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Tasks"
+    "Geen open taken ✓": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No open tasks ✓"
           }
         },
-        "nl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Taken"
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Geen open taken ✓"
           }
         }
       }
     },
-    "widget.gallery.description" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Automatically shows the next upcoming items from your calendar."
+    "Kalender": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Calendar"
           }
         },
-        "nl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Toont automatisch de eerstvolgende items uit je agenda."
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kalender"
           }
         }
       }
     },
-    "widget.gallery.name" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Upcoming calendar items"
+    "Lege agenda ✓": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Clean calendar ✓"
           }
         },
-        "nl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Eerstvolgende kalenderitems"
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lege agenda ✓"
           }
         }
       }
     },
-    "widget.noUpcomingItems" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "No upcoming items"
+    "Taken": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tasks"
           }
         },
-        "nl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Geen komende items"
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Taken"
+          }
+        }
+      }
+    },
+    "widget.gallery.description": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Automatically shows the next upcoming items from your calendar."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Toont automatisch de eerstvolgende items uit je agenda."
+          }
+        }
+      }
+    },
+    "widget.gallery.name": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Upcoming calendar items"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Eerstvolgende kalenderitems"
+          }
+        }
+      }
+    },
+    "widget.noUpcomingItems": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No upcoming items"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Geen komende items"
           }
         }
       }
     }
   },
-  "version" : "1.0"
+  "version": "1.0"
 }

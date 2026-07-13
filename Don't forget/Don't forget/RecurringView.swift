@@ -1406,26 +1406,19 @@ private struct RecurringRow: View {
         return turnsInDaysText(age: age, days: days)
     }
 
-    private var usesDutchLanguage: Bool {
-        AppCalendar.locale.language.languageCode?.identifier == "nl"
-    }
-
-    private func dayUnit(_ days: Int) -> String {
-        usesDutchLanguage
-            ? (days == 1 ? "dag" : "dagen")
-            : (days == 1 ? "day" : "days")
-    }
-
     private func birthdayInDaysText(_ days: Int) -> String {
-        usesDutchLanguage
-            ? "Is over \(days) \(dayUnit(days)) jarig"
-            : "Has a birthday in \(days) \(dayUnit(days))"
+        AppCalendar.locale.localizedFormat(
+            days == 1 ? "birthday.status.birthdayInOneDay" : "birthday.status.birthdayInDays",
+            days
+        )
     }
 
     private func turnsInDaysText(age: Int, days: Int) -> String {
-        usesDutchLanguage
-            ? "Wordt over \(days) \(dayUnit(days)) \(age)"
-            : "Turns \(age) in \(days) \(dayUnit(days))"
+        AppCalendar.locale.localizedFormat(
+            days == 1 ? "birthday.status.turnsInOneDay" : "birthday.status.turnsInDays",
+            age,
+            days
+        )
     }
 
     var body: some View {
@@ -2856,19 +2849,19 @@ private struct RecurringDraft {
     }
 
     var ageYearLabel: String {
-        usesDutchLanguage ? "Leeftijd/jaar" : "Age/Year"
+        AppCalendar.locale.localized("Leeftijd/jaar")
     }
 
     var dayMonthLabel: String {
-        usesDutchLanguage ? "Dag/Maand" : "Day/Month"
+        AppCalendar.locale.localized("Dag/Maand")
     }
 
     var ageYearUncertainLabel: String {
-        usesDutchLanguage ? "Leeftijd/jaar onzeker" : "Age/year uncertain"
+        AppCalendar.locale.localized("Leeftijd/jaar onzeker")
     }
 
     var currentAgeAccessibilityLabel: String {
-        usesDutchLanguage ? "Huidige leeftijd" : "Current age"
+        AppCalendar.locale.localized("Huidige leeftijd")
     }
 
     var shouldDimAgeYearFields: Bool {
@@ -2908,29 +2901,25 @@ private struct RecurringDraft {
     }
 
     private var zodiacSign: (symbol: String, title: String) {
-        let signs: [(month: Int, day: Int, symbol: String, nl: String, en: String)] = [
-            (1, 20, "♒", "Waterman", "Aquarius"),
-            (2, 19, "♓", "Vissen", "Pisces"),
-            (3, 21, "♈", "Ram", "Aries"),
-            (4, 20, "♉", "Stier", "Taurus"),
-            (5, 21, "♊", "Tweelingen", "Gemini"),
-            (6, 21, "♋", "Kreeft", "Cancer"),
-            (7, 23, "♌", "Leeuw", "Leo"),
-            (8, 23, "♍", "Maagd", "Virgo"),
-            (9, 23, "♎", "Weegschaal", "Libra"),
-            (10, 23, "♏", "Schorpioen", "Scorpio"),
-            (11, 22, "♐", "Boogschutter", "Sagittarius"),
-            (12, 22, "♑", "Steenbok", "Capricorn")
+        let signs: [(month: Int, day: Int, symbol: String, key: String)] = [
+            (1, 20, "♒", "zodiac.aquarius"),
+            (2, 19, "♓", "zodiac.pisces"),
+            (3, 21, "♈", "zodiac.aries"),
+            (4, 20, "♉", "zodiac.taurus"),
+            (5, 21, "♊", "zodiac.gemini"),
+            (6, 21, "♋", "zodiac.cancer"),
+            (7, 23, "♌", "zodiac.leo"),
+            (8, 23, "♍", "zodiac.virgo"),
+            (9, 23, "♎", "zodiac.libra"),
+            (10, 23, "♏", "zodiac.scorpio"),
+            (11, 22, "♐", "zodiac.sagittarius"),
+            (12, 22, "♑", "zodiac.capricorn")
         ]
 
         let sign = signs.last {
             birthdayMonth > $0.month || (birthdayMonth == $0.month && birthdayDay >= $0.day)
         } ?? signs[11]
-        return (sign.symbol, usesDutchLanguage ? sign.nl : sign.en)
-    }
-
-    private var usesDutchLanguage: Bool {
-        AppCalendar.locale.language.languageCode?.identifier == "nl"
+        return (sign.symbol, AppCalendar.locale.localized(sign.key))
     }
 
     mutating func updateBirthdayYearFromCurrentAge() {

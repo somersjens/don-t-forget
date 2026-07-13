@@ -58,6 +58,21 @@ private struct AgendaRecurringCategoryAppearance: Decodable {
     let colorRawValue: String
 }
 
+private struct RecurringMoveBarStyle: ViewModifier {
+    func body(content: Content) -> some View {
+        content
+            .padding(.horizontal, 14)
+            .frame(maxWidth: .infinity, minHeight: 50, alignment: .leading)
+            .contentShape(RoundedRectangle(cornerRadius: 14))
+            .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 14))
+            .overlay {
+                RoundedRectangle(cornerRadius: 14)
+                    .stroke(Color.primary.opacity(0.08), lineWidth: 1)
+            }
+            .shadow(color: .black.opacity(0.12), radius: 12, y: 4)
+    }
+}
+
 private struct AgendaTodoMoveUndo {
     let todoID: UUID
     let entryID: UUID
@@ -76,10 +91,103 @@ private struct AgendaTodoMoveUndo {
 }
 
 private struct AgendaRecurringMoveOffer {
+    enum Phase {
+        case prompt
+        case processing
+        case success
+        case failure
+    }
+
     let itemID: UUID
     let effectiveFrom: Date
+    let seriesDate: Date
     let targetDate: Date
-    var isApplied = false
+    var phase: Phase = .prompt
+    var shiftWasSaved = false
+}
+
+@Observable
+@MainActor
+private final class AgendaRecurringMoveController {
+    var offer: AgendaRecurringMoveOffer?
+}
+
+private struct AgendaRecurringMoveBar: View {
+    @Bindable var controller: AgendaRecurringMoveController
+    let locale: Locale
+    let apply: () -> Void
+
+    var body: some View {
+        Group {
+            if let offer = controller.offer {
+                Button(action: apply) {
+                    HStack(spacing: 12) {
+                        leadingIcon(for: offer.phase)
+                        Text(message(for: offer.phase))
+                            .font(.system(size: 14, weight: offer.phase == .prompt ? .semibold : .medium))
+                            .multilineTextAlignment(.leading)
+                            .layoutPriority(1)
+                        Spacer(minLength: 4)
+                        trailingAction(for: offer.phase)
+                    }
+                    .modifier(RecurringMoveBarStyle())
+                }
+                .buttonStyle(.plain)
+                .disabled(offer.phase == .processing || offer.phase == .success)
+                .accessibilityLabel(message(for: offer.phase))
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func leadingIcon(for phase: AgendaRecurringMoveOffer.Phase) -> some View {
+        switch phase {
+        case .prompt, .processing:
+            Image(systemName: "questionmark.circle.fill")
+                .foregroundStyle(Color.brandHardBlue)
+        case .success:
+            Image(systemName: "checkmark.circle.fill")
+                .foregroundStyle(Color.brandHardBlue)
+        case .failure:
+            Image(systemName: "exclamationmark.triangle.fill")
+                .foregroundStyle(.orange)
+        }
+    }
+
+    @ViewBuilder
+    private func trailingAction(for phase: AgendaRecurringMoveOffer.Phase) -> some View {
+        switch phase {
+        case .prompt:
+            Text(locale.localized("Ja graag"))
+                .font(.system(size: 14, weight: .semibold))
+                .foregroundStyle(Color.brandHardBlue)
+                .fixedSize(horizontal: true, vertical: false)
+        case .processing:
+            ProgressView()
+                .controlSize(.small)
+                .frame(minWidth: 58)
+        case .success:
+            Image(systemName: "checkmark")
+                .foregroundStyle(Color.brandHardBlue)
+                .frame(minWidth: 58)
+        case .failure:
+            Text(locale.localized("recurring.retry"))
+                .font(.system(size: 14, weight: .semibold))
+                .foregroundStyle(Color.brandHardBlue)
+                .fixedSize(horizontal: true, vertical: false)
+        }
+    }
+
+    private func message(for phase: AgendaRecurringMoveOffer.Phase) -> String {
+        switch phase {
+        case .prompt, .processing:
+            locale.localized("Volgende herhalingen meeverschuiven?")
+        case .success:
+            locale.localized("Volgende herhalingen zijn meeverschoven")
+        case .failure:
+            locale.localized("recurring.reschedulingFailed")
+        }
+    }
 }
 
 private struct AgendaDateMoveUndo {
@@ -173,8 +281,10 @@ struct AgendaView: View {
     @State private var recentlyMovedToTodo: AgendaTodoMoveUndo?
     @State private var recentlyMovedToDate: AgendaDateMoveUndo?
     @State private var dismissDateMoveUndoTask: Task<Void, Never>?
-    @State private var recurringMoveOffer: AgendaRecurringMoveOffer?
+    @State private var recurringMoveController = AgendaRecurringMoveController()
     @State private var dismissRecurringMoveOfferTask: Task<Void, Never>?
+    @State private var deferredRecurringMoveTask: Task<Void, Never>?
+    @State private var deferredMoveSaveTask: Task<Void, Never>?
     @State private var isHelpExpanded = false
     @State private var hasPerformedAgendaTutorialMove = false
     @State private var weatherStore = AppleWeatherForecastStore()
@@ -530,9 +640,7 @@ struct AgendaView: View {
                         HStack(spacing: 8) {
                             ProgressView()
                                 .controlSize(.small)
-                            Text(locale.language.languageCode?.identifier == "nl"
-                                 ? "Herhalingen worden geladen…"
-                                 : "Loading recurring items…")
+                            Text(locale.localized("recurring.loading"))
                                 .font(.footnote.weight(.medium))
                                 .foregroundStyle(.secondary)
                         }
@@ -547,19 +655,19 @@ struct AgendaView: View {
             }
             .safeAreaInset(edge: .bottom, spacing: 8) {
                 Group {
-                    if recurringMoveOffer == nil, recentlyMovedToDate != nil {
+                    if recentlyMovedToDate != nil {
                         dateMoveUndoBar
                             .padding(.horizontal, 14)
                             .transition(.move(edge: .bottom).combined(with: .opacity))
-                    } else if recurringMoveOffer == nil, recentlyMovedToTodo != nil {
+                    } else if recentlyMovedToTodo != nil {
                         moveToTodoUndoBar
                             .padding(.horizontal, 14)
                             .transition(.move(edge: .bottom).combined(with: .opacity))
-                    } else if recurringMoveOffer == nil, recentlyRemovedEntry != nil {
+                    } else if recentlyRemovedEntry != nil {
                         removalUndoBar
                             .padding(.horizontal, 14)
                             .transition(.move(edge: .bottom).combined(with: .opacity))
-                    } else if recurringMoveOffer == nil, recentlyCompletedEntry != nil {
+                    } else if recentlyCompletedEntry != nil {
                         completionUndoBar
                             .padding(.horizontal, 14)
                             .transition(.move(edge: .bottom).combined(with: .opacity))
@@ -569,13 +677,15 @@ struct AgendaView: View {
                 .padding(.bottom, 4)
             }
             .overlay(alignment: .bottom) {
-                if recurringMoveOffer != nil {
-                    recurringMoveOfferBar
-                        .padding(.horizontal, 14)
-                        .padding(.bottom, 12)
-                        .adaptiveReadableWidth()
-                        .transition(.move(edge: .bottom).combined(with: .opacity))
-                }
+                AgendaRecurringMoveBar(
+                    controller: recurringMoveController,
+                    locale: locale,
+                    apply: applyRecurringMoveOffer
+                )
+                .padding(.horizontal, 14)
+                .padding(.bottom, 12)
+                .adaptiveReadableWidth()
+                .zIndex(10)
             }
             .onAppear {
                 modelContext.undoManager = undoManager
@@ -621,7 +731,9 @@ struct AgendaView: View {
                 scrollTask?.cancel()
                 visibilityCache.futureLoadTask?.cancel()
                 dismissRecurringMoveOfferTask?.cancel()
+                deferredRecurringMoveTask?.cancel()
                 dismissDateMoveUndoTask?.cancel()
+                flushDeferredMoveSave()
             }
         }
     }
@@ -900,6 +1012,25 @@ struct AgendaView: View {
         completeAgendaTutorialAction(for: 2)
     }
 
+    private func scheduleDeferredMoveSave() {
+        deferredMoveSaveTask?.cancel()
+        deferredMoveSaveTask = Task { @MainActor in
+            // Give the moved card and the independently observed prompt one
+            // render opportunity. Repeated arrow taps share this single save.
+            try? await Task.sleep(for: .milliseconds(80))
+            guard !Task.isCancelled else { return }
+            _ = PersistenceSafety.save(modelContext)
+            deferredMoveSaveTask = nil
+        }
+    }
+
+    private func flushDeferredMoveSave() {
+        guard deferredMoveSaveTask != nil else { return }
+        deferredMoveSaveTask?.cancel()
+        deferredMoveSaveTask = nil
+        _ = PersistenceSafety.save(modelContext)
+    }
+
     private func recordAgendaTutorialMove() {
         guard isHelpExpanded,
               !hasCompletedAgendaTutorial,
@@ -1014,27 +1145,76 @@ struct AgendaView: View {
 
         let originalDay = AppCalendar.startOfDay(entry.date)
         let day = AppCalendar.startOfDay(targetDate)
-        let targetEntries = entries
-            .filter { !$0.isRemoved && AppCalendar.isSameDay($0.date, day) && $0.id != entryID }
+
+        if originalDay != day, entry.recurringItemIdentifier != nil {
+            // Publish the lightweight prompt before grouping or mutating the
+            // potentially very large agenda query. The card follows one frame
+            // later, which keeps the prompt response independent of list size.
+            showRecurringMoveOfferIfNeeded(for: entry, from: originalDay, to: day)
+            deferredRecurringMoveTask?.cancel()
+            deferredRecurringMoveTask = Task { @MainActor in
+                try? await Task.sleep(for: .milliseconds(16))
+                guard !Task.isCancelled else { return }
+                performMoveEntry(
+                    entryID,
+                    from: originalDay,
+                    to: day,
+                    insertionIndex: insertionIndex,
+                    shouldOfferRecurringShift: false
+                )
+                deferredRecurringMoveTask = nil
+            }
+            return
+        }
+
+        performMoveEntry(
+            entryID,
+            from: originalDay,
+            to: day,
+            insertionIndex: insertionIndex,
+            shouldOfferRecurringShift: true
+        )
+    }
+
+    private func performMoveEntry(
+        _ entryID: UUID,
+        from originalDay: Date,
+        to day: Date,
+        insertionIndex: Int?,
+        shouldOfferRecurringShift: Bool
+    ) {
+        guard let entry = entries.first(where: { $0.id == entryID }) else { return }
+        let targetEntries = (entriesByDay[day] ?? [])
+            .filter { !$0.isRemoved && $0.id != entryID }
             .sorted(by: sortEntries)
         let targetIndex = min(max(insertionIndex ?? targetEntries.count, 0), targetEntries.count)
 
         focusedField = nil
-        withAnimation(.smooth(duration: 0.22, extraBounce: 0)) {
+        let updateEntry = {
             entry.date = day
             moveDraftDate = day
             if entry.recurringItemIdentifier != nil {
                 entry.recurringDateOverride = day
             }
-            entry.refreshParsedFields()
             renumber(entries: targetEntries, inserting: entry, at: targetIndex)
         }
+        if originalDay == day {
+            withAnimation(.smooth(duration: 0.18, extraBounce: 0), updateEntry)
+        } else {
+            var transaction = Transaction()
+            transaction.disablesAnimations = true
+            withTransaction(transaction, updateEntry)
+        }
         if originalDay != day {
-            showRecurringMoveOfferIfNeeded(for: entry, from: originalDay, to: day)
-            showDateMoveUndo(for: entry, from: originalDay, to: day)
+            if shouldOfferRecurringShift {
+                showRecurringMoveOfferIfNeeded(for: entry, from: originalDay, to: day)
+            }
+            if entry.recurringItemIdentifier == nil {
+                showDateMoveUndo(for: entry, from: originalDay, to: day)
+            }
             requestScroll(to: day)
         }
-        _ = PersistenceSafety.save(modelContext)
+        scheduleDeferredMoveSave()
         recordAgendaTutorialMove()
     }
 
@@ -1085,120 +1265,101 @@ struct AgendaView: View {
 
     private func showRecurringMoveOfferIfNeeded(for entry: DayEntry, from originalDate: Date, to targetDate: Date) {
         guard let itemID = entry.recurringItemIdentifier,
-              recurringItems.contains(where: { $0.id == itemID }),
+              let item = recurringItems.first(where: { $0.id == itemID }),
               originalDate != targetDate else { return }
 
+        let schedulePosition = RecurrenceEngine.scheduledEntryDate(
+            for: entry.recurringOccurrenceKey,
+            item: item
+        )
+        let seriesDate = schedulePosition?.entryDate ?? originalDate
+        let effectiveFrom = schedulePosition?.effectiveFrom ?? originalDate
+
         dismissRecurringMoveOfferTask?.cancel()
-        withAnimation(.snappy(duration: 0.25)) {
-            recurringMoveOffer = AgendaRecurringMoveOffer(
-                itemID: itemID,
-                effectiveFrom: originalDate,
-                targetDate: targetDate
-            )
-        }
+        dismissDateMoveUndoTask?.cancel()
+        recentlyMovedToDate = nil
+        recurringMoveController.offer = AgendaRecurringMoveOffer(
+            itemID: itemID,
+            effectiveFrom: effectiveFrom,
+            seriesDate: seriesDate,
+            targetDate: targetDate
+        )
         dismissRecurringMoveOfferTask = Task { @MainActor in
             try? await Task.sleep(for: .seconds(5))
             guard !Task.isCancelled else { return }
-            withAnimation(.easeOut(duration: 0.2)) {
-                recurringMoveOffer = nil
-            }
+            recurringMoveController.offer = nil
         }
     }
 
     private func applyRecurringMoveOffer() {
-        guard var offer = recurringMoveOffer,
-              !offer.isApplied,
+        guard var offer = recurringMoveController.offer,
+              offer.phase == .prompt || offer.phase == .failure,
               let item = recurringItems.first(where: { $0.id == offer.itemID }) else { return }
         let offset = AppCalendar.calendar.dateComponents(
             [.day],
-            from: AppCalendar.startOfDay(offer.effectiveFrom),
+            from: AppCalendar.startOfDay(offer.seriesDate),
             to: AppCalendar.startOfDay(offer.targetDate)
         ).day ?? 0
         guard offset != 0 else { return }
 
         finishAgendaEditing()
-        RecurrenceEngine.appendScheduleShift(
-            effectiveFrom: offer.effectiveFrom,
-            dayOffset: offset,
-            to: item
-        )
-        _ = PersistenceSafety.save(modelContext)
-
+        deferredMoveSaveTask?.cancel()
+        deferredMoveSaveTask = nil
         dismissRecurringMoveOfferTask?.cancel()
-        offer.isApplied = true
-        withAnimation(.snappy(duration: 0.2)) {
-            recurringMoveOffer = offer
-        }
+        offer.phase = .processing
+        recurringMoveController.offer = offer
         dismissRecurringMoveOfferTask = Task { @MainActor in
-            // Finish the pop animation before recalculating the generated batch.
-            try? await Task.sleep(for: .milliseconds(250))
-            guard !Task.isCancelled else { return }
+            var workingOffer = offer
+            if !workingOffer.shiftWasSaved {
+                RecurrenceEngine.appendScheduleShift(
+                    effectiveFrom: workingOffer.effectiveFrom,
+                    dayOffset: offset,
+                    to: item
+                )
+                guard PersistenceSafety.save(modelContext) else {
+                    workingOffer.phase = .failure
+                    recurringMoveController.offer = workingOffer
+                    return
+                }
+                workingOffer.shiftWasSaved = true
+                workingOffer.phase = .processing
+                recurringMoveController.offer = workingOffer
+            }
+
             let endDate = AppCalendar.calendar.date(
                 byAdding: .weekOfYear,
                 value: loadedFutureWeeks,
                 to: AppCalendar.startOfDay(.now)
             ) ?? offer.targetDate
-            RecurringScheduler.syncAll(
-                items: recurringItems,
-                in: modelContext,
+            let modelContainer = modelContext.container
+            let itemID = workingOffer.itemID
+            let plan = RecurringScheduler.seriesPlan(
+                for: item,
+                from: AppCalendar.startOfDay(.now),
                 through: endDate
             )
-            _ = PersistenceSafety.save(modelContext)
+            do {
+                try await Task.detached(priority: .userInitiated) {
+                    try RecurringSeriesWorker.sync(
+                        itemID: itemID,
+                        plan: plan,
+                        in: modelContainer
+                    )
+                }.value
+            } catch {
+                PersistenceSafety.report(error)
+                var failedOffer = workingOffer
+                failedOffer.phase = .failure
+                recurringMoveController.offer = failedOffer
+                return
+            }
 
-            try? await Task.sleep(for: .seconds(2))
+            var completedOffer = workingOffer
+            completedOffer.phase = .success
+            recurringMoveController.offer = completedOffer
+            try? await Task.sleep(for: .seconds(1))
             guard !Task.isCancelled else { return }
-            withAnimation(.easeOut(duration: 0.2)) {
-                recurringMoveOffer = nil
-            }
-        }
-    }
-
-    @ViewBuilder
-    private var recurringMoveOfferBar: some View {
-        if recurringMoveOffer?.isApplied == true {
-            HStack(spacing: 12) {
-                Text(locale.localized("Volgende herhalingen zijn meeverschoven"))
-                    .font(.system(size: 14, weight: .medium))
-                    .layoutPriority(1)
-                Spacer(minLength: 4)
-                Image(systemName: "checkmark.circle.fill")
-                    .foregroundStyle(Color.brandHardBlue)
-            }
-            .padding(.horizontal, 14)
-            .frame(minHeight: 50)
-            .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 14))
-            .overlay {
-                RoundedRectangle(cornerRadius: 14)
-                    .stroke(Color.primary.opacity(0.08), lineWidth: 1)
-            }
-            .shadow(color: .black.opacity(0.12), radius: 12, y: 4)
-            .accessibilityLabel(locale.localized("Volgende herhalingen zijn meeverschoven"))
-        } else {
-            Button(action: applyRecurringMoveOffer) {
-                HStack(spacing: 12) {
-                    Image(systemName: "questionmark.circle.fill")
-                        .foregroundStyle(Color.brandHardBlue)
-                    Text(locale.localized("Volgende herhalingen meeverschuiven?"))
-                        .font(.system(size: 14, weight: .semibold))
-                        .multilineTextAlignment(.leading)
-                        .layoutPriority(1)
-                    Spacer(minLength: 4)
-                    Text(locale.localized("Ja graag"))
-                        .font(.system(size: 14, weight: .semibold))
-                        .foregroundStyle(Color.brandHardBlue)
-                        .fixedSize(horizontal: true, vertical: false)
-                }
-                .padding(.horizontal, 14)
-                .frame(maxWidth: .infinity, minHeight: 50, alignment: .leading)
-                .contentShape(RoundedRectangle(cornerRadius: 14))
-                .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 14))
-                .overlay {
-                    RoundedRectangle(cornerRadius: 14)
-                        .stroke(Color.primary.opacity(0.08), lineWidth: 1)
-                }
-                .shadow(color: .black.opacity(0.12), radius: 12, y: 4)
-            }
-            .buttonStyle(.plain)
+            recurringMoveController.offer = nil
         }
     }
 
@@ -1344,35 +1505,7 @@ struct AgendaView: View {
     }
 
     private func moveEntryToStartOfUntimedEntries(_ entryID: UUID, on targetDate: Date) {
-        guard let entry = entries.first(where: { $0.id == entryID }) else { return }
-
-        let originalDay = AppCalendar.startOfDay(entry.date)
-        let day = AppCalendar.startOfDay(targetDate)
-        let targetEntries = entries
-            .filter {
-                !$0.isRemoved
-                    && AppCalendar.isSameDay($0.date, day)
-                    && !$0.hasTime
-                    && $0.id != entryID
-            }
-            .sorted(by: sortEntries)
-
-        focusedField = nil
-        withAnimation(.smooth(duration: 0.22, extraBounce: 0)) {
-            entry.date = day
-            moveDraftDate = day
-            if entry.recurringItemIdentifier != nil {
-                entry.recurringDateOverride = day
-            }
-            entry.refreshParsedFields()
-            entry.manualOrder = (targetEntries.map(\.manualOrder).min() ?? 0) - 1
-        }
-        if originalDay != day {
-            showRecurringMoveOfferIfNeeded(for: entry, from: originalDay, to: day)
-        }
-        _ = PersistenceSafety.save(modelContext)
-        requestScroll(to: day)
-        recordAgendaTutorialMove()
+        moveEntry(entryID, to: targetDate, insertionIndex: 0)
     }
 
     private func toggleMoveControls(for entry: DayEntry) {
@@ -1759,8 +1892,7 @@ private struct AgendaHelpCard: View {
 
     private func highlightedNote(_ note: String) -> AttributedString {
         var text = AttributedString(note)
-        let languageCode = locale.language.languageCode?.identifier
-        let highlightedWord = languageCode == "nl" ? "geel" : "yellow"
+        let highlightedWord = locale.localized("tutorial.highlight.yellowWord")
 
         if let range = text.range(of: highlightedWord, options: [.caseInsensitive]) {
             text[range].backgroundColor = Color.yellow.opacity(0.34)
@@ -2057,11 +2189,6 @@ struct DayBlock: View {
             ?? onboardingExampleIndex
     }
 
-    private var entryLayoutAnimationKey: String {
-        sortedEntries.map { "\($0.id.uuidString):\($0.manualOrder):\($0.startMinutes ?? -1)" }
-            .joined(separator: "|")
-    }
-
     var body: some View {
         VStack(alignment: .leading, spacing: 2) {
             ZStack(alignment: .leading) {
@@ -2183,7 +2310,6 @@ struct DayBlock: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .id(AgendaScrollTarget.day(day.date))
-        .animation(activeMoveEntryID == nil ? nil : .smooth(duration: 0.22, extraBounce: 0), value: entryLayoutAnimationKey)
         .transaction { transaction in
             if activeMoveEntryID == nil {
                 transaction.animation = nil
@@ -2373,39 +2499,42 @@ struct AgendaEntryLine: View {
     }
 
     @ViewBuilder private var entryContent: some View {
-        Text(editableText.isEmpty ? " " : editableText)
-            .fixedSize(horizontal: false, vertical: true)
-            .hidden()
-            .accessibilityHidden(true)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .overlay(alignment: .topLeading) {
-                ZStack(alignment: .topLeading) {
-                    compatibleTextField
-                        .textFieldStyle(.plain)
-                        .focused(focusedField, equals: .entry(entry.id))
-                        .lineLimit(1...)
-                        .onChange(of: draftText) { _, newValue in
-                            guard let newValue else { return }
-                            handleTextChange(newValue)
-                        }
-                        .allowsHitTesting(!isMoveModeActive)
+        Group {
+            if isMoveModeActive {
+                Text(editableText.isEmpty ? " " : editableText)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .contentShape(Rectangle())
+                    .onTapGesture(perform: finishMove)
+                    .accessibilityLabel("Verplaatsmodus afsluiten")
+            } else {
+                Text(editableText.isEmpty ? " " : editableText)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .hidden()
+                    .accessibilityHidden(true)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .overlay(alignment: .topLeading) {
+                        ZStack(alignment: .topLeading) {
+                            compatibleTextField
+                                .textFieldStyle(.plain)
+                                .focused(focusedField, equals: .entry(entry.id))
+                                .lineLimit(1...)
+                                .onChange(of: draftText) { _, newValue in
+                                    guard let newValue else { return }
+                                    handleTextChange(newValue)
+                                }
 
-                    if !isMoveModeActive
-                        && (focusedField.wrappedValue != .entry(entry.id) || isProtectingInitialTap) {
-                        Color.clear
-                            .contentShape(Rectangle())
-                            .onTapGesture {
-                                beginEditing()
+                            if focusedField.wrappedValue != .entry(entry.id) || isProtectingInitialTap {
+                                Color.clear
+                                    .contentShape(Rectangle())
+                                    .onTapGesture {
+                                        beginEditing()
+                                    }
+                                    .accessibilityLabel("Regel bewerken")
                             }
-                            .accessibilityLabel("Regel bewerken")
-                    } else if isMoveModeActive {
-                        Color.clear
-                            .contentShape(Rectangle())
-                            .onTapGesture(perform: finishMove)
-                            .accessibilityLabel("Verplaatsmodus afsluiten")
+                        }
                     }
-                }
             }
+        }
         .font(.system(size: 16, weight: .regular))
         .lineLimit(1...)
         .strikethrough(entry.isDone)

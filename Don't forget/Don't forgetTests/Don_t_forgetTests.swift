@@ -152,33 +152,57 @@ final class Don_t_forgetTests: XCTestCase {
 
     func testStringCatalogHasCompleteEnglishAndDutchTranslations() throws {
         let testFile = URL(fileURLWithPath: #filePath)
-        let catalogURL = testFile
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
-            .appendingPathComponent("Don't forget/Localizable.xcstrings")
-        let data = try Data(contentsOf: catalogURL)
-        let json = try XCTUnwrap(JSONSerialization.jsonObject(with: data) as? [String: Any])
-        let strings = try XCTUnwrap(json["strings"] as? [String: Any])
+        let projectRoot = testFile.deletingLastPathComponent().deletingLastPathComponent()
+        let catalogPaths = [
+            "Don't forget/Localizable.xcstrings",
+            "Don't forgetWidget/Localizable.xcstrings"
+        ]
 
-        for (key, rawEntry) in strings {
-            let entry = try XCTUnwrap(rawEntry as? [String: Any], "Invalid entry for \(key)")
-            let localizations = try XCTUnwrap(
-                entry["localizations"] as? [String: Any],
-                "No localizations for \(key)"
-            )
+        for catalogPath in catalogPaths {
+            let data = try Data(contentsOf: projectRoot.appendingPathComponent(catalogPath))
+            let json = try XCTUnwrap(JSONSerialization.jsonObject(with: data) as? [String: Any])
+            let strings = try XCTUnwrap(json["strings"] as? [String: Any])
 
-            for language in ["en", "nl"] {
-                let localization = try XCTUnwrap(
-                    localizations[language] as? [String: Any],
-                    "Missing \(language) translation for \(key)"
+            for (key, rawEntry) in strings {
+                let entry = try XCTUnwrap(rawEntry as? [String: Any], "Invalid entry for \(key)")
+                let localizations = try XCTUnwrap(
+                    entry["localizations"] as? [String: Any],
+                    "No localizations for \(catalogPath): \(key)"
                 )
-                let stringUnit = try XCTUnwrap(
-                    localization["stringUnit"] as? [String: Any],
-                    "Missing string unit for \(language): \(key)"
-                )
-                XCTAssertEqual(stringUnit["state"] as? String, "translated", "Unfinished \(language): \(key)")
-                XCTAssertNotNil(stringUnit["value"] as? String, "Missing value for \(language): \(key)")
+
+                for language in ["en", "nl"] {
+                    let localization = try XCTUnwrap(
+                        localizations[language] as? [String: Any],
+                        "Missing \(language) translation for \(catalogPath): \(key)"
+                    )
+                    let stringUnit = try XCTUnwrap(
+                        localization["stringUnit"] as? [String: Any],
+                        "Missing string unit for \(language): \(catalogPath): \(key)"
+                    )
+                    XCTAssertEqual(stringUnit["state"] as? String, "translated", "Unfinished \(language): \(catalogPath): \(key)")
+                    XCTAssertNotNil(stringUnit["value"] as? String, "Missing value for \(language): \(catalogPath): \(key)")
+                }
             }
+        }
+    }
+
+    func testUIStringsDoNotBranchOnDutchLanguage() throws {
+        let testFile = URL(fileURLWithPath: #filePath)
+        let sourceRoot = testFile
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+            .appendingPathComponent("Don't forget")
+        let sourceFiles = try FileManager.default.contentsOfDirectory(
+            at: sourceRoot,
+            includingPropertiesForKeys: nil
+        ).filter { $0.pathExtension == "swift" }
+
+        for sourceFile in sourceFiles {
+            let source = try String(contentsOf: sourceFile, encoding: .utf8)
+            XCTAssertFalse(
+                source.contains(#"languageCode?.identifier == "nl""#),
+                "Use a String Catalog key instead of a Dutch/English branch in \(sourceFile.lastPathComponent)"
+            )
         }
     }
 
@@ -332,6 +356,165 @@ final class Don_t_forgetTests: XCTestCase {
         )
 
         XCTAssertEqual(dates, [try date(2027, 1, 11)])
+    }
+
+    @MainActor
+    func testRecurringOccurrenceKeepsIdentityAfterIgnoredMoveThenSeriesMove() throws {
+        let schema = Schema(versionedSchema: AppSchemaV1.self)
+        let configuration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: true)
+        let container = try ModelContainer(
+            for: schema,
+            migrationPlan: AppSchemaMigrationPlan.self,
+            configurations: configuration
+        )
+        let context = container.mainContext
+        let start = try date(2027, 1, 1)
+        let item = RecurringItem(
+            title: "Dagtaak",
+            nextDate: start,
+            recurrenceKind: .interval,
+            intervalValue: 1,
+            intervalUnit: .day
+        )
+        context.insert(item)
+        RecurringScheduler.syncAll(
+            items: [item],
+            in: context,
+            through: try date(2027, 1, 6)
+        )
+        try context.save()
+
+        let entries = try context.fetch(FetchDescriptor<DayEntry>())
+        let first = try XCTUnwrap(entries.first(where: {
+            $0.recurringOccurrenceKey == "occurrence-v2:2027-01-01"
+        }))
+        let originalID = first.id
+
+        // The first move is deliberately kept as a one-off override.
+        first.date = try date(2027, 1, 2)
+        first.recurringDateOverride = first.date
+
+        // A later "yes" must use the unshifted series position, not the
+        // already overridden card date. This produces a total +2 day shift.
+        let position = try XCTUnwrap(RecurrenceEngine.scheduledEntryDate(
+            for: first.recurringOccurrenceKey,
+            item: item
+        ))
+        XCTAssertEqual(position.entryDate, start)
+        first.date = try date(2027, 1, 3)
+        first.recurringDateOverride = first.date
+        RecurrenceEngine.appendScheduleShift(
+            effectiveFrom: position.effectiveFrom,
+            dayOffset: 2,
+            to: item
+        )
+        let plan = RecurringScheduler.seriesPlan(
+            for: item,
+            from: AppCalendar.startOfDay(.now),
+            through: try date(2027, 1, 8)
+        )
+        try context.save()
+        try RecurringSeriesWorker.sync(
+            itemID: item.id,
+            plan: plan,
+            in: container
+        )
+
+        let verificationContext = ModelContext(container)
+        let shifted = try verificationContext.fetch(FetchDescriptor<DayEntry>())
+            .filter { $0.recurringItemIdentifier == item.id }
+        let sameOccurrence = try XCTUnwrap(shifted.first(where: { $0.id == originalID }))
+        XCTAssertEqual(sameOccurrence.recurringOccurrenceKey, "occurrence-v2:2027-01-01")
+        XCTAssertEqual(sameOccurrence.date, try date(2027, 1, 3))
+        XCTAssertEqual(
+            shifted.first(where: {
+                $0.recurringOccurrenceKey == "occurrence-v2:2027-01-02"
+            })?.date,
+            try date(2027, 1, 4)
+        )
+    }
+
+    @MainActor
+    func testSchedulerMigratesShiftedLegacyKeyWithoutReplacingEntry() throws {
+        let schema = Schema(versionedSchema: AppSchemaV1.self)
+        let configuration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: true)
+        let container = try ModelContainer(
+            for: schema,
+            migrationPlan: AppSchemaMigrationPlan.self,
+            configurations: configuration
+        )
+        let context = container.mainContext
+        let item = RecurringItem(
+            title: "Weektaak",
+            nextDate: try date(2027, 1, 1),
+            recurrenceKind: .interval,
+            intervalValue: 1,
+            intervalUnit: .week
+        )
+        RecurrenceEngine.appendScheduleShift(
+            effectiveFrom: try date(2027, 1, 1),
+            dayOffset: 2,
+            to: item
+        )
+        let legacy = DayEntry(date: try date(2027, 1, 3), rawText: "Weektaak", source: .recurring)
+        legacy.recurringItemIdentifier = item.id
+        legacy.recurringOccurrenceKey = "occurrence:2027-01-03"
+        context.insert(item)
+        context.insert(legacy)
+        try context.save()
+        let legacyID = legacy.id
+        let legacyPosition = try XCTUnwrap(RecurrenceEngine.scheduledEntryDate(
+            for: legacy.recurringOccurrenceKey,
+            item: item
+        ))
+        XCTAssertEqual(legacyPosition.entryDate, try date(2027, 1, 3))
+
+        RecurringScheduler.syncAll(
+            items: [item],
+            in: context,
+            through: try date(2027, 1, 10)
+        )
+        try context.save()
+
+        let migrated = try context.fetch(FetchDescriptor<DayEntry>())
+        let first = try XCTUnwrap(migrated.first(where: { $0.id == legacyID }))
+        XCTAssertEqual(first.recurringOccurrenceKey, "occurrence-v2:2027-01-01")
+        XCTAssertEqual(first.date, try date(2027, 1, 3))
+    }
+
+    @MainActor
+    func testWeeklyDescriptionUsesShiftedWeekday() throws {
+        let calendar = AppCalendar.calendar
+        let today = AppCalendar.startOfDay(.now)
+        let currentWeekday = calendar.component(.weekday, from: today)
+        var daysUntilSunday = (1 - currentWeekday + 7) % 7
+        if daysUntilSunday == 0 { daysUntilSunday = 7 }
+        let sunday = try XCTUnwrap(calendar.date(
+            byAdding: .day,
+            value: daysUntilSunday,
+            to: today
+        ))
+        let item = RecurringItem(
+            title: "Weektaak",
+            nextDate: sunday,
+            recurrenceKind: .interval,
+            intervalValue: 1,
+            intervalUnit: .week
+        )
+
+        RecurrenceEngine.appendScheduleShift(
+            effectiveFrom: sunday,
+            dayOffset: 1,
+            to: item
+        )
+
+        XCTAssertEqual(
+            RecurrenceEngine.description(for: item),
+            AppCalendar.locale.localizedFormat(
+                "recurrence.weeklyOn",
+                RecurrenceEngine.weekdayName(2)
+            )
+        )
     }
 
     private func date(_ year: Int, _ month: Int, _ day: Int) throws -> Date {

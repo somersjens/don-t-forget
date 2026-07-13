@@ -154,8 +154,29 @@ enum RecurringScheduler {
         sync(item: item, desired: desired, allEntries: &entries, in: modelContext)
     }
 
+    static func seriesPlan(
+        for item: RecurringItem,
+        from startDate: Date,
+        through endDate: Date
+    ) -> RecurringSeriesSyncPlan {
+        RecurringSeriesSyncPlan(entries: desiredEntries(
+            for: item,
+            from: startDate,
+            through: endDate
+        ).map {
+            RecurringSeriesSyncPlan.Entry(
+                key: $0.key,
+                legacyKey: $0.legacyKey,
+                date: $0.date,
+                title: $0.title,
+                accent: $0.accent
+            )
+        })
+    }
+
     private struct DesiredEntry {
         let key: String
+        let legacyKey: String
         let date: Date
         let title: String
         let accent: String
@@ -171,11 +192,13 @@ enum RecurringScheduler {
         from startDate: Date,
         through endDate: Date
     ) -> [DesiredEntry] {
-        let dates = RecurrenceEngine.dates(for: item, from: startDate, through: endDate)
+        let dates = RecurrenceEngine.scheduledDates(for: item, from: startDate, through: endDate)
         var result: [DesiredEntry] = []
 
-        for date in dates {
-            let dateKey = occurrenceDateKey(date)
+        for scheduledDate in dates {
+            let baseDateKey = occurrenceDateKey(scheduledDate.baseDate)
+            let shiftedDateKey = occurrenceDateKey(scheduledDate.date)
+            let date = scheduledDate.date
             let age = item.recurrenceKind == .birthday && !item.birthdayYearUncertain
                 ? RecurrenceEngine.ageTurning(for: item, on: date)
                 : nil
@@ -195,7 +218,8 @@ enum RecurringScheduler {
             }
 
             result.append(DesiredEntry(
-                key: "occurrence:\(dateKey)",
+                key: "occurrence-v2:\(baseDateKey)",
+                legacyKey: "occurrence:\(shiftedDateKey)",
                 date: date,
                 title: occurrenceTitle,
                 accent: item.themeRawValue
@@ -209,7 +233,8 @@ enum RecurringScheduler {
                 let reminderTitle = "\(item.title) 🎂 over \(days) \(days == 1 ? "dag" : "dagen")"
 
                 result.append(DesiredEntry(
-                    key: "reminder:\(dateKey):\(days)",
+                    key: "reminder-v2:\(baseDateKey):\(days)",
+                    legacyKey: "reminder:\(shiftedDateKey):\(days)",
                     date: reminderDate,
                     title: reminderTitle,
                     accent: item.themeRawValue
@@ -227,7 +252,7 @@ enum RecurringScheduler {
         in modelContext: ModelContext
     ) {
         let today = AppCalendar.startOfDay(.now)
-        let desiredKeys = Set(desired.map(\.key))
+        let desiredKeys = Set(desired.flatMap { [$0.key, $0.legacyKey] })
         let linkedEntries = allEntries.filter {
             $0.recurringItemIdentifier == item.id && $0.date >= today
         }
@@ -255,7 +280,9 @@ enum RecurringScheduler {
             ]?.first ?? legacyByDateAndTitle[
                 LegacyEntryKey(date: desiredEntry.date, title: desiredEntry.title)
             ]?.first
-            let existing = linkedByKey[desiredEntry.key]?.first ?? legacyEntry
+            let existing = linkedByKey[desiredEntry.key]?.first
+                ?? linkedByKey[desiredEntry.legacyKey]?.first
+                ?? legacyEntry
 
             if let existing {
                 update(
@@ -345,5 +372,111 @@ enum RecurringScheduler {
             modelContext.delete(entry)
         }
         allEntries.removeAll { removedIDs.contains($0.id) }
+    }
+}
+
+struct RecurringSeriesSyncPlan: Sendable {
+    struct Entry: Sendable {
+        let key: String
+        let legacyKey: String
+        let date: Date
+        let title: String
+        let accent: String
+    }
+
+    let entries: [Entry]
+}
+
+/// Applies a precomputed single-series plan in a private SwiftData context.
+/// The recurrence math is cheap and remains on the UI actor; fetching,
+/// diffing, deleting, inserting and saving the generated rows happens here.
+nonisolated enum RecurringSeriesWorker {
+    static func sync(
+        itemID: UUID,
+        plan: RecurringSeriesSyncPlan,
+        in modelContainer: ModelContainer
+    ) throws {
+        let context = ModelContext(modelContainer)
+        context.autosaveEnabled = false
+        var entries = try context.fetch(FetchDescriptor<DayEntry>(
+            predicate: #Predicate { entry in
+                entry.recurringItemIdentifier == itemID
+            }
+        ))
+        let today = Calendar.current.startOfDay(for: .now)
+        let validKeys = Set(plan.entries.flatMap { [$0.key, $0.legacyKey] })
+        let stale = entries.filter {
+            $0.date >= today && !validKeys.contains($0.recurringOccurrenceKey ?? "")
+        }
+        remove(stale, from: &entries, in: context)
+
+        var entriesByKey = Dictionary(
+            grouping: entries,
+            by: { $0.recurringOccurrenceKey ?? "" }
+        )
+        for desired in plan.entries {
+            if let entry = entriesByKey[desired.key]?.first
+                ?? entriesByKey[desired.legacyKey]?.first {
+                update(entry, with: desired, itemID: itemID)
+                entriesByKey[desired.key] = [entry]
+            } else {
+                let entry = DayEntry(
+                    date: desired.date,
+                    rawText: desired.title,
+                    source: .recurring,
+                    manualOrder: 0
+                )
+                entry.showOnWidget = true
+                entry.recurringItemIdentifier = itemID
+                entry.recurringOccurrenceKey = desired.key
+                entry.accentRawValue = desired.accent
+                context.insert(entry)
+                entries.append(entry)
+                entriesByKey[desired.key] = [entry]
+            }
+        }
+
+        if context.hasChanges {
+            try context.save()
+        }
+    }
+
+    private static func update(
+        _ entry: DayEntry,
+        with desired: RecurringSeriesSyncPlan.Entry,
+        itemID: UUID
+    ) {
+        let desiredDate = entry.recurringDateOverride ?? desired.date
+        let needsParsing = entry.rawText != desired.title
+        entry.date = desiredDate
+        entry.rawText = desired.title
+        entry.showOnWidget = true
+        entry.recurringItemIdentifier = itemID
+        entry.recurringOccurrenceKey = desired.key
+        entry.accentRawValue = desired.accent
+        if needsParsing {
+            entry.refreshParsedFields()
+        }
+    }
+
+    private static func remove(
+        _ removed: [DayEntry],
+        from entries: inout [DayEntry],
+        in context: ModelContext
+    ) {
+        let removedIDs = Set(removed.map(\.id))
+        let eventIDs = Set(removed.compactMap(\.calendarEventIdentifier))
+        let remainingEventIDs = Set(entries.compactMap { entry in
+            removedIDs.contains(entry.id) ? nil : entry.calendarEventIdentifier
+        })
+        for identifier in eventIDs.subtracting(remainingEventIDs) {
+            Task { @MainActor in
+                CalendarSyncService.enqueueEventDeletion(withIdentifier: identifier)
+            }
+        }
+        for entry in removed {
+            context.delete(entry)
+        }
+        entries.removeAll { removedIDs.contains($0.id) }
     }
 }
