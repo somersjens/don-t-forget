@@ -37,32 +37,72 @@ extension Color {
     /// Branded light canvas used by the default color combination: #F0F6FE.
     static let brandCanvasBlue = Color(hex: 0xF0F6FE)
 
-    static var appCanvasBackground: Color {
-        guard DefaultColorCombination.isEnabled else {
+    /// Primary text for the light-blue theme in dark mode.
+    static let brandDarkModeTextBlue = Color(hex: 0xB9D8FF)
+
+    /// Uses the light-blue treatment only in light mode. In dark mode the
+    /// light-blue setting deliberately falls back to the grey-theme color.
+    static func appThemeColor(lightBlue: Color, gray: Color) -> Color {
+        guard DefaultColorCombination.isEnabled else { return gray }
 #if os(macOS)
-            return Color(nsColor: .windowBackgroundColor)
+        return Color(nsColor: NSColor(name: nil) { appearance in
+            let isDark = appearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua
+            return NSColor(isDark ? gray : lightBlue)
+        })
 #else
-            return Color(.systemBackground)
+        return Color(uiColor: UIColor { traits in
+            UIColor(traits.userInterfaceStyle == .dark ? gray : lightBlue)
+        })
 #endif
-        }
-        return .brandCanvasBlue
+    }
+
+    /// Keeps the existing color in light mode and in the grey theme, but turns
+    /// text-like content into the shared readable blue in light-blue dark mode.
+    static func appDarkModeTextColor(otherwise color: Color) -> Color {
+        guard DefaultColorCombination.isEnabled else { return color }
+#if os(macOS)
+        return Color(nsColor: NSColor(name: nil) { appearance in
+            let isDark = appearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua
+            return NSColor(isDark ? Color.brandDarkModeTextBlue : color)
+        })
+#else
+        return Color(uiColor: UIColor { traits in
+            UIColor(traits.userInterfaceStyle == .dark ? Color.brandDarkModeTextBlue : color)
+        })
+#endif
+    }
+
+    static var appPrimaryText: Color {
+        appDarkModeTextColor(otherwise: .primary)
+    }
+
+    static var appSecondaryText: Color {
+        appDarkModeTextColor(otherwise: .secondary)
+    }
+
+    static var appCanvasBackground: Color {
+#if os(macOS)
+        let gray = Color(nsColor: .windowBackgroundColor)
+#else
+        let gray = Color(.systemBackground)
+#endif
+        return appThemeColor(lightBlue: .brandCanvasBlue, gray: gray)
     }
 
     static var appCardBackground: Color {
-        guard DefaultColorCombination.isEnabled else {
 #if os(macOS)
-            return Color.black.opacity(0.045)
+        let gray = Color.black.opacity(0.045)
 #else
-            return Color(.secondarySystemBackground)
+        let gray = Color(.secondarySystemBackground)
 #endif
-        }
-        return .white
+        return appThemeColor(lightBlue: .white, gray: gray)
     }
 
     static var appCardOutline: Color {
-        DefaultColorCombination.isEnabled
-            ? Color(hex: 0x4F84EF).opacity(0.25)
-            : .clear
+        appThemeColor(
+            lightBlue: Color(hex: 0x4F84EF).opacity(0.25),
+            gray: .clear
+        )
     }
 }
 
@@ -76,14 +116,61 @@ enum DefaultColorCombination {
     }
 }
 
-extension View {
+private struct AppFormBackgroundModifier: ViewModifier {
+    @Environment(\.colorScheme) private var colorScheme
+    let lightBlueEnabled: Bool
+
     @ViewBuilder
-    func appFormBackground(lightBlueEnabled: Bool) -> some View {
-        if lightBlueEnabled {
-            scrollContentBackground(.hidden)
+    func body(content: Content) -> some View {
+        if lightBlueEnabled && colorScheme == .light {
+            content
+                .scrollContentBackground(.hidden)
                 .background(Color.brandCanvasBlue)
         } else {
-            self
+            content
+        }
+    }
+}
+
+private struct AppThemeForegroundModifier: ViewModifier {
+    @Environment(\.colorScheme) private var colorScheme
+    @AppStorage(SettingsKeys.defaultColorCombinationEnabled)
+    private var lightBlueEnabled = true
+
+    func body(content: Content) -> some View {
+        // A single, stable view structure prevents presented settings sheets
+        // from being torn down when the color preference changes.
+        content.foregroundStyle(
+            lightBlueEnabled && colorScheme == .dark
+                ? Color.brandDarkModeTextBlue
+                : Color.primary
+        )
+    }
+}
+
+extension View {
+    func appFormBackground(lightBlueEnabled: Bool) -> some View {
+        modifier(AppFormBackgroundModifier(lightBlueEnabled: lightBlueEnabled))
+    }
+
+    func appThemeForeground() -> some View {
+        modifier(AppThemeForegroundModifier())
+    }
+}
+
+struct AppActivityIndicator: View {
+    @State private var activityState = AppActivityState.shared
+
+    var body: some View {
+        if activityState.isActive {
+            ProgressView()
+                .controlSize(.regular)
+                .tint(Color.brandHardBlue)
+                .frame(width: 44, height: 44)
+                .background(.regularMaterial, in: Circle())
+                .shadow(color: .black.opacity(0.10), radius: 7, y: 2)
+                .accessibilityLabel("App is bezig")
+                .transition(.opacity)
         }
     }
 }
@@ -841,9 +928,6 @@ enum RecurringThemeColorOption: String, CaseIterable, Identifiable {
     }
 
     var backgroundColor: Color {
-        if self == .blue, DefaultColorCombination.isEnabled {
-            return .brandCanvasBlue
-        }
         let lightHex: UInt32 = switch self {
         case .blue: 0xD6EAFF
         case .cyan: 0xD8F7FC
@@ -874,7 +958,7 @@ enum RecurringThemeColorOption: String, CaseIterable, Identifiable {
         }
 
 #if os(macOS)
-        return Color(nsColor: NSColor(name: nil) { appearance in
+        let categoryColor = Color(nsColor: NSColor(name: nil) { appearance in
             let isDark = appearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua
             let hex = isDark ? darkHex : lightHex
             return NSColor(
@@ -885,10 +969,14 @@ enum RecurringThemeColorOption: String, CaseIterable, Identifiable {
             )
         })
 #else
-        return Color(uiColor: UIColor { traits in
+        let categoryColor = Color(uiColor: UIColor { traits in
             UIColor(Color(hex: traits.userInterfaceStyle == .dark ? darkHex : lightHex))
         })
 #endif
+        if self == .blue {
+            return Color.appThemeColor(lightBlue: .brandCanvasBlue, gray: categoryColor)
+        }
+        return categoryColor
     }
 }
 
@@ -1036,7 +1124,10 @@ struct InlineMatchSearchBar: View {
         .background(Color.appCardBackground, in: RoundedRectangle(cornerRadius: 14))
         .overlay {
             RoundedRectangle(cornerRadius: 14)
-                .stroke(DefaultColorCombination.isEnabled ? Color.appCardOutline : Color.primary.opacity(0.045))
+                .stroke(Color.appThemeColor(
+                    lightBlue: Color.appCardOutline,
+                    gray: Color.primary.opacity(0.045)
+                ))
         }
         .padding(.horizontal, outerHorizontalPadding)
         .padding(.top, topPadding)

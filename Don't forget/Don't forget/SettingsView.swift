@@ -105,6 +105,7 @@ struct SettingsView: View {
     @State private var testReminderCountdown: Int?
     @State private var testReminderCountdownTask: Task<Void, Never>?
     @State private var isShowingWeatherSetup = false
+    @State private var appActivityState = AppActivityState.shared
 
     var body: some View {
         NavigationStack {
@@ -140,7 +141,7 @@ struct SettingsView: View {
                             Text(language.title(for: locale)).tag(language.rawValue)
                         }
                     }
-                    .tint(.primary)
+                    .tint(Color.appPrimaryText)
 
                     Picker(
                         locale.localized("App Color"),
@@ -149,21 +150,21 @@ struct SettingsView: View {
                         Text(locale.localized("Light blue")).tag(true)
                         Text(locale.localized("Grey")).tag(false)
                     }
-                    .tint(.primary)
+                    .tint(Color.appPrimaryText)
 
                     Picker("Week begint op", selection: $weekStart) {
                         ForEach(WeekStartOption.allCases) { option in
                             Text(option.title(for: locale)).tag(option.rawValue)
                         }
                     }
-                    .tint(.primary)
+                    .tint(Color.appPrimaryText)
 
                     Picker(weekdayFormattingPickerTitle, selection: $weekdayLabelLength) {
                         ForEach(WeekdayLabelLengthOption.allCases) { option in
                             Text(option.title(for: locale)).tag(option.rawValue)
                         }
                     }
-                    .tint(.primary)
+                    .tint(Color.appPrimaryText)
                     .onAppear(perform: normalizeWeekdayLabelLength)
 
                     Picker("Weeknummering", selection: $weekNumberRule) {
@@ -171,7 +172,7 @@ struct SettingsView: View {
                             Text(rule.title(for: locale)).tag(rule.rawValue)
                         }
                     }
-                    .tint(.primary)
+                    .tint(Color.appPrimaryText)
 
                     Picker(locale.localized("Datum formattering"), selection: $dateFormat) {
                         let localeDefault = DateFormatOption.localeDefault(for: locale)
@@ -180,7 +181,7 @@ struct SettingsView: View {
                                 .tag(option.rawValue)
                         }
                     }
-                    .tint(.primary)
+                    .tint(Color.appPrimaryText)
 
                     Picker(
                         locale.localized("Afgerond opschonen"),
@@ -190,7 +191,7 @@ struct SettingsView: View {
                             Text(option.title(for: locale)).tag(option.rawValue)
                         }
                     }
-                    .tint(.primary)
+                    .tint(Color.appPrimaryText)
 
                     Picker(
                         locale.localized("Agenda vooruit laden"),
@@ -200,7 +201,7 @@ struct SettingsView: View {
                             Text(option.title(for: locale)).tag(option.rawValue)
                         }
                     }
-                    .tint(.primary)
+                    .tint(Color.appPrimaryText)
                     .onChange(of: recurringHorizon) { _, _ in
                         recurringExtendedThrough = 0
                         recurringLastSyncSignature = ""
@@ -458,6 +459,10 @@ struct SettingsView: View {
             }
             .appFormBackground(lightBlueEnabled: defaultColorCombinationEnabled)
             .tint(.brandHardBlue)
+            .onChange(of: defaultColorCombinationEnabled) { _, _ in
+                appActivityState.begin(.themeChange)
+                appActivityState.finish(.themeChange, after: .milliseconds(900))
+            }
             .onAppear {
                 language = AppLanguage.resolved(from: language).rawValue
             }
@@ -469,6 +474,9 @@ struct SettingsView: View {
             .navigationTitle("Instellingen")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    AppActivityIndicator()
+                }
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Gereed") {
                         dismiss()
@@ -784,6 +792,7 @@ struct SettingsView: View {
 
     private func requestCalendarAccess() {
         isRequestingCalendarAccess = true
+        appActivityState.begin(.calendarSync)
         calendarError = nil
 
         Task { @MainActor in
@@ -800,11 +809,13 @@ struct SettingsView: View {
             }
 
             isRequestingCalendarAccess = false
+            appActivityState.finish(.calendarSync)
         }
     }
 
     private func syncCalendarNow() {
         isRequestingCalendarAccess = true
+        appActivityState.begin(.calendarSync)
         calendarError = nil
 
         Task { @MainActor in
@@ -824,6 +835,7 @@ struct SettingsView: View {
             }
 
             isRequestingCalendarAccess = false
+            appActivityState.finish(.calendarSync)
         }
     }
 
@@ -1139,13 +1151,13 @@ private struct ActionButtonSettingsView: View {
                 }
                 .pickerStyle(.inline)
                 .labelsHidden()
-                .tint(.primary)
+                .tint(Color.appPrimaryText)
             }
 
             Section("Tekst") {
                 HStack {
                     Text("Woorden afsnijden")
-                        .foregroundStyle(.primary)
+                        .foregroundStyle(Color.appPrimaryText)
 
                     Spacer()
 
@@ -1169,13 +1181,13 @@ private struct ActionButtonSettingsView: View {
                                 .foregroundStyle(.secondary)
                         }
                     }
-                    .tint(.primary)
+                    .tint(Color.appPrimaryText)
                 }
 
                 if selectedContent == .todayAndTomorrow {
                     HStack {
                         Text("Voorvoegsel")
-                            .foregroundStyle(.primary)
+                            .foregroundStyle(Color.appPrimaryText)
 
                         Spacer()
 
@@ -1204,7 +1216,7 @@ private struct ActionButtonSettingsView: View {
                                     .foregroundStyle(.secondary)
                             }
                         }
-                        .tint(.primary)
+                        .tint(Color.appPrimaryText)
                     }
                 }
             }
@@ -1598,51 +1610,51 @@ private struct HomeWidgetSettingsView: View {
                 Picker("Inhoud", selection: $content) {
                     ForEach(HomeWidgetContentOption.allCases) { option in
                         Text(option.title(for: locale))
-                            .foregroundStyle(.primary)
+                            .foregroundStyle(Color.appPrimaryText)
                             .tag(option.rawValue)
                     }
                 }
-                .tint(.primary)
+                .tint(Color.appPrimaryText)
 
                 Picker("Kalenderperiode", selection: $calendarRange) {
                     ForEach(HomeWidgetCalendarRangeOption.allCases) { option in
                         Text(option.title(for: locale))
-                            .foregroundStyle(.primary)
+                            .foregroundStyle(Color.appPrimaryText)
                             .tag(option.rawValue)
                     }
                 }
-                .tint(.primary)
+                .tint(Color.appPrimaryText)
 
                 Picker("Datumweergave", selection: $datePrefix) {
                     Text("0 = vandaag, 1 = morgen")
-                        .foregroundStyle(.primary)
+                        .foregroundStyle(Color.appPrimaryText)
                         .tag(ActionButtonDatePrefixOption.dayCount.rawValue)
                     Text(datePrefixTitle)
-                        .foregroundStyle(.primary)
+                        .foregroundStyle(Color.appPrimaryText)
                         .tag(ActionButtonDatePrefixOption.date.rawValue)
                 }
-                .tint(.primary)
+                .tint(Color.appPrimaryText)
 
                 Picker("Takenweergave", selection: $todoCategoryID) {
                     Text("Bovenste taken")
-                        .foregroundStyle(.primary)
+                        .foregroundStyle(Color.appPrimaryText)
                         .tag("")
                     ForEach(todoGroups) { group in
                         Text(group.title)
-                            .foregroundStyle(.primary)
+                            .foregroundStyle(Color.appPrimaryText)
                             .tag(group.id)
                     }
                 }
-                .tint(.primary)
+                .tint(Color.appPrimaryText)
 
                 Picker("Lange tekst", selection: $textFlow) {
                     ForEach([HomeWidgetTextFlowOption.wrap, .truncate]) { option in
                         Text(option.title(for: locale))
-                            .foregroundStyle(.primary)
+                            .foregroundStyle(Color.appPrimaryText)
                             .tag(option.rawValue)
                     }
                 }
-                .tint(.primary)
+                .tint(Color.appPrimaryText)
 
                 Toggle("Titel laten zien", isOn: $showsTitle)
                 Toggle("Lichtblauwe widgetkleur", isOn: usesLightBlueBackground)
@@ -1733,7 +1745,7 @@ private struct ActionButtonCaptureSettingsView: View {
                 }
                 .pickerStyle(.inline)
                 .labelsHidden()
-                .tint(.primary)
+                .tint(Color.appPrimaryText)
             }
 
             Section("Standaardbestemming") {
@@ -1748,7 +1760,7 @@ private struct ActionButtonCaptureSettingsView: View {
                 }
                 .pickerStyle(.inline)
                 .labelsHidden()
-                .tint(.primary)
+                .tint(Color.appPrimaryText)
             }
 
             if selectedLaunchMode == .fullApp {
@@ -1930,7 +1942,7 @@ private struct ActionButtonCapturePreview: View {
                     }
                 }
         }
-        .foregroundStyle(.primary)
+        .foregroundStyle(Color.appPrimaryText)
     }
 
     private var appScreen: some View {
@@ -2084,7 +2096,7 @@ private struct ActionButtonCapturePreview: View {
             HStack(spacing: 8) {
                 if phase != .saved {
                     Text(locale.localized("Annuleer"))
-                        .foregroundStyle(.primary)
+                        .foregroundStyle(Color.appPrimaryText)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 8)
                         .background(Color.primary.opacity(0.08), in: Capsule())

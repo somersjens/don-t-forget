@@ -65,6 +65,7 @@ struct MacRootView: View {
     @State private var persistenceError: String?
     @State private var hasAppliedInitialWindowSize = false
     @State private var hasLoadedRecurringBoard = false
+    @State private var appActivityState = AppActivityState.shared
 
     var body: some View {
         VStack(spacing: 0) {
@@ -139,17 +140,28 @@ struct MacRootView: View {
             Text(section.title(for: locale))
                 .font(.system(size: 22, weight: .semibold))
             HStack {
-                Button(action: finishEditing) {
-                    Image(systemName: "return")
-                        .font(.system(size: 14, weight: .semibold))
-                        .frame(width: 32, height: 32)
-                        .background(headerButtonBackground(isActive: canReturn), in: Circle())
-                        .overlay { Circle().stroke(headerButtonBorder(isActive: canReturn), lineWidth: 1.5) }
+                Group {
+                    if appActivityState.isActive {
+                        ProgressView()
+                            .controlSize(.small)
+                            .tint(Color.brandHardBlue)
+                            .frame(width: 32, height: 32)
+                            .background(.regularMaterial, in: Circle())
+                            .accessibilityLabel("App is bezig")
+                    } else {
+                        Button(action: finishEditing) {
+                            Image(systemName: "return")
+                                .font(.system(size: 14, weight: .semibold))
+                                .frame(width: 32, height: 32)
+                                .background(headerButtonBackground(isActive: canReturn), in: Circle())
+                                .overlay { Circle().stroke(headerButtonBorder(isActive: canReturn), lineWidth: 1.5) }
+                        }
+                        .buttonStyle(.plain)
+                        .foregroundStyle(canReturn ? Color.brandHardBlue : Color.secondary.opacity(0.65))
+                        .disabled(!canReturn)
+                        .help("Terug")
+                    }
                 }
-                .buttonStyle(.plain)
-                .foregroundStyle(canReturn ? Color.brandHardBlue : Color.secondary.opacity(0.65))
-                .disabled(!canReturn)
-                .help("Terug")
                 Spacer()
                 Button(action: toggleSearch) {
                     Image(systemName: "magnifyingglass")
@@ -608,7 +620,10 @@ private struct MacHistoryBoard: View {
                         .background(
                             filter == item
                                 ? Color.brandHardBlue
-                                : (DefaultColorCombination.isEnabled ? Color.white : Color.primary.opacity(0.055)),
+                                : Color.appThemeColor(
+                                    lightBlue: .white,
+                                    gray: Color.primary.opacity(0.055)
+                                ),
                             in: RoundedRectangle(cornerRadius: 9)
                         )
                         .overlay {
@@ -616,9 +631,10 @@ private struct MacHistoryBoard: View {
                                 .stroke(
                                     filter == item
                                         ? Color.clear
-                                        : (DefaultColorCombination.isEnabled
-                                            ? Color.appCardOutline
-                                            : Color.primary.opacity(0.12))
+                                        : Color.appThemeColor(
+                                            lightBlue: Color.appCardOutline,
+                                            gray: Color.primary.opacity(0.12)
+                                        )
                                 )
                         }
                 }
@@ -640,9 +656,10 @@ private struct MacHistoryBoard: View {
                         .font(.system(size: 16, weight: .bold)).foregroundStyle(Color.brandHardBlue)
                         .frame(width: 34, height: 34)
                         .background(
-                            DefaultColorCombination.isEnabled
-                                ? Color.brandCanvasBlue
-                                : Color.brandHardBlue.opacity(0.12),
+                            Color.appThemeColor(
+                                lightBlue: Color.brandCanvasBlue,
+                                gray: Color.brandHardBlue.opacity(0.12)
+                            ),
                             in: RoundedRectangle(cornerRadius: 9)
                         )
                     VStack(alignment: .leading, spacing: 3) {
@@ -709,7 +726,7 @@ private struct MacHistoryBoard: View {
         }
         .padding(12)
         .background(
-            DefaultColorCombination.isEnabled ? Color.brandCanvasBlue : Color.clear,
+            Color.appThemeColor(lightBlue: .brandCanvasBlue, gray: .clear),
             in: RoundedRectangle(cornerRadius: 10)
         )
         .accessibilityLabel("Afgeronde items per dag over de afgelopen zeven dagen")
@@ -1207,7 +1224,7 @@ private struct MacTodoBoard: View {
         .padding(.horizontal, 12)
         .frame(height: 34)
         .background(
-            DefaultColorCombination.isEnabled ? Color.white : Color.black.opacity(0.07),
+            Color.appThemeColor(lightBlue: .white, gray: Color.black.opacity(0.07)),
             in: RoundedRectangle(cornerRadius: 10)
         )
         .overlay { RoundedRectangle(cornerRadius: 10).stroke(Color.appCardOutline) }
@@ -1562,7 +1579,10 @@ private struct MacRecurringBoard: View {
     }
 
     private var editorSurfaceColor: Color {
-        DefaultColorCombination.isEnabled ? .brandCanvasBlue : Color(nsColor: .windowBackgroundColor)
+        Color.appThemeColor(
+            lightBlue: .brandCanvasBlue,
+            gray: Color(nsColor: .windowBackgroundColor)
+        )
     }
 
     private func categoryCard(
@@ -1629,9 +1649,10 @@ private struct MacRecurringBoard: View {
         .background(Color.appCardBackground, in: RoundedRectangle(cornerRadius: 8))
         .overlay {
             RoundedRectangle(cornerRadius: 8).stroke(
-                DefaultColorCombination.isEnabled
-                    ? Color.appCardOutline
-                    : Color.primary.opacity(0.08),
+                Color.appThemeColor(
+                    lightBlue: Color.appCardOutline,
+                    gray: Color.primary.opacity(0.08)
+                ),
                 lineWidth: 1
             )
         }
@@ -1741,9 +1762,10 @@ private struct MacRecurringBoard: View {
         .background(Color.appCardBackground, in: RoundedRectangle(cornerRadius: 8))
         .overlay {
             RoundedRectangle(cornerRadius: 8).stroke(
-                DefaultColorCombination.isEnabled
-                    ? Color.appCardOutline
-                    : Color.primary.opacity(0.06),
+                Color.appThemeColor(
+                    lightBlue: Color.appCardOutline,
+                    gray: Color.primary.opacity(0.06)
+                ),
                 lineWidth: 1
             )
         }
@@ -2580,6 +2602,7 @@ struct MacCloudSettingsView: View {
     @AppStorage(SettingsKeys.defaultColorCombinationEnabled)
     private var defaultColorCombinationEnabled = true
     @State private var status: CKAccountStatus?
+    @State private var appActivityState = AppActivityState.shared
 
     var body: some View {
         Form {
@@ -2613,6 +2636,14 @@ struct MacCloudSettingsView: View {
         }
         .formStyle(.grouped)
         .frame(width: 480, height: 300)
+        .overlay(alignment: .topLeading) {
+            AppActivityIndicator()
+                .padding(10)
+        }
+        .onChange(of: defaultColorCombinationEnabled) { _, _ in
+            appActivityState.begin(.themeChange)
+            appActivityState.finish(.themeChange, after: .milliseconds(900))
+        }
         .task { status = await ICloudStatusService.accountStatus() }
     }
 

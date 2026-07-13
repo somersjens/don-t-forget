@@ -524,7 +524,7 @@ struct RecurringView: View {
             }
             .onReceive(NotificationCenter.default.publisher(for: .recurringSyncRequested)) { _ in
                 requiresImmediateSync = true
-                RecurringSyncState.shared.begin()
+                AppActivityState.shared.begin(.recurringSync)
                 scheduleSync(immediately: true)
             }
         }
@@ -704,7 +704,7 @@ struct RecurringView: View {
                   (immediately || !isKeyboardVisible) else { return }
             guard effectiveSyncSignature != lastSyncSignature else {
                 requiresImmediateSync = false
-                RecurringSyncState.shared.finish()
+                AppActivityState.shared.finish(.recurringSync)
                 return
             }
             let signatureBeingSynced = effectiveSyncSignature
@@ -727,7 +727,7 @@ struct RecurringView: View {
                 // Keep the old signature so a later change/appearance retries.
             }
             requiresImmediateSync = false
-            RecurringSyncState.shared.finish()
+            AppActivityState.shared.finish(.recurringSync)
         }
     }
 
@@ -1122,9 +1122,10 @@ private struct RecurringThemeCard: View {
         .overlay {
             RoundedRectangle(cornerRadius: 14)
                 .stroke(
-                    DefaultColorCombination.isEnabled
-                        ? Color.appCardOutline
-                        : Color.primary.opacity(0.045),
+                    Color.appThemeColor(
+                        lightBlue: Color.appCardOutline,
+                        gray: Color.primary.opacity(0.045)
+                    ),
                     lineWidth: 1
                 )
         }
@@ -1561,9 +1562,10 @@ private struct NewRecurringCategoryLine: View {
                 .stroke(
                     isOnboardingHighlighted
                         ? Color.brandHardBlue
-                        : (DefaultColorCombination.isEnabled
-                            ? Color.appCardOutline
-                            : Color.primary.opacity(0.045)),
+                        : Color.appThemeColor(
+                            lightBlue: Color.appCardOutline,
+                            gray: Color.primary.opacity(0.045)
+                        ),
                     lineWidth: isOnboardingHighlighted ? 3 : 1
                 )
         }

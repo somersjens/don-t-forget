@@ -1165,11 +1165,12 @@ private struct HistorySummaryCard: View {
                 ZStack {
                     RoundedRectangle(cornerRadius: 11)
                         .fill(
-                            DefaultColorCombination.isEnabled
-                                ? Color.brandCanvasBlue
-                                : (colorScheme == .light
+                            Color.appThemeColor(
+                                lightBlue: Color.brandCanvasBlue,
+                                gray: colorScheme == .light
                                     ? Color.brandLightBlue
-                                    : Color.brandHardBlue.opacity(0.22))
+                                    : Color.brandHardBlue.opacity(0.22)
+                            )
                         )
                     Image(systemName: "checkmark.circle.fill")
                         .font(.system(size: 20, weight: .semibold))
@@ -1230,9 +1231,10 @@ private struct HistorySummaryCard: View {
         .overlay {
             RoundedRectangle(cornerRadius: 14)
                 .stroke(
-                    DefaultColorCombination.isEnabled
-                        ? Color.appCardOutline
-                        : Color.primary.opacity(0.045),
+                    Color.appThemeColor(
+                        lightBlue: Color.appCardOutline,
+                        gray: Color.primary.opacity(0.045)
+                    ),
                     lineWidth: 1
                 )
         }
@@ -1347,9 +1349,10 @@ private struct HistoryBarChart: View {
         }
         .padding(12)
         .background(
-            DefaultColorCombination.isEnabled
-                ? Color.brandCanvasBlue
-                : Color(.tertiarySystemFill),
+            Color.appThemeColor(
+                lightBlue: Color.brandCanvasBlue,
+                gray: Color(.tertiarySystemFill)
+            ),
             in: RoundedRectangle(cornerRadius: 12)
         )
         .frame(height: Self.layoutHeight, alignment: .top)
@@ -1499,7 +1502,7 @@ private struct HistoryFilterChip: View {
     private var backgroundColor: Color {
         isSelected
             ? (colorScheme == .light ? .brandLightBlue : Color.brandHardBlue.opacity(0.22))
-            : (DefaultColorCombination.isEnabled ? Color.white : Color(.tertiarySystemFill))
+            : Color.appThemeColor(lightBlue: .white, gray: Color(.tertiarySystemFill))
     }
 
     var body: some View {
@@ -1584,9 +1587,10 @@ private struct HistorySearchBar: View {
                 .stroke(
                     isOnboardingHighlighted
                         ? Color.brandHardBlue
-                        : (DefaultColorCombination.isEnabled
-                            ? Color.appCardOutline
-                            : Color.primary.opacity(0.045)),
+                        : Color.appThemeColor(
+                            lightBlue: Color.appCardOutline,
+                            gray: Color.primary.opacity(0.045)
+                        ),
                     lineWidth: isOnboardingHighlighted ? 3 : 1
                 )
         }
@@ -1648,9 +1652,10 @@ private struct HistoryDayCard: View {
             .overlay {
                 RoundedRectangle(cornerRadius: 14)
                     .stroke(
-                        DefaultColorCombination.isEnabled
-                            ? Color.appCardOutline
-                            : Color.primary.opacity(0.045),
+                        Color.appThemeColor(
+                            lightBlue: Color.appCardOutline,
+                            gray: Color.primary.opacity(0.045)
+                        ),
                         lineWidth: 1
                     )
             }
@@ -1826,9 +1831,10 @@ private struct HistoryEmptyState: View {
             ZStack {
                 Circle()
                     .fill(
-                        DefaultColorCombination.isEnabled
-                            ? Color.brandCanvasBlue
-                            : Color(.tertiarySystemFill)
+                        Color.appThemeColor(
+                            lightBlue: Color.brandCanvasBlue,
+                            gray: Color(.tertiarySystemFill)
+                        )
                     )
                 Image(systemName: hasSearchQuery ? "magnifyingglass" : (filter == .all ? "clock.arrow.circlepath" : filter.icon))
                     .font(.system(size: 27, weight: .medium))

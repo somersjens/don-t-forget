@@ -372,9 +372,10 @@ private struct MacWeekCard: View {
             Text(verbatim: "week #\(week.weekNumber) · start \(week.startDateLabel) · \(String(AppCalendar.calendar.component(.year, from: week.startDate)))")
                 .font(.system(size: 13, weight: .medium))
                 .foregroundStyle(
-                    DefaultColorCombination.isEnabled
-                        ? Color.brandHardBlue.opacity(0.70)
-                        : Color.secondary
+                    Color.appThemeColor(
+                        lightBlue: Color.brandHardBlue.opacity(0.70),
+                        gray: Color.secondary
+                    )
                 )
                 .frame(maxWidth: .infinity, alignment: .center)
             VStack(spacing: 0) {
@@ -402,9 +403,10 @@ private struct MacWeekCard: View {
             .background(Color.appCardBackground, in: RoundedRectangle(cornerRadius: 14))
             .overlay {
                 RoundedRectangle(cornerRadius: 14).stroke(
-                    DefaultColorCombination.isEnabled
-                        ? Color.appCardOutline
-                        : Color.primary.opacity(0.08)
+                    Color.appThemeColor(
+                        lightBlue: Color.appCardOutline,
+                        gray: Color.primary.opacity(0.08)
+                    )
                 )
             }
             .shadow(color: .black.opacity(0.06), radius: 9, y: 3)

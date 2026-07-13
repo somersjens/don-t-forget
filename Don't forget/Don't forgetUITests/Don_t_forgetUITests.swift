@@ -38,6 +38,7 @@ final class Don_t_forgetUITests: XCTestCase {
         app.launchArguments += [
             "-AppleLanguages", "(en)",
             "-AppleLocale", "en_US",
+            "-settings.language", "en",
             "-settings.hasCompletedWelcome", "YES",
             "-settings.iCloudSyncEnabled", "NO"
         ]
@@ -80,7 +81,7 @@ final class Don_t_forgetUITests: XCTestCase {
         XCTAssertTrue(app.buttons["Delete Permanently"].waitForExistence(timeout: 2))
         app.buttons["Delete Permanently"].tap()
         XCTAssertTrue(app.staticTexts["Step 6/6"].waitForExistence(timeout: 2))
-        XCTAssertTrue(app.buttons["Need help? Send us an email"].exists)
+        XCTAssertTrue(app.buttons["Ideas for the app? Send us an email"].exists)
         XCTAssertTrue(app.buttons["Write a review of the app"].exists)
 
         app.buttons["Previous step"].tap()

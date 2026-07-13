@@ -211,6 +211,7 @@
 				F9D98AA32FE86CF700B20CE0 /* Sources */,
 				F9D98AA42FE86CF700B20CE0 /* Frameworks */,
 				F9D98AA52FE86CF700B20CE0 /* Resources */,
+				C0DEX0000000000000000001 /* Copy Source Fixtures */,
 			);
 			buildRules = (
 			);
@@ -337,6 +338,25 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXResourcesBuildPhase section */
+
+/* Begin PBXShellScriptBuildPhase section */
+		C0DEX0000000000000000001 /* Copy Source Fixtures */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+				"$(SRCROOT)/Don't forgetTests/SourceFixtures.xcfilelist",
+			);
+			name = "Copy Source Fixtures";
+			outputPaths = (
+				"$(TARGET_BUILD_DIR)/$(UNLOCALIZED_RESOURCES_FOLDER_PATH)/SourceFixtures/.stamp",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "set -e\nfixtures=\"$TARGET_BUILD_DIR/$UNLOCALIZED_RESOURCES_FOLDER_PATH/SourceFixtures\"\napp_fixtures=\"$fixtures/Don't forget\"\nwidget_fixtures=\"$fixtures/Don't forgetWidget\"\nmkdir -p \"$app_fixtures\" \"$widget_fixtures\"\nfor source in \"$SRCROOT/Don't forget\"/*.swift; do\n    cp -X -f \"$source\" \"$app_fixtures/\"\ndone\ncp -X -f \"$SRCROOT/Don't forget/Localizable.xcstrings\" \"$app_fixtures/\"\ncp -X -f \"$SRCROOT/Don't forgetWidget/Localizable.xcstrings\" \"$widget_fixtures/\"\ntouch \"$fixtures/.stamp\"\n";
+		};
+/* End PBXShellScriptBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
 		A10000000000000000000005 /* Sources */ = {

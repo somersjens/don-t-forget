@@ -247,7 +247,20 @@
       }
     },
     "%lld dagen" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld days"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld dagen"
+          }
+        }
+      }
     },
     "%lld dagen vooraf" : {
       "extractionState" : "manual",
@@ -1255,6 +1268,9 @@
           }
         }
       }
+    },
+    "App is bezig" : {
+
     },
     "App-taal" : {
       "extractionState" : "manual",
@@ -3096,7 +3112,20 @@
       }
     },
     "Eigen feestdag" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Custom holiday"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Eigen feestdag"
+          }
+        }
+      }
     },
     "Eigen feestdag toevoegen" : {
       "localizations" : {
@@ -6516,7 +6545,20 @@
       }
     },
     "Maak een eigen feestdag met een vaste datum of een weekdag van de maand." : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Create a custom holiday with a fixed date or a weekday of the month."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Maak een eigen feestdag met een vaste datum of een weekdag van de maand."
+          }
+        }
+      }
     },
     "Maak een taak in een categorie door in het invoerveld iets te schrijven." : {
       "localizations" : {

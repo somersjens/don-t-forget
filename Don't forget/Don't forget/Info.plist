@@ -2,9 +2,8 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-	<!-- Fill this with the numeric App Store ID after the first release. -->
 	<key>AppStoreID</key>
-	<string></string>
+	<string>6788163617</string>
 	<key>CFBundleDisplayName</key>
 	<string>Forget It</string>
 	<key>CFBundleURLTypes</key>

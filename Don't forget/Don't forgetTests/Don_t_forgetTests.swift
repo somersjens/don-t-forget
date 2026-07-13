@@ -11,6 +11,22 @@ import SwiftData
 
 final class Don_t_forgetTests: XCTestCase {
 
+    private var sourceFixturesRoot: URL {
+        get throws {
+            let sourceTreeRoot = URL(fileURLWithPath: #filePath)
+                .deletingLastPathComponent()
+                .deletingLastPathComponent()
+            if FileManager.default.fileExists(atPath: sourceTreeRoot.appendingPathComponent("Don't forget").path) {
+                return sourceTreeRoot
+            }
+
+            return try XCTUnwrap(
+                Bundle(for: Self.self).resourceURL?.appendingPathComponent("SourceFixtures"),
+                "Source fixtures are missing from the test bundle"
+            )
+        }
+    }
+
     @MainActor
     func testProductionDefaultsKeepHistoryForever() {
         XCTAssertEqual(HistoryRetentionOption.default, .never)
@@ -151,8 +167,7 @@ final class Don_t_forgetTests: XCTestCase {
     }
 
     func testStringCatalogHasCompleteEnglishAndDutchTranslations() throws {
-        let testFile = URL(fileURLWithPath: #filePath)
-        let projectRoot = testFile.deletingLastPathComponent().deletingLastPathComponent()
+        let projectRoot = try sourceFixturesRoot
         let catalogPaths = [
             "Don't forget/Localizable.xcstrings",
             "Don't forgetWidget/Localizable.xcstrings"
@@ -187,11 +202,7 @@ final class Don_t_forgetTests: XCTestCase {
     }
 
     func testUIStringsDoNotBranchOnDutchLanguage() throws {
-        let testFile = URL(fileURLWithPath: #filePath)
-        let sourceRoot = testFile
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
-            .appendingPathComponent("Don't forget")
+        let sourceRoot = try sourceFixturesRoot.appendingPathComponent("Don't forget")
         let sourceFiles = try FileManager.default.contentsOfDirectory(
             at: sourceRoot,
             includingPropertiesForKeys: nil
@@ -207,11 +218,7 @@ final class Don_t_forgetTests: XCTestCase {
     }
 
     func testHistoryMessagesDoNotMixLanguages() throws {
-        let testFile = URL(fileURLWithPath: #filePath)
-        let catalogURL = testFile
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
-            .appendingPathComponent("Don't forget/Localizable.xcstrings")
+        let catalogURL = try sourceFixturesRoot.appendingPathComponent("Don't forget/Localizable.xcstrings")
         let data = try Data(contentsOf: catalogURL)
         let json = try XCTUnwrap(JSONSerialization.jsonObject(with: data) as? [String: Any])
         let strings = try XCTUnwrap(json["strings"] as? [String: Any])
@@ -243,8 +250,7 @@ final class Don_t_forgetTests: XCTestCase {
     }
 
     func testEveryHolidayIDHasEnglishAndDutchCatalogText() throws {
-        let testFile = URL(fileURLWithPath: #filePath)
-        let projectRoot = testFile.deletingLastPathComponent().deletingLastPathComponent()
+        let projectRoot = try sourceFixturesRoot
         let source = try String(
             contentsOf: projectRoot.appendingPathComponent("Don't forget/HolidayCatalog.swift"),
             encoding: .utf8

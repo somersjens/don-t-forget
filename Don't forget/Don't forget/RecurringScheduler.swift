@@ -8,34 +8,44 @@ extension Notification.Name {
 
 @MainActor
 @Observable
-final class RecurringSyncState {
-    static let shared = RecurringSyncState()
-    private(set) var isSyncing = false
-    @ObservationIgnored private var delayedFinishTask: Task<Void, Never>?
+final class AppActivityState {
+    enum Activity: Hashable {
+        case recurringSync
+        case themeChange
+        case calendarSync
+        case calendarExtension
+    }
+
+    static let shared = AppActivityState()
+    private(set) var activeActivities: Set<Activity> = []
+    @ObservationIgnored private var delayedFinishTasks: [Activity: Task<Void, Never>] = [:]
+
+    var isActive: Bool { !activeActivities.isEmpty }
+    var isRecurringSyncActive: Bool { activeActivities.contains(.recurringSync) }
 
     private init() {}
 
-    func begin() {
-        delayedFinishTask?.cancel()
-        delayedFinishTask = nil
-        isSyncing = true
+    func begin(_ activity: Activity) {
+        delayedFinishTasks[activity]?.cancel()
+        delayedFinishTasks[activity] = nil
+        activeActivities.insert(activity)
     }
 
     /// A private-context save completes before live queries have merged the
     /// inserted occurrences and SwiftUI has laid out the affected calendar.
     /// Keep the indicator visible through that short settling phase.
-    func finish(after delay: Duration = .milliseconds(750)) {
-        delayedFinishTask?.cancel()
-        guard isSyncing else { return }
-        delayedFinishTask = Task { @MainActor in
+    func finish(_ activity: Activity, after delay: Duration = .milliseconds(750)) {
+        delayedFinishTasks[activity]?.cancel()
+        guard activeActivities.contains(activity) else { return }
+        delayedFinishTasks[activity] = Task { @MainActor in
             try? await Task.sleep(for: delay)
             guard !Task.isCancelled else { return }
             // Give the query merge and the resulting layout their own turns.
             await Task.yield()
             await Task.yield()
             guard !Task.isCancelled else { return }
-            isSyncing = false
-            delayedFinishTask = nil
+            activeActivities.remove(activity)
+            delayedFinishTasks[activity] = nil
         }
     }
 }

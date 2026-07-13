@@ -316,7 +316,7 @@ struct AgendaView: View {
     @State private var isHelpExpanded = false
     @State private var hasPerformedAgendaTutorialMove = false
     @State private var weatherStore = AppleWeatherForecastStore()
-    @State private var recurringSyncState = RecurringSyncState.shared
+    @State private var appActivityState = AppActivityState.shared
     @State private var isSearchPresented = false
     @State private var isKeyboardVisible = false
     @State private var searchText = ""
@@ -634,13 +634,13 @@ struct AgendaView: View {
 
                         HStack {
                             Group {
-                                if recurringSyncState.isSyncing {
+                                if appActivityState.isActive {
                                     ProgressView()
                                         .controlSize(.regular)
                                         .tint(Color.brandHardBlue)
                                         .frame(width: 44, height: 44)
                                         .compatibleAgendaGlassEffect()
-                                        .accessibilityLabel(locale.localized("recurring.loading"))
+                                        .accessibilityLabel("App is bezig")
                                         .transition(.opacity)
                                 } else {
                                     Button {
@@ -1689,6 +1689,7 @@ struct AgendaView: View {
             }
 
             isLoadingMoreFuture = true
+            appActivityState.begin(.calendarExtension)
 
             let extensionPlan = RecurringScheduler.extensionPlan(
                 items: recurringItems,
@@ -1706,6 +1707,7 @@ struct AgendaView: View {
                 }.value
                 guard !Task.isCancelled else {
                     isLoadingMoreFuture = false
+                    appActivityState.finish(.calendarExtension, after: .milliseconds(300))
                     visibilityCache.futureLoadTask = nil
                     return
                 }
@@ -1718,6 +1720,7 @@ struct AgendaView: View {
                 // Keep the current boundary; approaching it retries naturally.
             }
             isLoadingMoreFuture = false
+            appActivityState.finish(.calendarExtension, after: .milliseconds(300))
             visibilityCache.futureLoadTask = nil
         }
     }
@@ -1757,6 +1760,7 @@ struct AgendaView: View {
         visibilityCache.futureLoadTask = nil
         visibilityCache.visibleFutureBoundaryLimit = nil
         isLoadingMoreFuture = false
+        appActivityState.finish(.calendarExtension, after: .milliseconds(300))
         let option = RecurringHorizonOption(rawValue: recurringHorizon) ?? .threeMonths
         let today = AppCalendar.startOfDay(.now)
         let configuredEndDate = AppCalendar.calendar.date(
@@ -2349,9 +2353,10 @@ struct WeekCard: View {
             Text(verbatim: "week #\(week.weekNumber) · start \(startDateLabel) · \(startYear)")
                 .font(.system(size: 14, weight: .semibold))
                 .foregroundStyle(
-                    DefaultColorCombination.isEnabled
-                        ? Color.brandHardBlue.opacity(0.70)
-                        : Color.secondary
+                    Color.appThemeColor(
+                        lightBlue: Color.brandHardBlue.opacity(0.70),
+                        gray: Color.secondary
+                    )
                 )
                 .frame(maxWidth: .infinity, alignment: .center)
                 .padding(.horizontal, 14)
@@ -2573,7 +2578,7 @@ struct DayBlock: View {
                     .frame(width: 17)
                     .overlay {
                         Rectangle()
-                            .fill(Color.primary.opacity(0.32))
+                            .fill(Color.appDarkModeTextColor(otherwise: Color.primary.opacity(0.32)))
                             .frame(width: AgendaLayout.lineWidth)
                     }
                     .contentShape(Rectangle())
@@ -2985,12 +2990,12 @@ struct AgendaEntryLine: View {
         case RecurringTheme.general.rawValue: return .yellow
         case RecurringTheme.personal.rawValue: return .green
         case "holidays": return .orange
-        default: return .primary
+        default: return Color.appPrimaryText
         }
     }
 
     private func recurringColor(_ rawValue: String) -> Color {
-        RecurringThemeColorOption(rawValue: rawValue)?.color ?? .primary
+        RecurringThemeColorOption(rawValue: rawValue)?.color ?? .appPrimaryText
     }
 }
 
@@ -3089,7 +3094,7 @@ struct AgendaInputLine: View {
                 }
             .font(.system(size: 16, weight: .regular))
             .lineLimit(1...)
-            .foregroundStyle(.primary)
+            .foregroundStyle(Color.appPrimaryText)
             .overlay {
                 if isOnboardingHighlighted {
                     RoundedRectangle(cornerRadius: 7)
@@ -3205,14 +3210,14 @@ private struct AgendaWeatherBadge: View {
             Text("\(weather.temperature)")
                 .font(.system(size: 13, weight: .semibold, design: .rounded))
                 .monospacedDigit()
-                .foregroundStyle(.primary)
+                .foregroundStyle(Color.appPrimaryText)
                 .lineLimit(1)
                 .minimumScaleFactor(0.8)
                 .frame(width: 19, alignment: .center)
 
             Text("°")
                 .font(.system(size: 11, weight: .semibold, design: .rounded))
-                .foregroundStyle(.primary)
+                .foregroundStyle(Color.appPrimaryText)
                 .offset(x: 5, y: -1)
         }
         .frame(width: 24, height: 18, alignment: .center)
@@ -3415,13 +3420,17 @@ private struct AgendaLinePrefix: View {
                 .foregroundStyle(
                     dateLabel.isEmpty
                         ? Color.clear
-                        : (AppCalendar.isSameDay(date, .now) ? Color.brandHardBlue : Color.secondary)
+                        : Color.appDarkModeTextColor(
+                            otherwise: AppCalendar.isSameDay(date, .now)
+                                ? Color.brandHardBlue
+                                : Color.secondary
+                        )
                 )
                 .monospacedDigit()
                 .frame(width: AgendaLayout.dateWidth, alignment: .leading)
 
             Text(weekdayLetter)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(Color.appSecondaryText)
                 .lineLimit(1)
                 .minimumScaleFactor(0.8)
                 .frame(

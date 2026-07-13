@@ -157,6 +157,13 @@ struct RootTabView: View {
                 .zIndex(10)
             }
         }
+        .overlay(alignment: .topLeading) {
+            if selectedTab != .agenda {
+                AppActivityIndicator()
+                    .safeAreaPadding(.top, 8)
+                    .padding(.leading, 14)
+            }
+        }
         .onAppear(perform: presentRequestedQuickCapture)
         .onChange(of: selectedTab) { oldTab, newTab in
             if oldTab == .recurring,

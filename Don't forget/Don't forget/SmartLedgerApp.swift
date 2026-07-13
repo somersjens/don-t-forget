@@ -43,11 +43,14 @@ struct SmartLedgerApp: App {
         }
 #else
         WindowGroup {
-            if hasCompletedWelcome {
-                StoreRootView()
-            } else {
-                WelcomeView()
+            Group {
+                if hasCompletedWelcome {
+                    StoreRootView()
+                } else {
+                    WelcomeView()
+                }
             }
+            .appThemeForeground()
         }
 #endif
     }
@@ -82,6 +85,7 @@ private struct MacLocalizedContent<Content: View>: View {
         content
             .environment(\.locale, locale)
             .environment(\.layoutDirection, layoutDirection)
+            .appThemeForeground()
     }
 }
 #endif
