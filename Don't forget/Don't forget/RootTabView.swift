@@ -42,6 +42,7 @@ struct RootTabView: View {
     @State private var hasPerformedLaunchSync = false
     @State private var isShowingQuickTodoCapture = false
     @State private var quickCaptureDestinationID: String?
+    @State private var shouldFocusQuickCaptureTextField = false
     @State private var selectedTab = MainTab.agenda
     @Environment(\.scenePhase) private var scenePhase
 
@@ -145,7 +146,7 @@ struct RootTabView: View {
                 QuickTodoCaptureView(
                     groups: todoGroups,
                     initialDestinationID: quickCaptureDestinationID,
-                    focusesKeyboardImmediately: quickCaptureDestinationID != nil
+                    focusesKeyboardImmediately: shouldFocusQuickCaptureTextField
                 ) {
                     withAnimation(.easeOut(duration: 0.2)) {
                         isShowingQuickTodoCapture = false
@@ -235,6 +236,7 @@ struct RootTabView: View {
         guard defaults.bool(forKey: SettingsKeys.quickTodoCaptureRequested) else { return }
         defaults.set(false, forKey: SettingsKeys.quickTodoCaptureRequested)
         quickCaptureDestinationID = nil
+        shouldFocusQuickCaptureTextField = true
         let destination = ActionButtonDefaultDestination(rawValue: actionButtonDefaultDestination)
             ?? .topTodoCategory
         selectedTab = destination == .calendarToday ? .agenda : .todo
@@ -259,6 +261,7 @@ struct RootTabView: View {
                 ? requestedCategoryID
                 : todoGroups.first?.id
         }
+        shouldFocusQuickCaptureTextField = true
 
         if !isShowingQuickTodoCapture {
             withAnimation(.snappy(duration: 0.28, extraBounce: 0)) {

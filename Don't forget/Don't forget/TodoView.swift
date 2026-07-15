@@ -1,5 +1,8 @@
 import SwiftUI
 import SwiftData
+#if canImport(UIKit)
+import UIKit
+#endif
 
 struct TodoGroup: Codable, Equatable, Identifiable {
     var id: String
@@ -1556,14 +1559,26 @@ private struct TodoLine: View {
     @Environment(\.modelContext)
     private var modelContext
 
+    @Environment(\.locale)
+    private var locale
+
+    @Environment(\.colorScheme)
+    private var colorScheme
+
+    @AppStorage(SettingsKeys.defaultColorCombinationEnabled)
+    private var defaultColorCombinationEnabled = true
+
     @State private var showMoveToAgenda = false
     @State private var agendaDate = AppCalendar.startOfDay(.now)
+    @State private var showOpenSinceEditor = false
+    @State private var openDaysDraft = "0"
     @State private var isDeleting = false
     @State private var draftText: String?
     @State private var moveSelectionToEndToken = 0
     @State private var isProtectingInitialTap = false
     @State private var initialTapProtectionTask: Task<Void, Never>?
     @FocusState private var isTextFieldFocused: Bool
+    @State private var isOpenDaysFocused = false
 
     var body: some View {
         HStack(alignment: .todoRowFirstLineCenter, spacing: 9) {
@@ -1636,7 +1651,7 @@ private struct TodoLine: View {
             NavigationStack {
                 VStack(spacing: 0) {
                     DatePicker(
-                        "Datum",
+                        locale.localized("todo.agendaDate.date"),
                         selection: $agendaDate,
                         displayedComponents: .date
                     )
@@ -1646,17 +1661,17 @@ private struct TodoLine: View {
 
                     Spacer(minLength: 0)
                 }
-                .navigationTitle("Kies datum")
+                .navigationTitle(locale.localized("todo.agendaDate.title"))
                 .navigationBarTitleDisplayMode(.inline)
                 .toolbar {
                     ToolbarItem(placement: .cancellationAction) {
-                        Button("Annuleer") {
+                        Button(locale.localized("todo.openSince.cancel")) {
                             showMoveToAgenda = false
                         }
                     }
 
                     ToolbarItem(placement: .confirmationAction) {
-                        Button("Verplaats") {
+                        Button(locale.localized("todo.agendaDate.move")) {
                             moveToAgenda(on: agendaDate)
                         }
                     }
@@ -1664,12 +1679,84 @@ private struct TodoLine: View {
             }
             .presentationDetents([.medium])
         }
+        .sheet(isPresented: $showOpenSinceEditor) {
+            NavigationStack {
+                ZStack {
+                    Color.appCanvasBackground
+                        .ignoresSafeArea()
+
+                    VStack(spacing: 20) {
+                        Text(locale.localized("todo.openSince.days"))
+                            .font(.headline)
+                            .frame(maxWidth: .infinity)
+
+                        AutoFocusNumberTextField(
+                            text: $openDaysDraft,
+                            shouldFocus: isOpenDaysFocused
+                        )
+                        .frame(height: 76)
+                        .accessibilityLabel(locale.localized("todo.openSince.days"))
+                    }
+                    .padding(20)
+                    .frame(maxWidth: 340)
+                }
+                .navigationTitle(locale.localized("todo.openSince"))
+                .navigationBarTitleDisplayMode(.inline)
+                .toolbar {
+                    ToolbarItem(placement: .cancellationAction) {
+                        openSinceToolbarButton(locale.localized("todo.openSince.cancel")) {
+                            showOpenSinceEditor = false
+                        }
+                    }
+
+                    ToolbarItem(placement: .confirmationAction) {
+                        openSinceToolbarButton(locale.localized("todo.openSince.save")) {
+                            setOpenDays(Int(openDaysDraft) ?? 0)
+                            showOpenSinceEditor = false
+                        }
+                    }
+                }
+                .toolbarBackground(Color.appCanvasBackground, for: .navigationBar)
+                .toolbarBackground(.visible, for: .navigationBar)
+            }
+            .presentationDetents([.height(220)])
+            .onAppear {
+                isOpenDaysFocused = true
+                // Retry after the sheet has completed its transition in case it
+                // overlaps the source menu's dismissal.
+                Task { @MainActor in
+                    try? await Task.sleep(for: .milliseconds(180))
+                    guard showOpenSinceEditor else { return }
+                    isOpenDaysFocused = true
+                }
+            }
+            .onDisappear {
+                isOpenDaysFocused = false
+            }
+        }
     }
 
     private func dismissKeyboard() {
         commitDraft()
         isTextFieldFocused = false
         AppKeyboard.dismiss()
+    }
+
+    @ViewBuilder
+    private func openSinceToolbarButton(_ title: String, action: @escaping () -> Void) -> some View {
+        if defaultColorCombinationEnabled && colorScheme == .light {
+            Button(action: action) {
+                Text(title)
+                    .font(.body.weight(.semibold))
+                    .fixedSize(horizontal: true, vertical: false)
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 8)
+                    .background(.white, in: Capsule())
+            }
+            .buttonStyle(.plain)
+        } else {
+            Button(title, action: action)
+        }
     }
 
     private var todoTextField: some View {
@@ -1770,7 +1857,7 @@ private struct TodoLine: View {
 
             if destinationGroups.isEmpty {
                 Button {} label: {
-                    Label("Geen andere categorieën", systemImage: "tray")
+                    Label(locale.localized("todo.menu.noOtherCategories"), systemImage: "tray")
                 }
                 .disabled(true)
             }
@@ -1781,7 +1868,10 @@ private struct TodoLine: View {
                 dismissKeyboard()
                 moveToAgenda(on: AppCalendar.startOfDay(.now))
             } label: {
-                Label("Naar vandaag \(todayDateText)", systemImage: "calendar.badge.checkmark")
+                Label(
+                    locale.localizedFormat("todo.menu.moveToTodayWithDate", todayDateText),
+                    systemImage: "calendar.badge.checkmark"
+                )
             }
 
             Button {
@@ -1798,7 +1888,32 @@ private struct TodoLine: View {
                     showMoveToAgenda = true
                 }
             } label: {
-                Label("Andere datum in agenda...", systemImage: "calendar.badge.plus")
+                Label(locale.localized("todo.menu.otherAgendaDate"), systemImage: "calendar.badge.plus")
+            }
+
+            Divider()
+
+            Button {
+                dismissKeyboard()
+                openDaysDraft = String(TodoAge.daysOpen(since: todo.createdAt))
+                Task { @MainActor in
+                    // Let the menu dismiss before presenting the compact editor.
+                    try? await Task.sleep(for: .milliseconds(120))
+                    showOpenSinceEditor = true
+                }
+            } label: {
+                Label {
+                    Text(locale.localized("todo.openSince.adjust"))
+                } icon: {
+                    Image(uiImage: OpenSinceMenuIcon.make(text: ageBadgeText))
+                        .renderingMode(.original)
+                        .resizable()
+                        .scaledToFit()
+                        // Keep the layout slot as narrow as a standard menu icon,
+                        // while the rendered value remains readable.
+                        .frame(width: 5, height: 5)
+                        .scaleEffect(3.4, anchor: .leading)
+                }
             }
 
             Divider()
@@ -1807,7 +1922,7 @@ private struct TodoLine: View {
                 dismissKeyboard()
                 removeTodo()
             } label: {
-                Label("Verwijderen", systemImage: "trash")
+                Label(locale.localized("todo.menu.delete"), systemImage: "trash")
                     .foregroundStyle(.red)
             }
             .tint(.red)
@@ -1856,6 +1971,11 @@ private struct TodoLine: View {
 
     private var todayDateText: String {
         AppCalendar.localizedShortDayMonth(.now)
+    }
+
+    private func setOpenDays(_ days: Int) {
+        todo.createdAt = TodoAge.creationDate(openForDays: days)
+        _ = PersistenceSafety.save(modelContext)
     }
 
     private func deleteTodo() {
@@ -2158,6 +2278,91 @@ private struct NewTodoGroupLine: View {
     }
 }
 
+#if canImport(UIKit)
+private enum OpenSinceMenuIcon {
+    static func make(text: String) -> UIImage {
+        let size = CGSize(width: 48, height: 28)
+        let renderer = UIGraphicsImageRenderer(size: size)
+        return renderer.image { _ in
+            let paragraph = NSMutableParagraphStyle()
+            paragraph.alignment = .center
+            let attributes: [NSAttributedString.Key: Any] = [
+                .font: UIFont.monospacedDigitSystemFont(ofSize: 17, weight: .semibold),
+                .foregroundColor: UIColor.systemBlue,
+                .paragraphStyle: paragraph
+            ]
+            let textSize = (text as NSString).size(withAttributes: attributes)
+            let rect = CGRect(
+                x: 0,
+                y: (size.height - textSize.height) / 2,
+                width: size.width,
+                height: textSize.height
+            )
+            (text as NSString).draw(in: rect, withAttributes: attributes)
+        }
+    }
+}
+
+private struct AutoFocusNumberTextField: UIViewRepresentable {
+    @Binding var text: String
+    let shouldFocus: Bool
+
+    func makeCoordinator() -> Coordinator {
+        Coordinator(parent: self)
+    }
+
+    func makeUIView(context: Context) -> UITextField {
+        let field = UITextField()
+        field.borderStyle = .roundedRect
+        field.keyboardType = .numberPad
+        field.textAlignment = .center
+        field.adjustsFontSizeToFitWidth = true
+        field.minimumFontSize = 22
+        field.delegate = context.coordinator
+        let baseFont = UIFont.systemFont(ofSize: 34, weight: .semibold)
+        if let roundedDescriptor = baseFont.fontDescriptor.withDesign(.rounded) {
+            field.font = UIFont(descriptor: roundedDescriptor, size: 34)
+        } else {
+            field.font = baseFont
+        }
+        field.text = text
+        return field
+    }
+
+    func updateUIView(_ field: UITextField, context: Context) {
+        context.coordinator.parent = self
+        if field.text != text { field.text = text }
+        guard shouldFocus, !field.isFirstResponder else { return }
+
+        DispatchQueue.main.async {
+            guard self.shouldFocus, !field.isFirstResponder else { return }
+            field.becomeFirstResponder()
+            field.selectedTextRange = field.textRange(from: field.endOfDocument, to: field.endOfDocument)
+        }
+    }
+
+    final class Coordinator: NSObject, UITextFieldDelegate {
+        var parent: AutoFocusNumberTextField
+
+        init(parent: AutoFocusNumberTextField) {
+            self.parent = parent
+        }
+
+        func textField(_ textField: UITextField, shouldChangeCharactersIn range: NSRange, replacementString string: String) -> Bool {
+            guard string.isEmpty || string.allSatisfy(\.isNumber) else { return false }
+            let current = textField.text ?? ""
+            guard let range = Range(range, in: current) else { return false }
+            parent.text = current.replacingCharacters(in: range, with: string)
+            return false
+        }
+
+        func textFieldDidBeginEditing(_ textField: UITextField) {
+            textField.selectedTextRange = textField.textRange(from: textField.endOfDocument, to: textField.endOfDocument)
+        }
+    }
+}
+#endif
+
 private enum TodoAge {
     static func daysOpen(since date: Date) -> Int {
         daysBetween(date, .now)
@@ -2171,5 +2376,14 @@ private enum TodoAge {
             from: startOfStart,
             to: startOfEnd
         ).day ?? 0)
+    }
+
+    static func creationDate(openForDays days: Int, from date: Date = .now) -> Date {
+        let today = AppCalendar.startOfDay(date)
+        return AppCalendar.calendar.date(
+            byAdding: .day,
+            value: -max(0, days),
+            to: today
+        ) ?? today
     }
 }

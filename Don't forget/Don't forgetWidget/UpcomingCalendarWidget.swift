@@ -211,7 +211,7 @@ private struct UpcomingCalendarWidgetView: View {
                 if shouldShowOtherContent, homeTodoItems.isEmpty, !homeCalendarItems.isEmpty {
                     Link(destination: URL(string: "dontforget://calendar")!) {
                         homeColumn(
-                            title: String(localized: "Geen open taken ✓"),
+                            title: localized("Geen open taken ✓"),
                             items: homeCalendarItems,
                             kind: .calendar,
                             maximum: homeRowCapacity
@@ -220,7 +220,7 @@ private struct UpcomingCalendarWidgetView: View {
                 } else {
                     Link(destination: URL(string: "dontforget://todo")!) {
                         homeColumn(
-                            title: String(localized: "Taken"),
+                            title: localized("Taken"),
                             items: homeTodoItems,
                             kind: .todo,
                             maximum: homeRowCapacity
@@ -231,7 +231,7 @@ private struct UpcomingCalendarWidgetView: View {
                 if shouldShowOtherContent, homeCalendarItems.isEmpty, !homeTodoItems.isEmpty {
                     Link(destination: URL(string: "dontforget://todo")!) {
                         homeColumn(
-                            title: String(localized: "Lege agenda ✓"),
+                            title: localized("Lege agenda ✓"),
                             items: homeTodoItems,
                             kind: .todo,
                             maximum: homeRowCapacity
@@ -270,7 +270,7 @@ private struct UpcomingCalendarWidgetView: View {
         ViewThatFits(in: .horizontal) {
             HStack(spacing: 10) {
                 Text(largeDateMainTitle)
-                    .font(.system(size: 18, weight: .semibold, design: .rounded))
+                    .font(.system(size: 18, weight: .bold, design: .rounded))
 
                 Text(largeWeekTitle.uppercased(with: widgetLocale))
                     .font(.system(size: 10, weight: .bold, design: .rounded))
@@ -285,12 +285,12 @@ private struct UpcomingCalendarWidgetView: View {
             }
 
             Text(largeDateTitle)
-                .font(.system(size: 17, weight: .semibold, design: .rounded))
+                .font(.system(size: 17, weight: .bold, design: .rounded))
                 .lineLimit(1)
                 .minimumScaleFactor(0.72)
         }
             .foregroundStyle(brandBlue)
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
             .accessibilityLabel(largeDateTitle)
     }
 
@@ -299,14 +299,14 @@ private struct UpcomingCalendarWidgetView: View {
         switch entry.snapshot.homeWidgetContent ?? "combined" {
         case "todo":
             largeColumn(
-                title: String(localized: "Taken"),
+                title: localized("Taken"),
                 items: homeTodoItems,
                 kind: .todo,
                 maximum: largeSingleColumnCapacity
             )
         case "calendar":
             largeColumn(
-                title: String(localized: "Kalender"),
+                title: localized("Kalender"),
                 items: homeCalendarItems,
                 kind: .calendar,
                 maximum: largeSingleColumnCapacity
@@ -314,7 +314,7 @@ private struct UpcomingCalendarWidgetView: View {
         default:
             HStack(spacing: 10) {
                 largeColumn(
-                    title: String(localized: "Kalender"),
+                    title: localized("Kalender"),
                     items: homeCalendarItems,
                     kind: .calendar,
                     maximum: largeCombinedColumnCapacity
@@ -326,7 +326,7 @@ private struct UpcomingCalendarWidgetView: View {
                     .frame(width: 1)
 
                 largeColumn(
-                    title: String(localized: "Taken"),
+                    title: localized("Taken"),
                     items: homeTodoItems,
                     kind: .todo,
                     maximum: largeCombinedColumnCapacity
@@ -440,6 +440,22 @@ private struct UpcomingCalendarWidgetView: View {
         Locale(identifier: entry.snapshot.localeIdentifier)
     }
 
+    private func localized(_ key: String) -> String {
+        let missingValue = "__MISSING_LOCALIZATION__\(key)__"
+        let languageCode = widgetLocale.language.languageCode?.identifier
+        let candidates = [widgetLocale.identifier, languageCode].compactMap { $0 }
+
+        for candidate in candidates {
+            if let path = Bundle.main.path(forResource: candidate, ofType: "lproj"),
+               let bundle = Bundle(path: path) {
+                let value = bundle.localizedString(forKey: key, value: missingValue, table: nil)
+                if value != missingValue { return value }
+            }
+        }
+
+        return Bundle.main.localizedString(forKey: key, value: key, table: nil)
+    }
+
     private var brandBlue: Color {
         Color(red: 59 / 255, green: 134 / 255, blue: 247 / 255)
     }
@@ -461,7 +477,7 @@ private struct UpcomingCalendarWidgetView: View {
         if shouldShowOtherContent, homeCalendarItems.isEmpty, !homeTodoItems.isEmpty {
             Link(destination: URL(string: "dontforget://todo")!) {
                 homeColumn(
-                    title: String(localized: "Lege agenda ✓"),
+                    title: localized("Lege agenda ✓"),
                     items: homeTodoItems,
                     kind: .todo,
                     maximum: homeRowCapacity
@@ -470,7 +486,7 @@ private struct UpcomingCalendarWidgetView: View {
         } else if shouldShowOtherContent, homeTodoItems.isEmpty, !homeCalendarItems.isEmpty {
             Link(destination: URL(string: "dontforget://calendar")!) {
                 homeColumn(
-                    title: String(localized: "Geen open taken ✓"),
+                    title: localized("Geen open taken ✓"),
                     items: homeCalendarItems,
                     kind: .calendar,
                     maximum: homeRowCapacity
@@ -489,7 +505,7 @@ private struct UpcomingCalendarWidgetView: View {
 
                 Link(destination: URL(string: "dontforget://todo")!) {
                     homeColumn(
-                        title: String(localized: "Taken"),
+                        title: localized("Taken"),
                         items: homeTodoItems,
                         kind: .todo,
                         maximum: combinedRowCapacity
@@ -505,7 +521,7 @@ private struct UpcomingCalendarWidgetView: View {
                 Divider().opacity(0.5)
                 Link(destination: URL(string: "dontforget://todo")!) {
                     homeColumn(
-                        title: String(localized: "Taken"),
+                        title: localized("Taken"),
                         items: homeTodoItems,
                         kind: .todo,
                         maximum: wrapsHomeText ? 1 : 2
@@ -544,7 +560,7 @@ private struct UpcomingCalendarWidgetView: View {
     @ViewBuilder
     private func calendarHomeColumn(maximum: Int) -> some View {
         homeColumn(
-            title: String(localized: "Kalender"),
+            title: localized("Kalender"),
             items: homeCalendarItems,
             kind: .calendar,
             maximum: maximum
@@ -611,7 +627,14 @@ private struct UpcomingCalendarWidgetView: View {
             let today = calendar.startOfDay(for: entry.date)
             let createdDay = calendar.startOfDay(for: item.date)
             let age = max(0, calendar.dateComponents([.day], from: createdDay, to: today).day ?? 0)
-            Text("\(age)d")
+            RelativeDayPrefixText(
+                value: age,
+                visibleValues: displayedItems.map { displayedItem in
+                    let createdDay = calendar.startOfDay(for: displayedItem.date)
+                    return max(0, calendar.dateComponents([.day], from: createdDay, to: today).day ?? 0)
+                },
+                suffix: "d"
+            )
                 .font(.system(size: 10, weight: .bold, design: .rounded))
                 .foregroundStyle(color(item.colorRawValue))
                 .fixedSize(horizontal: true, vertical: false)
@@ -651,8 +674,8 @@ private struct UpcomingCalendarWidgetView: View {
 
     private func emptyText(for kind: HomeItemKind) -> String {
         switch kind {
-        case .calendar: String(localized: "Lege agenda ✓")
-        case .todo: String(localized: "Geen open taken")
+        case .calendar: localized("Lege agenda ✓")
+        case .todo: localized("Geen open taken")
         }
     }
 
@@ -795,21 +818,43 @@ private struct UpcomingCalendarWidgetView: View {
 private struct RelativeDayPrefixText: View {
     let value: Int
     let visibleValues: [Int]
+    var suffix = ""
 
     var body: some View {
-        ZStack(alignment: .trailing) {
-            ForEach(reservedValues, id: \.self) { reservedValue in
-                Text(reservedValue)
-                    .opacity(0)
+        Group {
+            if suffix.isEmpty {
+                ZStack(alignment: .trailing) {
+                    ForEach(reservedValues, id: \.self) { reservedValue in
+                        Text(reservedValue)
+                            .opacity(0)
+                    }
+                    Text("\(value)")
+                }
+            } else {
+                HStack(spacing: 0) {
+                    ZStack(alignment: .trailing) {
+                        Text(digitReservation)
+                            .monospacedDigit()
+                            .opacity(0)
+                        Text("\(value)")
+                            .monospacedDigit()
+                    }
+                    Text(suffix)
+                }
             }
-            Text("\(value)")
         }
-        .accessibilityLabel(Text("\(value)"))
+        .accessibilityLabel(Text("\(value)\(suffix)"))
     }
 
     private var reservedValues: [String] {
         let values = visibleValues.isEmpty ? [value] : visibleValues
         return Array(Set(values.map(String.init)))
+    }
+
+    private var digitReservation: String {
+        let values = visibleValues.isEmpty ? [value] : visibleValues
+        let longestValue = values.map { String($0).count }.max() ?? 1
+        return String(repeating: "8", count: longestValue)
     }
 }
 

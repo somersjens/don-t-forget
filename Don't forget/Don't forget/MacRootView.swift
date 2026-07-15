@@ -5,6 +5,47 @@ import CloudKit
 import SwiftData
 import SwiftUI
 
+private enum OpenSinceMacMenuIcon {
+    /// A menu item title is positioned from an image's intrinsic size. Keep
+    /// this equal to the standard AppKit menu-icon slot instead of relying on
+    /// SwiftUI scaling, which AppKit ignores when it builds an NSMenu.
+    static func make(text: String, color: Color) -> NSImage {
+        let size = NSSize(width: 18, height: 18)
+        let image = NSImage(size: size)
+        image.lockFocus()
+        defer { image.unlockFocus() }
+
+        let maximumPointSize: CGFloat = 9
+        let maximumWidth = size.width - 1
+        let baseFont = NSFont.monospacedDigitSystemFont(
+            ofSize: maximumPointSize,
+            weight: .semibold
+        )
+        let baseWidth = (text as NSString).size(withAttributes: [.font: baseFont]).width
+        let pointSize = maximumPointSize * min(1, maximumWidth / max(baseWidth, 1))
+        let font = NSFont.monospacedDigitSystemFont(ofSize: pointSize, weight: .semibold)
+        let paragraph = NSMutableParagraphStyle()
+        paragraph.alignment = .center
+        let attributes: [NSAttributedString.Key: Any] = [
+            .font: font,
+            .foregroundColor: NSColor(color),
+            .paragraphStyle: paragraph
+        ]
+        let textSize = (text as NSString).size(withAttributes: attributes)
+        (text as NSString).draw(
+            in: NSRect(
+                x: 0,
+                y: (size.height - textSize.height) / 2,
+                width: size.width,
+                height: textSize.height
+            ),
+            withAttributes: attributes
+        )
+        image.isTemplate = false
+        return image
+    }
+}
+
 extension Notification.Name {
     static let macCreateItem = Notification.Name("mac.createItem")
     static let macUndoAgendaAction = Notification.Name("mac.undoAgendaAction")
@@ -912,7 +953,10 @@ private struct MacTodoBoard: View {
     @State private var dismissUndoTask: Task<Void, Never>?
     @State private var agendaTodo: TodoItem?
     @State private var agendaDate = AppCalendar.startOfDay(.now)
+    @State private var openSinceTodo: TodoItem?
+    @State private var openDaysDraft = 0
     @FocusState private var focusedNewTodoGroupID: String?
+    @FocusState private var isOpenDaysFocused: Bool
 
     private var groups: [MacTodoGroup] {
         get { MacTodoGroupStore.decode(todoGroupsData) }
@@ -978,19 +1022,48 @@ private struct MacTodoBoard: View {
         .onAppear(perform: repairUnknownGroups)
         .sheet(item: $agendaTodo) { todo in
             VStack(spacing: 16) {
-                Text("Naar agenda verplaatsen").font(.title2.bold())
+                Text(locale.localized("todo.agendaDate.title")).font(.title2.bold())
                 Text(todo.text).foregroundStyle(.secondary).lineLimit(2)
-                DatePicker("Datum", selection: $agendaDate, displayedComponents: .date)
+                DatePicker(locale.localized("todo.agendaDate.date"), selection: $agendaDate, displayedComponents: .date)
                     .datePickerStyle(.graphical)
                 HStack {
-                    Button("Annuleer", role: .cancel) { agendaTodo = nil }
+                    Button(locale.localized("todo.openSince.cancel"), role: .cancel) { agendaTodo = nil }
                     Spacer()
-                    Button("Verplaats") { moveToAgenda(todo, date: agendaDate) }
+                    Button(locale.localized("todo.agendaDate.move")) { moveToAgenda(todo, date: agendaDate) }
                         .buttonStyle(.borderedProminent)
                 }
             }
             .padding(20)
             .frame(width: 390)
+        }
+        .sheet(item: $openSinceTodo) { todo in
+            VStack(alignment: .leading, spacing: 18) {
+                Text(locale.localized("todo.openSince"))
+                    .font(.title3.bold())
+                Text(locale.localized("todo.openSince.days"))
+                    .font(.headline)
+                TextField("", value: $openDaysDraft, format: .number)
+                    .font(.system(size: 28, weight: .semibold, design: .rounded))
+                    .multilineTextAlignment(.center)
+                    .textFieldStyle(.roundedBorder)
+                    .focused($isOpenDaysFocused)
+                HStack {
+                    Button(locale.localized("todo.openSince.cancel"), role: .cancel) {
+                        openSinceTodo = nil
+                    }
+                    .font(.body.weight(.semibold))
+                    .buttonStyle(.bordered)
+                    Spacer()
+                    Button(locale.localized("todo.openSince.save")) {
+                        setOpenDays(openDaysDraft, for: todo)
+                        openSinceTodo = nil
+                    }
+                    .font(.body.weight(.semibold))
+                    .buttonStyle(.bordered)
+                }
+            }
+            .padding(20)
+            .frame(width: 300)
         }
     }
 
@@ -1161,18 +1234,37 @@ private struct MacTodoBoard: View {
                 Label(destination.title, systemImage: destination.icon)
             }
         }
-        if groups.count == 1 { Text("Geen andere categorieën") }
+        if groups.count == 1 { Text(locale.localized("todo.menu.noOtherCategories")) }
         Divider()
         Button { moveToAgenda(todo, date: .now) } label: {
-            Label("Naar vandaag", systemImage: "calendar.badge.checkmark")
+            Label(locale.localized("todo.menu.moveToToday"), systemImage: "calendar.badge.checkmark")
         }
         Button {
             agendaDate = Calendar.current.date(byAdding: .day, value: 1, to: .now) ?? .now
             agendaTodo = todo
-        } label: { Label("Andere datum in agenda…", systemImage: "calendar.badge.plus") }
+        } label: { Label(locale.localized("todo.menu.otherAgendaDate"), systemImage: "calendar.badge.plus") }
+        Divider()
+        Button {
+            openDaysDraft = openDays(for: todo.createdAt)
+            openSinceTodo = todo
+            Task { @MainActor in
+                await Task.yield()
+                isOpenDaysFocused = true
+            }
+        } label: {
+            Label {
+                Text(locale.localized("todo.openSince.adjust"))
+            } icon: {
+                Image(nsImage: OpenSinceMacMenuIcon.make(
+                    text: ageBadge(todo.createdAt),
+                    color: group.color
+                ))
+                .renderingMode(.original)
+            }
+        }
         Divider()
         Button(role: .destructive) { remove(todo) } label: {
-            Label("Verwijderen", systemImage: "trash")
+            Label(locale.localized("todo.menu.delete"), systemImage: "trash")
         }
     }
 
@@ -1302,6 +1394,18 @@ private struct MacTodoBoard: View {
         switch feedback { case .completed: "checkmark.circle.fill"; case .removed: "trash.fill"; case .agenda: "calendar.badge.checkmark" }
     }
     private func move(_ todo: TodoItem, to id: String) { todo.bucketRawValue = id; save() }
+    private func setOpenDays(_ days: Int, for todo: TodoItem) {
+        let today = AppCalendar.startOfDay(.now)
+        todo.createdAt = AppCalendar.calendar.date(byAdding: .day, value: -max(0, days), to: today) ?? today
+        save()
+    }
+    private func openDays(for date: Date) -> Int {
+        max(0, AppCalendar.calendar.dateComponents(
+            [.day],
+            from: AppCalendar.startOfDay(date),
+            to: AppCalendar.startOfDay(.now)
+        ).day ?? 0)
+    }
     private func addGroup() {
         let title = newGroupTitle.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !title.isEmpty, groups.count < MacTodoGroupStore.maxCount else { return }
@@ -1337,6 +1441,7 @@ private struct MacTodoBoard: View {
         if days < 70 { return "\(days / 7)w" }
         return "\(days / 30)m"
     }
+
     private func save() { PersistenceSafety.save(modelContext) }
 }
 

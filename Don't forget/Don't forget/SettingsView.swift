@@ -1459,7 +1459,7 @@ private struct HomeWidgetSettingsPreview: View {
         title: String,
         items: [(String, String, Color)],
         maximum: Int,
-        calendar _: Bool,
+        calendar: Bool,
         showsAddButton: Bool = false
     ) -> some View {
         VStack(alignment: .leading, spacing: 6) {
@@ -1478,10 +1478,13 @@ private struct HomeWidgetSettingsPreview: View {
             }
             ForEach(Array(items.prefix(maximum).enumerated()), id: \.offset) { _, item in
                 HStack(alignment: .firstTextBaseline, spacing: 5) {
-                    Text(item.0)
-                        .font(.system(size: 10, weight: .bold, design: .rounded))
-                        .foregroundStyle(item.2)
-                        .fixedSize()
+                    PreviewDatePrefixText(
+                        text: item.0,
+                        visiblePrefixes: Array(items.prefix(maximum).map(\.0)),
+                        color: calendar ? .secondary : item.2
+                    )
+                    .font(.system(size: 10, weight: .bold, design: .rounded))
+                    .fixedSize()
                     Text(item.1)
                         .font(.system(size: 11.5, weight: .medium))
                         .lineLimit(wrapsText ? 2 : 1)
@@ -1504,6 +1507,49 @@ private struct HomeWidgetSettingsPreview: View {
     }
 }
 
+private struct PreviewDatePrefixText: View {
+    let text: String
+    let visiblePrefixes: [String]
+    let color: Color
+
+    var body: some View {
+        Group {
+            if isTaskAge {
+                HStack(spacing: 0) {
+                    ZStack(alignment: .trailing) {
+                        ForEach(Array(Set(visiblePrefixes.map { String($0.dropLast()) })), id: \.self) { value in
+                            Text(value)
+                                .monospacedDigit()
+                                .foregroundStyle(color)
+                                .opacity(0)
+                        }
+                        Text(String(text.dropLast()))
+                            .monospacedDigit()
+                            .foregroundStyle(color)
+                    }
+                    Text("d")
+                        .foregroundStyle(color)
+                }
+            } else {
+                ZStack(alignment: .trailing) {
+                    ForEach(Array(Set(visiblePrefixes)), id: \.self) { prefix in
+                        Text(prefix)
+                            .foregroundStyle(color)
+                            .opacity(0)
+                    }
+                    Text(text)
+                        .foregroundStyle(color)
+                }
+            }
+        }
+        .accessibilityLabel(text)
+    }
+
+    private var isTaskAge: Bool {
+        text.hasSuffix("d") && visiblePrefixes.allSatisfy { $0.hasSuffix("d") }
+    }
+}
+
 private struct HomeWidgetPreviewHeader: View {
     @Environment(\.colorScheme) private var colorScheme
     let locale: Locale
@@ -1514,7 +1560,7 @@ private struct HomeWidgetPreviewHeader: View {
         ViewThatFits(in: .horizontal) {
             HStack(spacing: 10) {
                 Text(dateTitle)
-                    .font(.system(size: 18, weight: .semibold, design: .rounded))
+                    .font(.system(size: 18, weight: .bold, design: .rounded))
 
                 Text(weekTitle.uppercased(with: locale))
                     .font(.system(size: 10, weight: .bold, design: .rounded))
@@ -1529,12 +1575,12 @@ private struct HomeWidgetPreviewHeader: View {
             }
 
             Text("\(dateTitle), \(weekTitle)")
-                .font(.system(size: 17, weight: .semibold, design: .rounded))
+                .font(.system(size: 17, weight: .bold, design: .rounded))
                 .lineLimit(1)
                 .minimumScaleFactor(0.72)
         }
         .foregroundStyle(brandBlue)
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
         .accessibilityLabel("\(dateTitle), \(weekTitle)")
     }
 

@@ -507,11 +507,11 @@ struct QuickTodoCaptureView: View {
             }
             .onAppear {
                 if focusesKeyboardImmediately {
-                    isTextFieldFocused = true
+                    focusTextField()
                 } else if startsVoiceRecording {
                     startVoiceRecording()
                 } else {
-                    isTextFieldFocused = true
+                    focusTextField()
                 }
             }
             .onDisappear {
@@ -613,6 +613,15 @@ struct QuickTodoCaptureView: View {
                     }
                 }
             )
+        }
+    }
+
+    private func focusTextField() {
+        Task { @MainActor in
+            // The capture view is shown with a transition. Waiting one turn ensures
+            // the text field is in the view hierarchy before asking for focus.
+            await Task.yield()
+            isTextFieldFocused = true
         }
     }
 }

@@ -1377,6 +1377,7 @@ struct AgendaView: View {
         shouldOfferRecurringShift: Bool
     ) {
         guard let entry = entries.first(where: { $0.id == entryID }) else { return }
+        let movedToAnotherDay = !AppCalendar.isSameDay(originalDay, day)
         // Grouping the complete query just to find one destination day is
         // noticeably expensive for large agendas. A direct scan avoids the
         // dictionary allocation on the latency-sensitive move path.
@@ -1398,14 +1399,14 @@ struct AgendaView: View {
             }
             renumber(entries: targetEntries, inserting: entry, at: targetIndex)
         }
-        if originalDay == day {
+        if !movedToAnotherDay {
             withAnimation(.smooth(duration: 0.18, extraBounce: 0), updateEntry)
         } else {
             var transaction = Transaction()
             transaction.disablesAnimations = true
             withTransaction(transaction, updateEntry)
         }
-        if originalDay != day {
+        if movedToAnotherDay {
             if shouldOfferRecurringShift {
                 showRecurringMoveOfferIfNeeded(for: entry, from: originalDay, to: day)
             }
@@ -1459,8 +1460,8 @@ struct AgendaView: View {
 
     private var dateMoveUndoText: String {
         guard let move = recentlyMovedToDate else { return "" }
-        let date = move.targetDate.formatted(date: .abbreviated, time: .omitted)
-        return "‘\(move.entry.rawText)’\nverplaatst naar \(date)"
+        let date = AppCalendar.localizedDate(move.targetDate, template: "dMMM")
+        return locale.localizedFormat("todo.movedToDate", move.entry.rawText, date)
     }
 
     private func showRecurringMoveOfferIfNeeded(for entry: DayEntry, from originalDate: Date, to targetDate: Date) {
