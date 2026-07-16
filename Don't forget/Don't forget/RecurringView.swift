@@ -2076,10 +2076,9 @@ private struct RecurringEditorView: View {
                 editorSections
             }
             .font(.body)
-            // Keep the rows at their final iOS form height from the first layout
-            // pass, so controls resolving their intrinsic size do not cause a
-            // small vertical jump while the sheet is appearing.
-            .environment(\.defaultMinListRowHeight, 44)
+            // Compact rows keep the controls centered without extra vertical
+            // whitespace while the sheet is appearing.
+            .environment(\.defaultMinListRowHeight, 38)
             .navigationTitle(item == nil
                 ? locale.localized("Nieuwe herhaling")
                 : locale.localized("Wijzig herhaling"))
@@ -2268,6 +2267,7 @@ private struct RecurringEditorView: View {
             .foregroundStyle(showsTitleRequiredError ? .blue : .secondary)
         ) {}
             .font(.body)
+            .multilineTextAlignment(.leading)
             .focused($focusedField, equals: .title)
             // A UITextField's intrinsic height can change when it becomes first
             // responder. Keep the Form row content at its final body-text size.

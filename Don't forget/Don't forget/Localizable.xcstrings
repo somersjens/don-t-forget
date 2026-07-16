@@ -9708,23 +9708,8 @@
         }
       }
     },
-    "Verplicht veld" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Required field"
-          }
-        },
-        "nl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Verplicht veld"
-          }
-        }
-      }
-    },
     "Titel is verplicht" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -10823,6 +10808,22 @@
         }
       }
     },
+    "Verplicht veld" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Required field"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Verplicht veld"
+          }
+        }
+      }
+    },
     "Verwijder" : {
       "localizations" : {
         "en" : {
@@ -11296,6 +11297,7 @@
       }
     },
     "Vul een titel in om deze herhaling te bewaren." : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {

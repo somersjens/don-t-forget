@@ -1705,6 +1705,7 @@ private struct MacRecurringBoard: View {
     @State private var creatingItem: RecurringItem?
     @State private var isCreatingItem = false
     @State private var showsTitleValidation = false
+    @State private var titleValidationTask: Task<Void, Never>?
     @State private var showingHolidayManager = false
     @State private var cachedDisplayItems: [String: [MacRecurringDisplayItem]] = [:]
     @State private var hasCachedDisplayItems = false
@@ -1784,7 +1785,7 @@ private struct MacRecurringBoard: View {
                         MacRecurringEditor(
                             item: creatingItem,
                             showsTitleValidation: showsTitleValidation,
-                            titleChanged: { showsTitleValidation = false }
+                            titleChanged: { clearTitleValidation() }
                         )
                     }
                     .frame(maxWidth: .infinity)
@@ -2157,7 +2158,7 @@ private struct MacRecurringBoard: View {
         guard let item = creatingItem else { return }
         if isCreatingItem {
             guard !item.title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
-                showsTitleValidation = true
+                showTitleValidation()
                 return
             }
             modelContext.insert(item)
@@ -2166,17 +2167,30 @@ private struct MacRecurringBoard: View {
         } else if !isCreatingItem {
             save()
         }
-        showsTitleValidation = false
+        clearTitleValidation()
         creatingItem = nil
         isCreatingItem = false
     }
     private func cancelCreatingItem() {
-        showsTitleValidation = false
+        clearTitleValidation()
         creatingItem = nil
         isCreatingItem = false
     }
-    private func openEditor(for item: RecurringItem) { showsTitleValidation = false; isCreatingItem = false; creatingItem = item }
-    private func removeFromEditor(_ item: RecurringItem) { showsTitleValidation = false; creatingItem = nil; isCreatingItem = false; remove(item) }
+    private func openEditor(for item: RecurringItem) { clearTitleValidation(); isCreatingItem = false; creatingItem = item }
+    private func removeFromEditor(_ item: RecurringItem) { clearTitleValidation(); creatingItem = nil; isCreatingItem = false; remove(item) }
+    private func showTitleValidation() {
+        titleValidationTask?.cancel()
+        showsTitleValidation = true
+        titleValidationTask = Task { @MainActor in
+            try? await Task.sleep(for: .seconds(1))
+            guard !Task.isCancelled else { return }
+            showsTitleValidation = false
+        }
+    }
+    private func clearTitleValidation() {
+        titleValidationTask?.cancel()
+        showsTitleValidation = false
+    }
     private func remove(_ item: RecurringItem) {
         dismissUndoTask?.cancel(); item.isRemoved = true; item.completedAt = .now; selection = nil
         recentlyRemovedItem = item; save()
@@ -2551,7 +2565,7 @@ private struct MacRecurringEditor: View {
             Text(title).font(.headline).padding(.leading, 1)
             VStack(spacing: 0) { content() }
                 .font(.body)
-                .padding(.horizontal, 14).padding(.vertical, 12)
+                .padding(.horizontal, 14)
                 .background(Color.white, in: RoundedRectangle(cornerRadius: 14))
         }
     }
@@ -2658,24 +2672,20 @@ private struct MacRecurringEditor: View {
 
     private var identityCard: some View {
         editorCard(item.recurrenceKind == .birthday ? LocalizedStringKey("Wie") : LocalizedStringKey("Wat")) {
-            HStack(spacing: 18) {
-                Text(item.recurrenceKind == .birthday ? "Naam" : "Titel")
-                Spacer(minLength: 12)
-                TextField("", text: $item.title)
-                    .textFieldStyle(.plain)
-                    .multilineTextAlignment(.trailing)
-                    .focused($isTitleFocused)
-                    .onChange(of: item.title) { _, _ in titleChanged() }
-                    .frame(maxWidth: 560, alignment: .trailing)
-            }
+            TextField(
+                "",
+                text: $item.title,
+                prompt: Text(showsTitleValidation
+                    ? "Verplicht veld"
+                    : (item.recurrenceKind == .birthday ? "Naam" : "Titel")
+                )
+                .foregroundStyle(showsTitleValidation ? .blue : .secondary)
+            )
+                .textFieldStyle(.plain)
+                .multilineTextAlignment(.leading)
+                .focused($isTitleFocused)
+                .onChange(of: item.title) { _, _ in titleChanged() }
             .recurringEditorRow(height: rowHeight)
-
-            if showsTitleValidation {
-                Text("Vul een titel in om deze herhaling te bewaren.")
-                    .font(.caption)
-                    .foregroundStyle(.red)
-                    .accessibilityLabel("Titel is verplicht")
-            }
             HStack(spacing: 12) {
                 Text("Categorie")
                 Spacer(minLength: 12)
@@ -2720,7 +2730,6 @@ private struct MacRecurringEditor: View {
                 }
                 .frame(width: 22, height: 24)
             }
-            .padding(.horizontal, 10)
             .frame(maxWidth: .infinity)
             .frame(height: 30)
 
