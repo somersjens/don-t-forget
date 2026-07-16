@@ -20,12 +20,14 @@ struct BackupSettingsView: View {
                 Button(action: exportBackup) {
                     Label(locale.localized("Volledige backup maken"), systemImage: "externaldrive.badge.plus")
                 }
+                .settingsCardRow(.first)
 
                 Button {
                     isImporting = true
                 } label: {
                     Label(locale.localized("Backupbestand terugzetten"), systemImage: "square.and.arrow.down")
                 }
+                .settingsCardRow(.middle)
 
                 Button(action: prepareLatestSafetyRestore) {
                     Label(
@@ -33,6 +35,7 @@ struct BackupSettingsView: View {
                         systemImage: "clock.arrow.trianglehead.counterclockwise.rotate.90"
                     )
                 }
+                .settingsCardRow(.last)
             } footer: {
                 Text(locale.localized("De backup bevat actieve en afgeronde items, herhalingen en instellingen. Voor een herstelactie wordt eerst nog een kopie van de huidige gegevens gemaakt."))
             }

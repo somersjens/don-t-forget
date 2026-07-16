@@ -1208,24 +1208,39 @@ private struct RecurringThemeCard: View {
 
     private var categorySubtitle: String {
         if category.id == RecurringCategoryStore.birthdayID {
-            let countText = items.count == 1 ? "1 verjaardag" : "\(items.count) verjaardagen"
+            let countText = AppCalendar.locale.localizedFormat(
+                items.count == 1 ? "recurring.subtitle.birthday.one" : "recurring.subtitle.birthday.many",
+                items.count
+            )
             let reminderCount = items.filter { $0.reminderDaysBefore != nil }.count
             guard reminderCount > 0 else { return countText }
-            let reminderText = reminderCount == 1 ? "1 reminder" : "\(reminderCount) reminders"
+            let reminderText = AppCalendar.locale.localizedFormat(
+                reminderCount == 1 ? "recurring.subtitle.reminder.one" : "recurring.subtitle.reminder.many",
+                reminderCount
+            )
             return "\(countText) · \(reminderText)"
         }
 
         if category.id == RecurringCategoryStore.holidayID {
-            let countText = items.count == 1 ? "1 feestdag" : "\(items.count) feestdagen"
+            let countText = AppCalendar.locale.localizedFormat(
+                items.count == 1 ? "recurring.subtitle.holiday.one" : "recurring.subtitle.holiday.many",
+                items.count
+            )
             let customCount = items.filter {
                 HolidayCatalog.managedHoliday(from: $0.notes) == nil
             }.count
             guard customCount > 0 else { return countText }
-            let customText = customCount == 1 ? "1 zelf toegevoegd" : "\(customCount) zelf toegevoegd"
+            let customText = AppCalendar.locale.localizedFormat(
+                customCount == 1 ? "recurring.subtitle.custom.one" : "recurring.subtitle.custom.many",
+                customCount
+            )
             return "\(countText) · \(customText)"
         }
 
-        return items.count == 1 ? "1 herhaling" : "\(items.count) herhalingen"
+        return AppCalendar.locale.localizedFormat(
+            items.count == 1 ? "recurring.subtitle.recurrence.one" : "recurring.subtitle.recurrence.many",
+            items.count
+        )
     }
 
     private var categoryActionsPopover: some View {

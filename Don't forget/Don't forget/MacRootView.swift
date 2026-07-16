@@ -2115,13 +2115,24 @@ private struct MacRecurringBoard: View {
         let days = max(0, AppCalendar.calendar.dateComponents([.day], from: AppCalendar.startOfDay(.now), to: date).day ?? 0)
         let timing: String
         if days == 0 {
-            if item.birthdayYearUncertain { timing = "Is vandaag jarig" }
-            else if let age = RecurrenceEngine.ageTurning(for: item, on: date) { timing = "Is vandaag \(age) geworden" }
-            else { timing = "Is vandaag jarig" }
+            if item.birthdayYearUncertain {
+                timing = locale.localized("birthday.status.today")
+            } else if let age = RecurrenceEngine.ageTurning(for: item, on: date) {
+                timing = locale.localizedFormat("birthday.status.turnedToday", age)
+            } else {
+                timing = locale.localized("birthday.status.today")
+            }
         } else if item.birthdayYearUncertain {
-            timing = "Is over \(days) \(days == 1 ? "dag" : "dagen") jarig"
+            timing = locale.localizedFormat(
+                days == 1 ? "birthday.status.birthdayInOneDay" : "birthday.status.birthdayInDays",
+                days
+            )
         } else if let age = RecurrenceEngine.ageTurning(for: item, on: date) {
-            timing = "Wordt over \(days) \(days == 1 ? "dag" : "dagen") \(age)"
+            timing = locale.localizedFormat(
+                days == 1 ? "birthday.status.turnsInOneDay" : "birthday.status.turnsInDays",
+                age,
+                days
+            )
         } else { timing = RecurrenceEngine.description(for: item) }
         if let reminder = item.reminderDaysBefore { return "\(timing) · reminder \(reminder)" }
         return timing

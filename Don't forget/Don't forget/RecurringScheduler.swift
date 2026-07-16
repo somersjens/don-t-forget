@@ -303,7 +303,7 @@ enum RecurringScheduler {
             let occurrenceTitle: String
 
             if item.recurrenceKind == .birthday {
-                occurrenceTitle = age.map { "🎂 \(item.title) · \($0) jaar" } ?? "🎂 \(item.title)"
+                occurrenceTitle = age.map { "🎂 \(item.title) · \($0)" } ?? "🎂 \(item.title)"
             } else if item.recurrenceKind == .yearly {
                 let years = max(0, AppCalendar.calendar.dateComponents(
                     [.year],
@@ -328,7 +328,11 @@ enum RecurringScheduler {
                days > 0,
                let reminderDate = AppCalendar.calendar.date(byAdding: .day, value: -days, to: date),
                reminderDate >= AppCalendar.startOfDay(startDate) {
-                let reminderTitle = "\(item.title) 🎂 over \(days) \(days == 1 ? "dag" : "dagen")"
+                let reminderTiming = AppCalendar.locale.localizedFormat(
+                    days == 1 ? "birthday.reminder.inOneDay" : "birthday.reminder.inDays",
+                    days
+                )
+                let reminderTitle = "\(item.title) 🎂 \(reminderTiming)"
 
                 result.append(DesiredEntry(
                     key: "reminder-v2:\(baseDateKey):\(days)",

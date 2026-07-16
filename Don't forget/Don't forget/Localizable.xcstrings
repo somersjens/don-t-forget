@@ -1175,22 +1175,6 @@
     "Alles selecteren" : {
 
     },
-    "Schrijf alles op in de app, zodat je niets hoeft te onthouden." : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Write everything down in the app, so you don’t have to remember a thing."
-          }
-        },
-        "nl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Schrijf alles op in de app, zodat je niets hoeft te onthouden."
-          }
-        }
-      }
-    },
     "Alles wat past" : {
       "localizations" : {
         "en" : {
@@ -1660,6 +1644,40 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Binnenkort"
+          }
+        }
+      }
+    },
+    "birthday.reminder.inDays" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "in %lld days"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "over %lld dagen"
+          }
+        }
+      }
+    },
+    "birthday.reminder.inOneDay" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "in %lld day"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "over %lld dag"
           }
         }
       }
@@ -7668,6 +7686,7 @@
       }
     },
     "Openen" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -8685,6 +8704,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Roze"
+          }
+        }
+      }
+    },
+    "Schrijf alles op in de app, zodat je niets hoeft te onthouden." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Write everything down in the app, so you don’t have to remember a thing."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Schrijf alles op in de app, zodat je niets hoeft te onthouden."
           }
         }
       }

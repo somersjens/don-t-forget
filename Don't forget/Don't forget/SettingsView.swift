@@ -107,6 +107,30 @@ struct SettingsView: View {
     @State private var isShowingWeatherSetup = false
     @State private var appActivityState = AppActivityState.shared
 
+    private var hasCalendarRowsAfterWeather: Bool {
+        isRequestingCalendarAccess || calendarError != nil || calendarSyncEnabled
+    }
+
+    private var settingsIntegrationTailPosition: SettingsCardRowPosition {
+        !weatherInAgendaEnabled && !hasCalendarRowsAfterWeather ? .last : .middle
+    }
+
+    private var weatherLocationTailPosition: SettingsCardRowPosition {
+        weatherLastError.isEmpty && !hasCalendarRowsAfterWeather ? .last : .middle
+    }
+
+    private var weatherErrorTailPosition: SettingsCardRowPosition {
+        !hasCalendarRowsAfterWeather ? .last : .middle
+    }
+
+    private var calendarProgressTailPosition: SettingsCardRowPosition {
+        calendarError == nil && !calendarSyncEnabled ? .last : .middle
+    }
+
+    private var calendarErrorTailPosition: SettingsCardRowPosition {
+        calendarSyncEnabled ? .middle : .last
+    }
+
     var body: some View {
         NavigationStack {
             Form {
@@ -120,18 +144,21 @@ struct SettingsView: View {
                             PulsingActionButtonIcon()
                         }
                     }
+                    .settingsCardRow(.first)
 
                     NavigationLink {
                         ActionButtonSettingsView()
                     } label: {
                         Label("Lockscreen-widget configureren", systemImage: "rectangle.on.rectangle")
                     }
+                    .settingsCardRow(.middle)
 
                     NavigationLink {
                         HomeWidgetSettingsView()
                     } label: {
                         Label("Beginscherm-widget configureren", systemImage: "rectangle.split.2x1")
                     }
+                    .settingsCardRow(.last)
 
                 }
 
@@ -142,6 +169,7 @@ struct SettingsView: View {
                         }
                     }
                     .tint(Color.appPrimaryText)
+                    .settingsCardRow(.first)
 
                     Picker(
                         locale.localized("App Color"),
@@ -151,6 +179,7 @@ struct SettingsView: View {
                         Text(locale.localized("Grey")).tag(false)
                     }
                     .tint(Color.appPrimaryText)
+                    .settingsCardRow(.middle)
 
                     Picker("Week begint op", selection: $weekStart) {
                         ForEach(WeekStartOption.allCases) { option in
@@ -158,6 +187,7 @@ struct SettingsView: View {
                         }
                     }
                     .tint(Color.appPrimaryText)
+                    .settingsCardRow(.middle)
 
                     Picker(weekdayFormattingPickerTitle, selection: $weekdayLabelLength) {
                         ForEach(WeekdayLabelLengthOption.allCases) { option in
@@ -166,6 +196,7 @@ struct SettingsView: View {
                     }
                     .tint(Color.appPrimaryText)
                     .onAppear(perform: normalizeWeekdayLabelLength)
+                    .settingsCardRow(.middle)
 
                     Picker("Weeknummering", selection: $weekNumberRule) {
                         ForEach(WeekNumberRule.allCases) { rule in
@@ -173,6 +204,7 @@ struct SettingsView: View {
                         }
                     }
                     .tint(Color.appPrimaryText)
+                    .settingsCardRow(.middle)
 
                     Picker(locale.localized("Datum formattering"), selection: $dateFormat) {
                         let localeDefault = DateFormatOption.localeDefault(for: locale)
@@ -182,6 +214,7 @@ struct SettingsView: View {
                         }
                     }
                     .tint(Color.appPrimaryText)
+                    .settingsCardRow(.middle)
 
                     Picker(
                         locale.localized("Afgerond opschonen"),
@@ -192,6 +225,7 @@ struct SettingsView: View {
                         }
                     }
                     .tint(Color.appPrimaryText)
+                    .settingsCardRow(.middle)
 
                     Picker(
                         locale.localized("Agenda vooruit laden"),
@@ -206,6 +240,7 @@ struct SettingsView: View {
                         recurringExtendedThrough = 0
                         recurringLastSyncSignature = ""
                     }
+                    .settingsCardRow(.last)
 
                 }
 
@@ -217,6 +252,7 @@ struct SettingsView: View {
                     .onChange(of: endOfDayReminderEnabled) { _, enabled in
                         updateEndOfDayReminder(enabled: enabled)
                     }
+                    .settingsCardRow(.first)
 
                     HStack {
                         Text(locale.localized("Tijd"))
@@ -233,6 +269,7 @@ struct SettingsView: View {
                     }
                     .frame(height: 44)
                     .listRowInsets(EdgeInsets(top: 0, leading: 16, bottom: 0, trailing: 16))
+                    .settingsCardRow(.middle)
 
                     Button(action: sendTestReminder) {
                         if let testReminderCountdown {
@@ -258,6 +295,7 @@ struct SettingsView: View {
                     }
                     .disabled(isSendingTestReminder || testReminderCountdown != nil)
                     .animation(.smooth(duration: 0.35), value: testReminderCountdown)
+                    .settingsCardRow(.last)
                 } footer: {
                     Text(locale.localized("Je krijgt een overzicht van de openstaande taken van vandaag. Zijn er geen openstaande taken, dan wordt op de geplande tijd niets verstuurd. De melding is mogelijk niet zichtbaar als je telefoon in slaap- of nachtmodus staat."))
                 }
@@ -313,8 +351,10 @@ struct SettingsView: View {
                         }
                     }
                     .animation(.easeInOut(duration: 0.2), value: iCloudSyncEnabled)
+                    .settingsCardRow(.first)
 
                     Toggle("Verwijderde items tonen", isOn: $historyShowsDeletedItems)
+                        .settingsCardRow(.middle)
 
                     Toggle("Synchroniseer met iPhone Kalender", isOn: $calendarSyncEnabled)
                         .disabled(isRequestingCalendarAccess)
@@ -322,11 +362,13 @@ struct SettingsView: View {
                             guard enabled else { return }
                             requestCalendarAccess()
                         }
+                        .settingsCardRow(.middle)
 
                     Toggle(
                         locale.localized("Weer bij toekomstige dagen"),
                         isOn: weatherAgendaSelection
                     )
+                    .settingsCardRow(settingsIntegrationTailPosition)
 
                     if weatherInAgendaEnabled {
                         Button {
@@ -343,6 +385,7 @@ struct SettingsView: View {
                                     .lineLimit(1)
                             }
                         }
+                        .settingsCardRow(weatherLocationTailPosition)
 
                         if !weatherLastError.isEmpty {
                             VStack(alignment: .leading, spacing: 8) {
@@ -376,17 +419,20 @@ struct SettingsView: View {
                                 }
                                 .font(.footnote.weight(.semibold))
                             }
+                            .settingsCardRow(weatherErrorTailPosition)
                         }
                     }
 
                     if isRequestingCalendarAccess {
                         ProgressView("Kalender synchroniseren…")
+                            .settingsCardRow(calendarProgressTailPosition)
                     }
 
                     if let calendarError {
                         Label(calendarError, systemImage: "exclamationmark.triangle.fill")
                             .font(.footnote)
                             .foregroundStyle(.orange)
+                            .settingsCardRow(calendarErrorTailPosition)
                     }
 
                     if calendarSyncEnabled {
@@ -396,6 +442,7 @@ struct SettingsView: View {
                             Label("Synchroniseer nu", systemImage: "arrow.triangle.2.circlepath")
                         }
                         .disabled(isRequestingCalendarAccess)
+                        .settingsCardRow(.last)
                     }
 
                 }
@@ -409,6 +456,7 @@ struct SettingsView: View {
                             systemImage: "externaldrive.badge.timemachine"
                         )
                     }
+                    .settingsCardRow(.first)
 
                     Button(action: exportHistory) {
                         Label(
@@ -416,6 +464,7 @@ struct SettingsView: View {
                             systemImage: "arrow.down.doc"
                         )
                     }
+                    .settingsCardRow(.last)
                 } footer: {
                     Text(locale.localized("Een volledige backup bevat actieve en afgeronde items, herhalingen en instellingen. CSV is alleen bedoeld als leesbaar historie-overzicht."))
                 }
@@ -455,6 +504,7 @@ struct SettingsView: View {
                     .accessibilityAction(named: locale.localized("Hele app resetten")) {
                         isConfirmingAppReset = true
                     }
+                    .settingsCardRow(.single)
                 }
             }
             .appFormBackground(lightBlueEnabled: defaultColorCombinationEnabled)
@@ -966,6 +1016,7 @@ private struct WeatherAgendaSetupView: View {
                 Section {
                     Text(locale.localizedFormat("weather.location.explanation", locale.appDisplayName))
                         .foregroundStyle(.secondary)
+                        .settingsCardRow(.first)
 
                     Button(action: useCurrentLocation) {
                         Label(
@@ -974,6 +1025,7 @@ private struct WeatherAgendaSetupView: View {
                         )
                     }
                     .disabled(isWorking)
+                    .settingsCardRow(.last)
                 } footer: {
                     Text(locale.localized("Je locatie wordt alleen gebruikt om het weer op te halen. De gekozen plaats wordt op dit apparaat bewaard."))
                 }
@@ -986,11 +1038,13 @@ private struct WeatherAgendaSetupView: View {
                     .textContentType(.addressCity)
                     .submitLabel(.done)
                     .onSubmit(useEnteredPlace)
+                    .settingsCardRow(.first)
 
                     Button(action: useEnteredPlace) {
                         Label(locale.localized("Gebruik deze plaats"), systemImage: "magnifyingglass")
                     }
                     .disabled(isWorking || place.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                    .settingsCardRow(.last)
                 }
 
                 if isWorking {
@@ -999,6 +1053,7 @@ private struct WeatherAgendaSetupView: View {
                             ProgressView()
                             Text(locale.localized("Locatie bepalen…"))
                         }
+                        .settingsCardRow(.single)
                     }
                 }
 
@@ -1006,6 +1061,7 @@ private struct WeatherAgendaSetupView: View {
                     Section {
                         Label(errorMessage, systemImage: "exclamationmark.triangle.fill")
                             .foregroundStyle(.orange)
+                            .settingsCardRow(.single)
                     }
                 }
             }
@@ -1127,6 +1183,7 @@ private struct ActionButtonSettingsView: View {
                 Text(locale.localizedFormat("lockscreen.widget.instructions", locale.appDisplayName))
                     .font(.footnote)
                     .foregroundStyle(.secondary)
+                    .settingsCardRow(.single)
             }
 
             Section("Aantal weergeven") {
@@ -1136,6 +1193,7 @@ private struct ActionButtonSettingsView: View {
                     }
                 }
                 .pickerStyle(.segmented)
+                .settingsCardRow(.single)
             }
 
             Section("Voorbeeld") {
@@ -1148,17 +1206,31 @@ private struct ActionButtonSettingsView: View {
                     locale: locale
                 )
                 .listRowInsets(EdgeInsets(top: 12, leading: 16, bottom: 12, trailing: 16))
+                .settingsCardRow(.single)
             }
 
             Section("Weergave") {
-                Picker("Inhoud", selection: $content) {
-                    ForEach(ActionButtonContentOption.allCases) { option in
-                        Text(option.title(for: locale)).tag(option.rawValue)
+                let options = ActionButtonContentOption.allCases
+                ForEach(options.indices, id: \.self) { index in
+                    let option = options[index]
+                    Button {
+                        content = option.rawValue
+                    } label: {
+                        HStack {
+                            Text(option.title(for: locale))
+                            Spacer()
+                            if option == selectedContent {
+                                Image(systemName: "checkmark")
+                                    .fontWeight(.semibold)
+                                    .foregroundStyle(Color.brandHardBlue)
+                            }
+                        }
+                        .contentShape(Rectangle())
                     }
+                    .buttonStyle(.plain)
+                    .foregroundStyle(Color.appPrimaryText)
+                    .settingsCardRow(.row(at: index, count: options.count))
                 }
-                .pickerStyle(.inline)
-                .labelsHidden()
-                .tint(Color.appPrimaryText)
             }
 
             Section("Tekst") {
@@ -1190,6 +1262,7 @@ private struct ActionButtonSettingsView: View {
                     }
                     .tint(Color.appPrimaryText)
                 }
+                .settingsCardRow(selectedContent == .todayAndTomorrow ? .first : .single)
 
                 if selectedContent == .todayAndTomorrow {
                     HStack {
@@ -1225,6 +1298,7 @@ private struct ActionButtonSettingsView: View {
                         }
                         .tint(Color.appPrimaryText)
                     }
+                    .settingsCardRow(.last)
                 }
             }
         }
@@ -1626,7 +1700,9 @@ private struct LockScreenWidgetSettingsPreview: View {
             return Array(todoItems.prefix(itemCount))
         }
         if content == .today {
-            return Array(calendarItems.filter { $0.dayOffset == 0 }.prefix(itemCount))
+            return Array(calendarItems.prefix(itemCount)).map {
+                PreviewItem(title: $0.title, dayOffset: 0)
+            }
         }
         return Array(calendarItems.filter { $0.dayOffset <= 1 }.prefix(itemCount))
     }
@@ -1775,6 +1851,7 @@ private struct HomeWidgetSettingsView: View {
                     }
                 }
                 .pickerStyle(.segmented)
+                .settingsCardRow(.first)
 
                 HomeWidgetSettingsPreview(
                     family: previewFamily,
@@ -1793,6 +1870,7 @@ private struct HomeWidgetSettingsView: View {
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 8)
                 .animation(.easeInOut(duration: 0.2), value: previewFamily)
+                .settingsCardRow(.last)
             }
 
             Section {
@@ -1804,6 +1882,7 @@ private struct HomeWidgetSettingsView: View {
                     }
                 }
                 .tint(Color.appPrimaryText)
+                .settingsCardRow(.first)
 
                 Picker("Kalenderperiode", selection: $calendarRange) {
                     ForEach(HomeWidgetCalendarRangeOption.allCases) { option in
@@ -1813,6 +1892,7 @@ private struct HomeWidgetSettingsView: View {
                     }
                 }
                 .tint(Color.appPrimaryText)
+                .settingsCardRow(.middle)
 
                 Picker("Datumweergave", selection: $datePrefix) {
                     Text("0 = vandaag, 1 = morgen")
@@ -1823,6 +1903,7 @@ private struct HomeWidgetSettingsView: View {
                         .tag(ActionButtonDatePrefixOption.date.rawValue)
                 }
                 .tint(Color.appPrimaryText)
+                .settingsCardRow(.middle)
 
                 Picker("Takenweergave", selection: $todoCategoryID) {
                     Text("Bovenste taken")
@@ -1835,6 +1916,7 @@ private struct HomeWidgetSettingsView: View {
                     }
                 }
                 .tint(Color.appPrimaryText)
+                .settingsCardRow(.middle)
 
                 Picker("Lange tekst", selection: $textFlow) {
                     ForEach([HomeWidgetTextFlowOption.wrap, .truncate]) { option in
@@ -1844,10 +1926,14 @@ private struct HomeWidgetSettingsView: View {
                     }
                 }
                 .tint(Color.appPrimaryText)
+                .settingsCardRow(.middle)
 
                 Toggle("Titel laten zien", isOn: $showsTitle)
+                    .settingsCardRow(.middle)
                 Toggle("Lichtblauwe widgetkleur", isOn: usesLightBlueBackground)
+                    .settingsCardRow(.middle)
                 Toggle("Slimme weergave", isOn: $showsOtherWhenEmpty)
+                    .settingsCardRow(.last)
             } footer: {
                 Text("Bij slimme weergave worden Taken over de volledige breedte getoond als er geen kalenderitems zijn, en andersom. Zo wordt er minder snel tekst afgesneden.")
 
@@ -1920,41 +2006,93 @@ private struct ActionButtonCaptureSettingsView: View {
                     startsVoiceRecording: startsVoiceRecording
                 )
                 .listRowInsets(EdgeInsets(top: 12, leading: 12, bottom: 12, trailing: 12))
+                .settingsCardRow(.first)
 
                 Text(locale.localized("De Actieknop is alleen beschikbaar op iPhone 15 Pro en nieuwere modellen. Stel op je iPhone bij Instellingen › Actieknop › Opdracht de opdracht ‘Nieuwe taak’ in."))
                     .font(.footnote)
                     .foregroundStyle(.secondary)
+                    .settingsCardRow(.last)
             }
 
             Section("Bij indrukken") {
-                Picker("Openen", selection: $launchMode) {
-                    ForEach(ActionButtonLaunchMode.allCases) { option in
-                        Text(option.title(for: locale)).tag(option.rawValue)
+                let options = ActionButtonLaunchMode.allCases
+                ForEach(options.indices, id: \.self) { index in
+                    let option = options[index]
+                    Button {
+                        launchMode = option.rawValue
+                    } label: {
+                        HStack {
+                            Text(option.title(for: locale))
+                            Spacer()
+                            if option == selectedLaunchMode {
+                                Image(systemName: "checkmark")
+                                    .fontWeight(.semibold)
+                                    .foregroundStyle(Color.brandHardBlue)
+                            }
+                        }
+                        .contentShape(Rectangle())
                     }
+                    .buttonStyle(.plain)
+                    .foregroundStyle(Color.appPrimaryText)
+                    .settingsCardRow(.row(at: index, count: options.count))
                 }
-                .pickerStyle(.inline)
-                .labelsHidden()
-                .tint(Color.appPrimaryText)
             }
 
             Section("Standaardbestemming") {
-                Picker("Bestemming", selection: destinationBinding) {
-                    ForEach(groups) { group in
-                        Label(group.title, systemImage: group.icon)
-                            .tag(group.id)
+                ForEach(groups.indices, id: \.self) { index in
+                    let group = groups[index]
+                    Button {
+                        destinationBinding.wrappedValue = group.id
+                    } label: {
+                        HStack {
+                            Label {
+                                Text(group.title)
+                            } icon: {
+                                Image(systemName: group.icon)
+                                    .foregroundStyle(Color.brandHardBlue)
+                            }
+                            Spacer()
+                            if destinationBinding.wrappedValue == group.id {
+                                Image(systemName: "checkmark")
+                                    .fontWeight(.semibold)
+                                    .foregroundStyle(Color.brandHardBlue)
+                            }
+                        }
+                        .contentShape(Rectangle())
                     }
-
-                    Label("Kalender vandaag", systemImage: "calendar")
-                        .tag(Self.calendarDestinationID)
+                    .buttonStyle(.plain)
+                    .foregroundStyle(Color.appPrimaryText)
+                    .settingsCardRow(.row(at: index, count: groups.count + 1))
                 }
-                .pickerStyle(.inline)
-                .labelsHidden()
-                .tint(Color.appPrimaryText)
+
+                Button {
+                    destinationBinding.wrappedValue = Self.calendarDestinationID
+                } label: {
+                    HStack {
+                        Label {
+                            Text("Kalender vandaag")
+                        } icon: {
+                            Image(systemName: "calendar")
+                                .foregroundStyle(Color.brandHardBlue)
+                        }
+                        Spacer()
+                        if destinationBinding.wrappedValue == Self.calendarDestinationID {
+                            Image(systemName: "checkmark")
+                                .fontWeight(.semibold)
+                                .foregroundStyle(Color.brandHardBlue)
+                        }
+                    }
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .foregroundStyle(Color.appPrimaryText)
+                .settingsCardRow(groups.isEmpty ? .single : .last)
             }
 
             if selectedLaunchMode == .fullApp {
                 Section("Spraakinvoer") {
                     Toggle("Direct spraak opnemen", isOn: $startsVoiceRecording)
+                        .settingsCardRow(.single)
                 }
             }
         }

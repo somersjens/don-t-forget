@@ -116,6 +116,78 @@ enum DefaultColorCombination {
     }
 }
 
+enum SettingsCardRowPosition {
+    case single
+    case first
+    case middle
+    case last
+
+    var roundsTop: Bool { self == .single || self == .first }
+    var roundsBottom: Bool { self == .single || self == .last }
+
+    static func row(at index: Int, count: Int) -> Self {
+        guard count > 1 else { return .single }
+        if index == 0 { return .first }
+        if index == count - 1 { return .last }
+        return .middle
+    }
+}
+
+private let settingsCardCornerRadius: CGFloat = 28
+
+private struct SettingsCardRowShape: Shape {
+    let position: SettingsCardRowPosition
+
+    func path(in rect: CGRect) -> Path {
+        Path(
+            roundedRect: rect,
+            cornerRadii: RectangleCornerRadii(
+                topLeading: position.roundsTop ? settingsCardCornerRadius : 0,
+                bottomLeading: position.roundsBottom ? settingsCardCornerRadius : 0,
+                bottomTrailing: position.roundsBottom ? settingsCardCornerRadius : 0,
+                topTrailing: position.roundsTop ? settingsCardCornerRadius : 0
+            ),
+            style: .continuous
+        )
+    }
+}
+
+private struct SettingsCardOuterBorder: View {
+    let position: SettingsCardRowPosition
+
+    var body: some View {
+        SettingsCardRowShape(position: position)
+            .stroke(Color.appCardOutline, lineWidth: 1)
+            .padding(0.5)
+            .overlay(alignment: .top) {
+                if !position.roundsTop {
+                    Color.appCardBackground
+                        .frame(height: 2)
+                        .padding(.horizontal, 1)
+                }
+            }
+            .overlay(alignment: .bottom) {
+                if !position.roundsBottom {
+                    Color.appCardBackground
+                        .frame(height: 2)
+                        .padding(.horizontal, 1)
+                }
+            }
+    }
+}
+
+private struct SettingsCardRowBackground: View {
+    let position: SettingsCardRowPosition
+
+    var body: some View {
+        SettingsCardRowShape(position: position)
+            .fill(Color.appCardBackground)
+            .overlay {
+                SettingsCardOuterBorder(position: position)
+            }
+    }
+}
+
 private struct AppFormBackgroundModifier: ViewModifier {
     @Environment(\.colorScheme) private var colorScheme
     let lightBlueEnabled: Bool
@@ -149,6 +221,10 @@ private struct AppThemeForegroundModifier: ViewModifier {
 }
 
 extension View {
+    func settingsCardRow(_ position: SettingsCardRowPosition) -> some View {
+        listRowBackground(SettingsCardRowBackground(position: position))
+    }
+
     func appFormBackground(lightBlueEnabled: Bool) -> some View {
         modifier(AppFormBackgroundModifier(lightBlueEnabled: lightBlueEnabled))
     }
