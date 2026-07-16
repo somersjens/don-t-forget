@@ -78,7 +78,6 @@ private enum RecurringCategoryIcons {
 }
 
 private enum RecurringCategoryStore {
-    static let maxCount = 10
     static let birthdayID = RecurringTheme.birthday.rawValue
     static let generalID = RecurringTheme.general.rawValue
     static let holidayID = "holidays"
@@ -137,7 +136,7 @@ private enum RecurringCategoryStore {
 
         for category in categories {
             let id = category.id.trimmingCharacters(in: .whitespacesAndNewlines)
-            guard !id.isEmpty, !seen.contains(id), result.count < maxCount else {
+            guard !id.isEmpty, !seen.contains(id) else {
                 continue
             }
 
@@ -166,14 +165,12 @@ private enum RecurringCategoryStore {
 
         if !seen.contains(birthdayID),
            let birthday = defaults.first(where: { $0.id == birthdayID }) {
-            if result.count >= maxCount { result.removeLast() }
             result.insert(birthday, at: 0)
             seen.insert(birthdayID)
         }
 
         if !seen.contains(holidayID),
            let holiday = defaults.first(where: { $0.id == holidayID }) {
-            if result.count >= maxCount { result.removeLast() }
             let insertionIndex = min(1, result.count)
             result.insert(holiday, at: insertionIndex)
             seen.insert(holidayID)
@@ -359,6 +356,8 @@ struct RecurringView: View {
                             leadingColumnWidth: leadingColumnWidth,
                             showNextDate: showNextDate,
                             compactRows: compactCategoryIDs.contains(category.id),
+                            categoryIndex: index,
+                            categoryCount: currentCategories.count,
                             canMoveUp: index > 0,
                             canMoveDown: index < currentCategories.count - 1,
                             canDeleteCategory: items.isEmpty && (
@@ -371,6 +370,8 @@ struct RecurringView: View {
                             delete: { deleteCategory(category.id) },
                             moveUp: { moveCategory(from: index, direction: -1) },
                             moveDown: { moveCategory(from: index, direction: 1) },
+                            moveToTop: { moveCategory(from: index, to: 0) },
+                            moveToBottom: { moveCategory(from: index, to: currentCategories.count - 1) },
                             addItem: {
                                 if category.id == RecurringCategoryStore.holidayID {
                                     showingHolidayManager = true
@@ -389,13 +390,11 @@ struct RecurringView: View {
                         )
                     }
 
-                    if currentCategories.count < RecurringCategoryStore.maxCount {
-                        NewRecurringCategoryLine(
-                            text: $newCategoryTitle,
-                            add: addCategory,
-                            isOnboardingHighlighted: visibleTutorialStep == 0
-                        )
-                    }
+                    NewRecurringCategoryLine(
+                        text: $newCategoryTitle,
+                        add: addCategory,
+                        isOnboardingHighlighted: visibleTutorialStep == 0
+                    )
                 }
                 .padding(.horizontal, 14)
                 .padding(.vertical, 14)
@@ -603,7 +602,7 @@ struct RecurringView: View {
 
     private func addCategory() {
         let title = newCategoryTitle.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !title.isEmpty, categories.count < RecurringCategoryStore.maxCount else {
+        guard !title.isEmpty else {
             return
         }
 
@@ -678,13 +677,17 @@ struct RecurringView: View {
     }
 
     private func moveCategory(from index: Int, direction: Int) {
+        moveCategory(from: index, to: index + direction)
+    }
+
+    private func moveCategory(from index: Int, to newIndex: Int) {
         var updated = categories
-        let newIndex = index + direction
-        guard updated.indices.contains(index), updated.indices.contains(newIndex) else {
+        guard updated.indices.contains(index), updated.indices.contains(newIndex), index != newIndex else {
             return
         }
 
-        updated.swapAt(index, newIndex)
+        let category = updated.remove(at: index)
+        updated.insert(category, at: newIndex)
 
         withAnimation(.easeOut(duration: 0.13)) {
             categories = updated
@@ -934,6 +937,8 @@ private struct RecurringThemeCard: View {
     let leadingColumnWidth: CGFloat
     let showNextDate: Bool
     let compactRows: Bool
+    let categoryIndex: Int
+    let categoryCount: Int
     let canMoveUp: Bool
     let canMoveDown: Bool
     let canDeleteCategory: Bool
@@ -943,6 +948,8 @@ private struct RecurringThemeCard: View {
     let delete: () -> Void
     let moveUp: () -> Void
     let moveDown: () -> Void
+    let moveToTop: () -> Void
+    let moveToBottom: () -> Void
     let addItem: () -> Void
     let edit: (RecurringItem) -> Void
     let manageHolidays: (() -> Void)?
@@ -1222,9 +1229,21 @@ private struct RecurringThemeCard: View {
     }
 
     private var categoryActionsPopover: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            categoryActionButton("Omhoog verplaatsen", systemImage: "arrow.up", enabled: canMoveUp, action: moveUp)
-            categoryActionButton("Omlaag verplaatsen", systemImage: "arrow.down", enabled: canMoveDown, action: moveDown)
+        let index = categoryIndex
+
+        return VStack(alignment: .leading, spacing: 0) {
+            if index >= 2 {
+                categoryActionButton("Helemaal omhoog", systemImage: "chevron.up.2", action: moveToTop)
+            }
+            if canMoveUp {
+                categoryActionButton("Omhoog", systemImage: "arrow.up", action: moveUp)
+            }
+            if canMoveDown {
+                categoryActionButton("Omlaag", systemImage: "arrow.down", action: moveDown)
+            }
+            if categoryCount - 1 - index >= 2 {
+                categoryActionButton("Helemaal omlaag", systemImage: "chevron.down.2", action: moveToBottom)
+            }
 
             if canDelete {
                 Divider()
@@ -1249,7 +1268,6 @@ private struct RecurringThemeCard: View {
     private func categoryActionButton(
         _ title: LocalizedStringKey,
         systemImage: String,
-        enabled: Bool,
         action: @escaping () -> Void
     ) -> some View {
         Button {
@@ -1262,8 +1280,6 @@ private struct RecurringThemeCard: View {
                 .padding(.vertical, 11)
         }
         .buttonStyle(.plain)
-        .disabled(!enabled)
-        .opacity(enabled ? 1 : 0.35)
     }
 
     private func performCategoryAction(_ action: () -> Void) {
@@ -2025,6 +2041,8 @@ private struct RecurringEditorView: View {
     @State private var draft: RecurringDraft
     @State private var editingLinkNameIndex: Int?
     @State private var datePickerResetID = UUID()
+    @State private var showsTitleRequiredError = false
+    @State private var titleRequiredErrorTask: Task<Void, Never>?
     @FocusState private var focusedField: FocusedField?
 
     private enum FocusedField: Hashable {
@@ -2071,7 +2089,8 @@ private struct RecurringEditorView: View {
                     Button("Annuleer") { dismiss() }
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Bewaar") { save() }.disabled(!draft.canSave)
+                    Button("Bewaar") { save() }
+                        .disabled(!draft.canSaveWithoutTitle)
                 }
             }
             .onAppear {
@@ -2217,12 +2236,15 @@ private struct RecurringEditorView: View {
             .font(.body)
             .tint(.primary)
             if let item {
-                Button("Verwijder herhaling", role: .destructive) {
+                Button(role: .destructive) {
                     item.isRemoved = true
                     item.completedAt = .now
                     _ = PersistenceSafety.save(modelContext)
                     deleted(item)
                     dismiss()
+                } label: {
+                    Label("Verwijder herhaling", systemImage: "trash")
+                        .foregroundStyle(.red)
                 }
             }
         } header: {
@@ -2237,12 +2259,22 @@ private struct RecurringEditorView: View {
     }
 
     private var titleTextField: some View {
-        TextField(titlePlaceholder, text: $draft.title)
+        TextField(
+            text: $draft.title,
+            prompt: Text(showsTitleRequiredError
+                ? locale.localized("Verplicht veld")
+                : titlePlaceholder
+            )
+            .foregroundStyle(showsTitleRequiredError ? .blue : .secondary)
+        ) {}
             .font(.body)
             .focused($focusedField, equals: .title)
             // A UITextField's intrinsic height can change when it becomes first
             // responder. Keep the Form row content at its final body-text size.
             .frame(height: 22)
+            .simultaneousGesture(TapGesture().onEnded {
+                clearTitleRequiredError()
+            })
     }
 
     @ViewBuilder private var frequencySection: some View {
@@ -2716,6 +2748,13 @@ private struct RecurringEditorView: View {
     }
 
     private func save() {
+        guard !draft.title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            showTitleRequiredError()
+            focusedField = .title
+            return
+        }
+        guard draft.canSaveWithoutTitle else { return }
+
         let target = item ?? RecurringItem()
         let isNewItem = item == nil
         draft.normalizeBeforeSaving()
@@ -2726,6 +2765,21 @@ private struct RecurringEditorView: View {
             NotificationCenter.default.post(name: .recurringSyncRequested, object: target.id)
         }
         dismiss()
+    }
+
+    private func showTitleRequiredError() {
+        titleRequiredErrorTask?.cancel()
+        showsTitleRequiredError = true
+        titleRequiredErrorTask = Task { @MainActor in
+            try? await Task.sleep(for: .seconds(1))
+            guard !Task.isCancelled else { return }
+            showsTitleRequiredError = false
+        }
+    }
+
+    private func clearTitleRequiredError() {
+        titleRequiredErrorTask?.cancel()
+        showsTitleRequiredError = false
     }
 }
 
@@ -2821,8 +2875,12 @@ private struct RecurringDraft {
     }
 
     var canSave: Bool {
-        guard !title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return false }
-        return kind != .birthday || (isBirthdayYearValid && resolvedBirthDate != nil)
+        !title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            && canSaveWithoutTitle
+    }
+
+    var canSaveWithoutTitle: Bool {
+        kind != .birthday || (isBirthdayYearValid && resolvedBirthDate != nil)
     }
 
     var resolvedBirthDate: Date? {

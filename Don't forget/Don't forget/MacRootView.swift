@@ -535,6 +535,178 @@ private struct MacHistoryItem: Identifiable {
     }
 }
 
+private struct MacHistoryChartBucket: Identifiable {
+    let start: Date
+    let label: String
+    let count: Int
+    let isCurrent: Bool
+
+    var id: Date { start }
+}
+
+private enum MacHistoryChartPeriod: String, Identifiable {
+    case days
+    case weeks
+    case months
+
+    var id: String { rawValue }
+
+    func title(for locale: Locale) -> String {
+        switch self {
+        case .days: locale.localized("Afgelopen 7 dagen")
+        case .weeks: locale.localized("Afgelopen 10 weken")
+        case .months: locale.localized("Afgelopen 12 maanden")
+        }
+    }
+
+    // Keep these thresholds aligned with the iOS history charts.
+    static func available(for dates: [Date]) -> [MacHistoryChartPeriod] {
+        var periods: [MacHistoryChartPeriod] = [.days]
+        guard let oldest = dates.min() else { return periods }
+
+        let calendar = AppCalendar.calendar
+        let today = AppCalendar.startOfDay(.now)
+        let fourteenDaysAgo = calendar.date(byAdding: .day, value: -14, to: today) ?? today
+        if oldest < fourteenDaysAgo {
+            periods.append(.weeks)
+        }
+
+        let currentMonth = calendar.dateInterval(of: .month, for: today)?.start ?? today
+        let twoMonthsAgo = calendar.date(byAdding: .month, value: -2, to: currentMonth) ?? currentMonth
+        if oldest < twoMonthsAgo {
+            periods.append(.months)
+        }
+
+        return periods
+    }
+
+    func buckets(for dates: [Date]) -> [MacHistoryChartBucket] {
+        let calendar = AppCalendar.calendar
+        let today = AppCalendar.startOfDay(.now)
+        let currentStart: Date
+        let component: Calendar.Component
+        let numberOfBuckets: Int
+
+        switch self {
+        case .days:
+            currentStart = today
+            component = .day
+            numberOfBuckets = 7
+        case .weeks:
+            currentStart = calendar.dateInterval(of: .weekOfYear, for: today)?.start ?? today
+            component = .weekOfYear
+            numberOfBuckets = 10
+        case .months:
+            currentStart = calendar.dateInterval(of: .month, for: today)?.start ?? today
+            component = .month
+            numberOfBuckets = 12
+        }
+
+        return (0..<numberOfBuckets).map { index in
+            let offset = index - (numberOfBuckets - 1)
+            let start = calendar.date(byAdding: component, value: offset, to: currentStart) ?? currentStart
+            let end = calendar.date(byAdding: component, value: 1, to: start) ?? start
+            return MacHistoryChartBucket(
+                start: start,
+                label: label(for: start, calendar: calendar),
+                count: dates.count { $0 >= start && $0 < end },
+                isCurrent: index == numberOfBuckets - 1
+            )
+        }
+    }
+
+    private func label(for date: Date, calendar: Calendar) -> String {
+        switch self {
+        case .days: AppCalendar.localizedDate(date, template: "EEE")
+        case .weeks: "w\(calendar.component(.weekOfYear, from: date))"
+        case .months: AppCalendar.localizedDate(date, template: "MMM")
+        }
+    }
+}
+
+private struct MacHistoryCharts: View {
+    let completionDates: [Date]
+
+    var body: some View {
+        VStack(spacing: 18) {
+            ForEach(MacHistoryChartPeriod.available(for: completionDates)) { period in
+                MacHistoryBarChart(period: period, buckets: period.buckets(for: completionDates))
+            }
+        }
+    }
+}
+
+private struct MacHistoryBarChart: View {
+    @Environment(\.locale) private var locale
+
+    static let layoutHeight: CGFloat = 200
+
+    let period: MacHistoryChartPeriod
+    let buckets: [MacHistoryChartBucket]
+
+    private var yMaximum: Double {
+        let highest = buckets.map(\.count).max() ?? 0
+        return Double(highest + max(1, Int(ceil(Double(highest) * 0.15))))
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            Text(period.title(for: locale))
+                .font(.headline)
+
+            Chart(buckets) { bucket in
+                BarMark(
+                    x: .value("Periode", bucket.label),
+                    y: .value("Afgerond", bucket.count),
+                    width: .ratio(0.62)
+                )
+                .foregroundStyle(bucket.isCurrent ? Color.brandHardBlue : Color.brandHardBlue.opacity(0.52))
+                .clipShape(UnevenRoundedRectangle(
+                    topLeadingRadius: 4,
+                    bottomLeadingRadius: 0,
+                    bottomTrailingRadius: 0,
+                    topTrailingRadius: 4
+                ))
+                .annotation(position: .top, spacing: 3) {
+                    if bucket.isCurrent {
+                        Text("\(bucket.count)")
+                            .font(.system(size: 10, weight: .semibold))
+                            .foregroundStyle(Color.secondary)
+                    }
+                }
+            }
+            .chartXScale(domain: buckets.map(\.label))
+            .chartYScale(domain: 0...yMaximum)
+            .chartXAxis {
+                AxisMarks { _ in
+                    AxisValueLabel()
+                        .font(.system(size: 9, weight: .medium))
+                        .foregroundStyle(Color.secondary)
+                }
+            }
+            .chartYAxis {
+                AxisMarks(position: .leading, values: .automatic(desiredCount: 4)) { _ in
+                    AxisGridLine().foregroundStyle(Color.secondary.opacity(0.18))
+                    AxisValueLabel()
+                        .font(.system(size: 9, weight: .medium))
+                        .foregroundStyle(Color.secondary)
+                }
+            }
+            .frame(height: 136)
+        }
+        .padding(12)
+        .background(
+            Color.appThemeColor(lightBlue: .brandCanvasBlue, gray: .clear),
+            in: RoundedRectangle(cornerRadius: 10)
+        )
+        .frame(height: Self.layoutHeight, alignment: .top)
+        .transaction { transaction in
+            transaction.animation = nil
+            transaction.disablesAnimations = true
+        }
+    }
+}
+
 private struct MacHistoryBoard: View {
     @Environment(\.locale) private var locale
     @Environment(\.modelContext) private var modelContext
@@ -592,12 +764,11 @@ private struct MacHistoryBoard: View {
     }
     private var filteredItems: [MacHistoryItem] { items.filter { filter == .all || $0.filter == filter } }
     private var completedItems: [MacHistoryItem] { filteredItems.filter { !$0.isRemoved } }
-    private var chartDays: [(date: Date, count: Int)] {
-        let today = AppCalendar.startOfDay(.now)
-        return (-6...0).map { offset in
-            let date = AppCalendar.calendar.date(byAdding: .day, value: offset, to: today) ?? today
-            return (date, completedItems.count { AppCalendar.calendar.isDate($0.completedAt, inSameDayAs: date) })
-        }
+    private var chartPeriods: [MacHistoryChartPeriod] {
+        MacHistoryChartPeriod.available(for: completedItems.map(\.completedAt))
+    }
+    private var chartsHeight: CGFloat {
+        28 + (CGFloat(chartPeriods.count) * MacHistoryBarChart.layoutHeight) + (CGFloat(max(0, chartPeriods.count - 1)) * 18)
     }
 
     var body: some View {
@@ -730,51 +901,14 @@ private struct MacHistoryBoard: View {
                 .padding(.horizontal, 14)
                 .frame(height: isChartExpanded ? 1 : 0)
                 .clipped()
-            weekChart
-                .frame(maxWidth: .infinity)
-                .frame(height: 225)
+            MacHistoryCharts(completionDates: completedItems.map(\.completedAt))
                 .padding(14)
-                .frame(height: isChartExpanded ? 253 : 0, alignment: .top)
+                .frame(height: isChartExpanded ? chartsHeight : 0, alignment: .top)
                 .clipped()
         }
         .animation(.snappy(duration: 0.38, extraBounce: 0), value: isChartExpanded)
         .background(Color.appCardBackground, in: RoundedRectangle(cornerRadius: 14))
         .overlay { RoundedRectangle(cornerRadius: 14).stroke(Color.appCardOutline) }
-    }
-
-    private var weekChart: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text("Afgelopen 7 dagen")
-                .font(.system(size: 14, weight: .semibold))
-            Chart(chartDays, id: \.date) { day in
-                BarMark(x: .value("Dag", day.date, unit: .day), y: .value("Aantal", day.count))
-                    .foregroundStyle(filter.color.gradient)
-                    .cornerRadius(5)
-                    .annotation(position: .top, spacing: 2) {
-                        if day.count > 0 { Text("\(day.count)").font(.caption2).foregroundStyle(.secondary) }
-                    }
-            }
-            .chartYScale(domain: 0...max(1, (chartDays.map(\.count).max() ?? 0) + 1))
-            .chartXAxis {
-                AxisMarks(values: .stride(by: .day)) { value in
-                    AxisValueLabel(centered: true) { if let date = value.as(Date.self) { Text(shortWeekday(date)) } }
-                    AxisTick().foregroundStyle(Color.secondary.opacity(0.35))
-                }
-            }
-            .chartYAxis {
-                AxisMarks(position: .leading, values: .automatic(desiredCount: 4)) { value in
-                    AxisGridLine().foregroundStyle(Color.secondary.opacity(0.18))
-                    AxisTick().foregroundStyle(Color.secondary.opacity(0.35))
-                    AxisValueLabel { if let number = value.as(Int.self) { Text("\(number)") } }
-                }
-            }
-        }
-        .padding(12)
-        .background(
-            Color.appThemeColor(lightBlue: .brandCanvasBlue, gray: .clear),
-            in: RoundedRectangle(cornerRadius: 10)
-        )
-        .accessibilityLabel("Afgeronde items per dag over de afgelopen zeven dagen")
     }
 
     private func dayCard(date: Date, rows: [MacHistoryItem]) -> some View {
@@ -852,12 +986,6 @@ private struct MacHistoryBoard: View {
         if AppCalendar.calendar.isDateInYesterday(date) { return locale.localized("Gisteren") }
         return date.formatted(.dateTime.weekday(.wide).day().month(.wide).locale(locale))
     }
-    private func shortWeekday(_ date: Date) -> String {
-        let formatter = DateFormatter()
-        formatter.locale = locale
-        formatter.dateFormat = "EE"
-        return formatter.string(from: date).replacingOccurrences(of: ".", with: "")
-    }
     private func restore(_ item: MacHistoryItem) {
         dismissTask?.cancel(); item.restore(); restored = item; PersistenceSafety.save(modelContext)
         dismissTask = Task { try? await Task.sleep(for: .seconds(6)); if !Task.isCancelled { await MainActor.run { restored = nil } } }
@@ -907,7 +1035,6 @@ private struct MacTodoGroup: Codable, Identifiable {
 }
 
 private enum MacTodoGroupStore {
-    static let maxCount = 10
     static func decode(_ value: String) -> [MacTodoGroup] {
         if let data = value.data(using: .utf8), let groups = try? JSONDecoder().decode([MacTodoGroup].self, from: data), !groups.isEmpty { return groups }
         return [
@@ -971,7 +1098,7 @@ private struct MacTodoBoard: View {
                     groupCard(group, index: index)
                         .id(group.id)
                 }
-                if searchText.isEmpty && groups.count < MacTodoGroupStore.maxCount { newGroupRow }
+                if searchText.isEmpty { newGroupRow }
             }
             .padding(.horizontal, 18)
             .padding(.bottom, 18)
@@ -1272,10 +1399,18 @@ private struct MacTodoBoard: View {
         Menu {
             groupAppearanceMenu(group)
             Divider()
-            Button("Omhoog", systemImage: "arrow.up") { moveGroup(index, by: -1) }
-                .disabled(index == 0)
-            Button("Omlaag", systemImage: "arrow.down") { moveGroup(index, by: 1) }
-                .disabled(index == groups.count - 1)
+            if index >= 2 {
+                Button("Helemaal omhoog", systemImage: "chevron.up.2") { moveGroup(index, to: 0) }
+            }
+            if index >= 1 {
+                Button("Omhoog", systemImage: "arrow.up") { moveGroup(index, by: -1) }
+            }
+            if index < groups.count - 1 {
+                Button("Omlaag", systemImage: "arrow.down") { moveGroup(index, by: 1) }
+            }
+            if groups.count - 1 - index >= 2 {
+                Button("Helemaal omlaag", systemImage: "chevron.down.2") { moveGroup(index, to: groups.count - 1) }
+            }
             Divider()
             Button("Verwijder groep", systemImage: "trash", role: .destructive) { deleteGroup(group.id) }
                 .disabled(!isEmpty || groups.count == 1)
@@ -1408,7 +1543,7 @@ private struct MacTodoBoard: View {
     }
     private func addGroup() {
         let title = newGroupTitle.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !title.isEmpty, groups.count < MacTodoGroupStore.maxCount else { return }
+        guard !title.isEmpty else { return }
         var value = groups; value.append(MacTodoGroup(id: UUID().uuidString, title: title, icon: "list.bullet", colorRawValue: RecurringThemeColorOption.blue.rawValue))
         groups = value; newGroupTitle = ""
     }
@@ -1417,9 +1552,14 @@ private struct MacTodoBoard: View {
         mutate(&value[index]); groups = value
     }
     private func moveGroup(_ index: Int, by offset: Int) {
-        var value = groups; let target = index + offset
-        guard value.indices.contains(index), value.indices.contains(target) else { return }
-        value.swapAt(index, target); groups = value
+        moveGroup(index, to: index + offset)
+    }
+    private func moveGroup(_ index: Int, to target: Int) {
+        var value = groups
+        guard value.indices.contains(index), value.indices.contains(target), index != target else { return }
+        let group = value.remove(at: index)
+        value.insert(group, at: target)
+        groups = value
     }
     private func deleteGroup(_ id: String) {
         guard !todos.contains(where: { $0.bucketRawValue == id }) else { return }
@@ -1523,7 +1663,6 @@ private struct MacRecurringLink: Codable, Identifiable {
 private enum MacRecurringCategoryStore {
     static let birthdayID = RecurringTheme.birthday.rawValue
     static let holidayID = "holidays"
-    static let maxCount = 10
 
     static var defaults: [MacRecurringCategory] {[
         .init(id: birthdayID, title: "Verjaardagen", isFixed: true, colorRawValue: "blue", iconName: "birthday.cake.fill"),
@@ -1586,7 +1725,7 @@ private struct MacRecurringBoard: View {
                     categoryCard(category, index: index, displayItems: displayItems[category.id] ?? [])
                         .id(category.id)
                 }
-                if searchText.isEmpty && visibleCategories.count < MacRecurringCategoryStore.maxCount { newGroupRow }
+                if searchText.isEmpty { newGroupRow }
             }
             .padding(.horizontal, 18)
             .padding(.bottom, 18)
@@ -1813,8 +1952,18 @@ private struct MacRecurringBoard: View {
 
     private func categoryActionsMenu(_ category: MacRecurringCategory, index: Int, isEmpty: Bool) -> some View {
         Menu {
-            Button("Omhoog verplaatsen", systemImage: "arrow.up") { move(index, by: -1) }.disabled(index == 0)
-            Button("Omlaag verplaatsen", systemImage: "arrow.down") { move(index, by: 1) }.disabled(index == categories.count - 1)
+            if index >= 2 {
+                Button("Helemaal omhoog", systemImage: "chevron.up.2") { move(index, to: 0) }
+            }
+            if index >= 1 {
+                Button("Omhoog", systemImage: "arrow.up") { move(index, by: -1) }
+            }
+            if index < categories.count - 1 {
+                Button("Omlaag", systemImage: "arrow.down") { move(index, by: 1) }
+            }
+            if categories.count - 1 - index >= 2 {
+                Button("Helemaal omlaag", systemImage: "chevron.down.2") { move(index, to: categories.count - 1) }
+            }
             Divider()
             categoryAppearanceMenu(category)
             if !category.isFixed {
@@ -1994,7 +2143,14 @@ private struct MacRecurringBoard: View {
         categories = value; newGroupTitle = ""
     }
     private func update(_ id: String, mutate: (inout MacRecurringCategory) -> Void) { var value = categories; guard let i = value.firstIndex(where: { $0.id == id }) else { return }; mutate(&value[i]); categories = value }
-    private func move(_ index: Int, by offset: Int) { var value = categories; let target = index + offset; guard value.indices.contains(index), value.indices.contains(target) else { return }; value.swapAt(index, target); categories = value }
+    private func move(_ index: Int, by offset: Int) { move(index, to: index + offset) }
+    private func move(_ index: Int, to target: Int) {
+        var value = categories
+        guard value.indices.contains(index), value.indices.contains(target), index != target else { return }
+        let category = value.remove(at: index)
+        value.insert(category, at: target)
+        categories = value
+    }
     private func delete(_ id: String) { guard !items.contains(where: { $0.themeRawValue == id }) else { return }; var value = categories; value.removeAll { $0.id == id }; categories = value }
     private func repairUnknownCategories() { let valid = Set(categories.map(\.id)); guard let fallback = categories.first(where: { $0.id == RecurringTheme.general.rawValue })?.id ?? categories.first?.id else { return }; var changed = false; for item in items where !valid.contains(item.themeRawValue) { item.themeRawValue = fallback; changed = true }; if changed { save() } }
     private func finishCreatingItem() {
@@ -2098,6 +2254,7 @@ private struct MacHolidayManagerView: View {
     @State private var country = HolidayCountry.localeDefault
     @State private var selectedIDs: Set<String> = []
     @State private var customHoliday: RecurringItem?
+    @State private var showingCountryPicker = false
 
     private var options: [HolidayOption] { HolidayCatalog.options(for: country, onlyLocal: onlyLocal) }
     private var managedItems: [RecurringItem] { recurringItems.filter { HolidayCatalog.managedHoliday(from: $0.notes) != nil } }
@@ -2113,38 +2270,83 @@ private struct MacHolidayManagerView: View {
             }
             .padding(16)
 
-            Form {
-                Section {
-                    Picker("Standaardland", selection: $country) {
-                        ForEach(HolidayCountry.allCases) { Text($0.title(for: locale)).tag($0) }
+            ScrollView {
+                VStack(alignment: .leading, spacing: 24) {
+                    holidayCard("Instellingen") {
+                        HStack(spacing: 12) {
+                            Text("Standaardland")
+                            Spacer(minLength: 12)
+                            holidayOptionMenu(
+                                selection: $country,
+                                title: country.title(for: locale),
+                                options: HolidayCountry.allCases.map { ($0, $0.title(for: locale)) }
+                            )
+                        }
+                        .recurringEditorRow(height: 38)
+
+                        HStack(spacing: 12) {
+                            Text("Laat alleen lokale feestdagen zien")
+                            Spacer(minLength: 12)
+                            Toggle("", isOn: $onlyLocal)
+                                .labelsHidden()
+                                .toggleStyle(.switch)
+                                .tint(.brandHardBlue)
+                                .controlSize(.small)
+                        }
+                        .recurringEditorRow(height: 38, showsSeparator: false)
                     }
-                    Toggle("Laat alleen lokale feestdagen zien", isOn: $onlyLocal)
-                }
-                Section("Selectie") {
-                    Button(visibleSelectionCount == options.count ? "Deselecteer alles" : "Selecteer alles") {
-                        let ids = Set(options.map(\.id))
-                        if visibleSelectionCount == options.count { selectedIDs.subtract(ids) }
-                        else { selectedIDs.formUnion(ids) }
-                    }
-                    ForEach(options) { option in
-                        Toggle(isOn: selectionBinding(option.id)) {
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text(onlyLocal ? option.definition.title : "\(option.definition.title) (\(option.country.title(for: locale)))")
-                                Text(option.definition.recurrenceDescription).font(.caption).foregroundStyle(.secondary)
+
+                    holidayCard("Selectie") {
+                        HStack {
+                            Button(visibleSelectionCount == options.count ? "Alles deselecteren" : "Alles selecteren") {
+                                let ids = Set(options.map(\.id))
+                                if visibleSelectionCount == options.count { selectedIDs.subtract(ids) }
+                                else { selectedIDs.formUnion(ids) }
                             }
+                            .buttonStyle(.borderedProminent)
+                            .tint(.brandHardBlue)
+                            .controlSize(.small)
+                            Spacer()
+                            Text("\(visibleSelectionCount)/\(options.count)")
+                                .foregroundStyle(.secondary)
+                        }
+                        .recurringEditorRow(height: 42)
+
+                        ForEach(options) { option in
+                            HStack(spacing: 12) {
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text(onlyLocal ? option.definition.title : "\(option.definition.title) (\(option.country.title(for: locale)))")
+                                    Text(option.definition.recurrenceDescription)
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                }
+                                Spacer(minLength: 12)
+                                Toggle("", isOn: selectionBinding(option.id))
+                                    .labelsHidden()
+                                    .toggleStyle(.switch)
+                                    .tint(.brandHardBlue)
+                                    .controlSize(.small)
+                            }
+                            .recurringEditorRow(height: 48, showsSeparator: option.id != options.last?.id)
                         }
                     }
-                }
-                Section {
-                    Button("Eigen feestdag toevoegen", systemImage: "plus") {
-                        beginCustomHoliday()
+
+                    holidayCard("") {
+                        Button("Eigen feestdag toevoegen", systemImage: "plus") {
+                            beginCustomHoliday()
+                        }
+                        .buttonStyle(.plain)
+                        .recurringEditorRow(height: 38, showsSeparator: false)
                     }
-                } footer: {
                     Text("Maak een eigen feestdag met een vaste datum of een weekdag van de maand.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .padding(.horizontal, 2)
                 }
+                .padding(22)
+                .frame(maxWidth: 760, alignment: .leading)
+                .frame(maxWidth: .infinity, alignment: .center)
             }
-            .formStyle(.grouped)
-            .scrollContentBackground(.hidden)
         }
         .frame(minWidth: 480, minHeight: 560)
         .background(Color.appCanvasBackground)
@@ -2170,6 +2372,72 @@ private struct MacHolidayManagerView: View {
     }
 
     private var visibleSelectionCount: Int { selectedIDs.intersection(Set(options.map(\.id))).count }
+
+    private func holidayCard<Content: View>(
+        _ title: String,
+        @ViewBuilder content: () -> Content
+    ) -> some View {
+        VStack(alignment: .leading, spacing: 10) {
+            if !title.isEmpty { Text(title).font(.headline).padding(.leading, 1) }
+            VStack(spacing: 0) { content() }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.horizontal, 14)
+                .padding(.vertical, 10)
+                .background(Color.white, in: RoundedRectangle(cornerRadius: 14))
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private func holidayOptionMenu<Selection: Hashable>(
+        selection: Binding<Selection>,
+        title: String,
+        options: [(value: Selection, title: String)]
+    ) -> some View {
+        Button {
+            showingCountryPicker = true
+        } label: {
+            HStack(spacing: 7) {
+                Spacer(minLength: 0)
+                Text(title)
+                    .lineLimit(1)
+                    .foregroundStyle(.primary)
+                Image(systemName: "chevron.up.chevron.down")
+                    .font(.system(size: 8, weight: .semibold))
+                    .foregroundStyle(.secondary)
+                    .padding(.leading, 6)
+            }
+            .padding(.horizontal, 9)
+            .frame(minWidth: 150, minHeight: 28)
+            .background(Color.white, in: RoundedRectangle(cornerRadius: 7))
+        }
+        .buttonStyle(.plain)
+        .popover(isPresented: $showingCountryPicker, arrowEdge: .bottom) {
+            VStack(alignment: .leading, spacing: 2) {
+                ForEach(Array(options.enumerated()), id: \.offset) { _, option in
+                    Button {
+                        selection.wrappedValue = option.value
+                        showingCountryPicker = false
+                    } label: {
+                        HStack(spacing: 8) {
+                            Text(option.title)
+                            Spacer(minLength: 12)
+                            if selection.wrappedValue == option.value {
+                                Image(systemName: "checkmark")
+                                    .font(.system(size: 11, weight: .semibold))
+                            }
+                        }
+                        .foregroundStyle(.primary)
+                        .padding(.horizontal, 10)
+                        .frame(minHeight: 28)
+                    }
+                    .buttonStyle(.plain)
+                    .contentShape(RoundedRectangle(cornerRadius: 5))
+                }
+            }
+            .padding(6)
+            .frame(minWidth: 150)
+        }
+    }
     private func selectionBinding(_ id: String) -> Binding<Bool> {
         Binding(get: { selectedIDs.contains(id) }, set: { isSelected in
             if isSelected { selectedIDs.insert(id) } else { selectedIDs.remove(id) }
@@ -2226,8 +2494,11 @@ private struct MacRecurringEditor: View {
     @State private var birthdayYearText = ""
     @State private var currentAgeText = ""
     @State private var editingLinkNameIndex: Int?
+    @State private var showingDatePicker = false
+    @State private var presentedOptionMenu: String?
 
-    private let rowHeight: CGFloat = 36
+    private let rowHeight: CGFloat = 38
+    private let optionFill = Color.primary.opacity(0.075)
 
     private var categories: [MacRecurringCategory] {
         MacRecurringCategoryStore.decode(categoriesData)
@@ -2278,60 +2549,156 @@ private struct MacRecurringEditor: View {
     private func editorCard<Content: View>(_ title: LocalizedStringKey, @ViewBuilder content: () -> Content) -> some View {
         VStack(alignment: .leading, spacing: 12) {
             Text(title).font(.headline).padding(.leading, 1)
-            VStack(spacing: 12) { content() }
+            VStack(spacing: 0) { content() }
                 .font(.body)
                 .padding(.horizontal, 14).padding(.vertical, 12)
                 .background(Color.white, in: RoundedRectangle(cornerRadius: 14))
         }
     }
 
-    private var editorDivider: some View { Divider().opacity(0.35) }
+    private func optionMenu<Selection: Hashable>(
+        selection: Binding<Selection>,
+        title: String,
+        minWidth: CGFloat = 128,
+        id: String? = nil,
+        options: [(value: Selection, title: String)]
+    ) -> some View {
+        let menuID = id ?? title
+        return Button {
+            presentedOptionMenu = menuID
+        } label: {
+            HStack(spacing: 0) {
+                Spacer(minLength: 0)
+                Text(title)
+                    .lineLimit(1)
+                    .multilineTextAlignment(.trailing)
+                    .foregroundStyle(.primary)
+                Image(systemName: "chevron.up.chevron.down")
+                    .font(.system(size: 8, weight: .semibold))
+                    .foregroundStyle(.secondary)
+                    .padding(.leading, 6)
+            }
+            .padding(.horizontal, 9)
+            .frame(minWidth: minWidth, minHeight: 28)
+            .background(Color.white, in: RoundedRectangle(cornerRadius: 7))
+            .contentShape(RoundedRectangle(cornerRadius: 7))
+        }
+        .buttonStyle(.plain)
+        .popover(
+            isPresented: Binding(
+                get: { presentedOptionMenu == menuID },
+                set: { if !$0 { presentedOptionMenu = nil } }
+            ),
+            arrowEdge: .bottom
+        ) {
+            VStack(alignment: .leading, spacing: 2) {
+                ForEach(Array(options.enumerated()), id: \.offset) { _, option in
+                    Button {
+                        selection.wrappedValue = option.value
+                        presentedOptionMenu = nil
+                    } label: {
+                        HStack(spacing: 8) {
+                            Text(option.title)
+                            Spacer(minLength: 12)
+                            if selection.wrappedValue == option.value {
+                                Image(systemName: "checkmark")
+                                    .font(.system(size: 11, weight: .semibold))
+                            }
+                        }
+                        .foregroundStyle(.primary)
+                        .padding(.horizontal, 10)
+                        .frame(minHeight: 28)
+                    }
+                    .buttonStyle(.plain)
+                    .contentShape(RoundedRectangle(cornerRadius: 5))
+                }
+            }
+            .padding(6)
+            .frame(minWidth: minWidth)
+        }
+    }
+
+    private func optionField<Content: View>(@ViewBuilder content: () -> Content) -> some View {
+        content()
+            .padding(.horizontal, 9)
+            .frame(minHeight: 27)
+            .background(optionFill, in: RoundedRectangle(cornerRadius: 7))
+    }
+
+    private func dateText(_ date: Date) -> String {
+        date.formatted(.dateTime.day().month(.abbreviated).year())
+    }
+
+    private func recurrenceKindTitle(_ kind: RecurrenceKind) -> String {
+        switch kind {
+        case .interval: "Vaste regelmaat"
+        case .monthlyDay: "Maandelijks op datum"
+        case .monthlyOrdinalWeekday: "Maandelijks op weekdag"
+        case .quarterly: "Elk kwartaal"
+        case .yearly: "Jaarlijks (jubileum)"
+        case .approximateInterval: "Flexibel (ongeveer)"
+        case .birthday: "Verjaardag"
+        case .annualFixed: "Feestdag op vaste dag"
+        case .annualOrdinalWeekday: "Weekdag van een maand"
+        }
+    }
+
+    private func intervalUnitTitle(_ unit: RecurrenceUnit) -> String {
+        switch unit {
+        case .day: "Dagen"
+        case .week: "Weken"
+        case .month: "Maanden"
+        case .year: "Jaren"
+        }
+    }
+
+    private func ordinalTitle(_ ordinal: Int) -> String {
+        [1: "Eerste", 2: "Tweede", 3: "Derde", 4: "Vierde", 5: "Laatste"][ordinal] ?? "Eerste"
+    }
 
     private var identityCard: some View {
         editorCard(item.recurrenceKind == .birthday ? LocalizedStringKey("Wie") : LocalizedStringKey("Wat")) {
-            VStack(alignment: .trailing, spacing: 3) {
-                HStack(spacing: 18) {
-                    Text(item.recurrenceKind == .birthday ? "Naam" : "Titel")
-                    Spacer(minLength: 12)
-                    TextField("", text: $item.title)
-                        .textFieldStyle(.plain)
-                        .multilineTextAlignment(.trailing)
-                        .focused($isTitleFocused)
-                        .onChange(of: item.title) { _, _ in titleChanged() }
-                        .frame(maxWidth: 560, alignment: .trailing)
-                }
-                .frame(height: rowHeight)
-
-                if showsTitleValidation {
-                    Text("Vul een titel in om deze herhaling te bewaren.")
-                        .font(.caption)
-                        .foregroundStyle(.red)
-                        .accessibilityLabel("Titel is verplicht")
-                }
+            HStack(spacing: 18) {
+                Text(item.recurrenceKind == .birthday ? "Naam" : "Titel")
+                Spacer(minLength: 12)
+                TextField("", text: $item.title)
+                    .textFieldStyle(.plain)
+                    .multilineTextAlignment(.trailing)
+                    .focused($isTitleFocused)
+                    .onChange(of: item.title) { _, _ in titleChanged() }
+                    .frame(maxWidth: 560, alignment: .trailing)
             }
-            editorDivider
+            .recurringEditorRow(height: rowHeight)
+
+            if showsTitleValidation {
+                Text("Vul een titel in om deze herhaling te bewaren.")
+                    .font(.caption)
+                    .foregroundStyle(.red)
+                    .accessibilityLabel("Titel is verplicht")
+            }
             HStack(spacing: 12) {
                 Text("Categorie")
                 Spacer(minLength: 12)
-                Picker("", selection: $item.themeRawValue) {
-                    ForEach(categories) { category in Label(category.title, systemImage: category.iconName ?? "repeat").tag(category.id) }
-                }
-                .labelsHidden()
-                .controlSize(.regular)
-                .multilineTextAlignment(.leading)
-                .fixedSize()
+                optionMenu(
+                    selection: $item.themeRawValue,
+                    title: categories.first(where: { $0.id == item.themeRawValue })?.title ?? "Categorie",
+                    minWidth: 160,
+                    options: categories.map { ($0.id, $0.title) }
+                )
             }
-            .frame(height: rowHeight)
+            .recurringEditorRow(height: rowHeight, showsSeparator: false)
         }
     }
 
     private var linksCard: some View {
         editorCard("Links") {
-            ForEach(0..<visibleLinkFieldCount, id: \.self) { index in linkRow(index) }
+            ForEach(0..<visibleLinkFieldCount, id: \.self) { index in
+                linkRow(index, showsSeparator: index < visibleLinkFieldCount - 1)
+            }
         }
     }
 
-    private func linkRow(_ index: Int) -> some View {
+    private func linkRow(_ index: Int, showsSeparator: Bool) -> some View {
         HStack(spacing: 12) {
             HStack(spacing: 6) {
                 TextField("", text: linkURLBinding(index), prompt: Text("Plak link"))
@@ -2393,7 +2760,7 @@ private struct MacRecurringEditor: View {
             .frame(maxWidth: .infinity, alignment: .leading)
             .frame(height: 30)
         }
-        .frame(height: rowHeight)
+        .recurringEditorRow(height: rowHeight, showsSeparator: showsSeparator)
     }
 
     private var notesCard: some View {
@@ -2407,35 +2774,43 @@ private struct MacRecurringEditor: View {
             HStack {
                 Text("Dag/Maand")
                 Spacer()
-                Picker("Dag", selection: birthdayDayBinding) {
-                    ForEach(1...daysInBirthdayMonth, id: \.self) { Text("\($0)").tag($0) }
-                }
-                .labelsHidden().pickerStyle(.menu).controlSize(.regular)
-                .multilineTextAlignment(.leading)
-                Picker("Maand", selection: birthdayMonthBinding) {
-                    ForEach(1...12, id: \.self) { Text(AppCalendar.monthName($0)).tag($0) }
-                }
-                .labelsHidden().pickerStyle(.menu).controlSize(.regular)
-                .multilineTextAlignment(.leading)
+                optionMenu(
+                    selection: birthdayDayBinding,
+                    title: "\(AppCalendar.calendar.component(.day, from: birthDateBinding.wrappedValue))",
+                    minWidth: 66,
+                    options: (1...daysInBirthdayMonth).map { ($0, "\($0)") }
+                )
+                optionMenu(
+                    selection: birthdayMonthBinding,
+                    title: AppCalendar.monthName(AppCalendar.calendar.component(.month, from: birthDateBinding.wrappedValue)),
+                    minWidth: 118,
+                    options: (1...12).map { ($0, AppCalendar.monthName($0)) }
+                )
             }
-            .frame(height: rowHeight)
+            .recurringEditorRow(height: rowHeight)
             HStack {
                 Text("Leeftijd/jaar")
                 Spacer()
-                TextField("", text: currentAgeBinding, prompt: Text("Leeftijd"))
-                    .textFieldStyle(.plain).multilineTextAlignment(.trailing)
-                    .padding(.horizontal, 9).frame(width: 72, height: 28)
-                    .background(Color.primary.opacity(0.055), in: RoundedRectangle(cornerRadius: 7))
-                    .overlay { RoundedRectangle(cornerRadius: 7).stroke(Color.primary.opacity(0.14)) }
-                TextField("", text: birthdayYearBinding, prompt: Text("Jaar"))
-                    .textFieldStyle(.plain).multilineTextAlignment(.trailing)
-                    .padding(.horizontal, 9).frame(width: 80, height: 28)
-                    .background(Color.primary.opacity(0.055), in: RoundedRectangle(cornerRadius: 7))
-                    .overlay { RoundedRectangle(cornerRadius: 7).stroke(Color.primary.opacity(0.14)) }
+                optionField {
+                    TextField("", text: currentAgeBinding, prompt: Text("Leeftijd"))
+                        .textFieldStyle(.plain)
+                        .multilineTextAlignment(.trailing)
+                }
+                .frame(width: 72)
+                optionField {
+                    TextField("", text: birthdayYearBinding, prompt: Text("Jaar"))
+                        .textFieldStyle(.plain)
+                        .multilineTextAlignment(.trailing)
+                }
+                .frame(width: 80)
             }
-            .frame(height: rowHeight)
+            .recurringEditorRow(height: rowHeight)
             trailingToggle("Leeftijd/jaar onzeker", isOn: $item.birthdayYearUncertain)
-            trailingToggle("Reminder vooraf", isOn: reminderEnabledBinding)
+            trailingToggle(
+                "Reminder vooraf",
+                isOn: reminderEnabledBinding,
+                showsSeparator: item.reminderDaysBefore != nil
+            )
             if item.reminderDaysBefore != nil {
                 HStack(spacing: 12) {
                     Text("Dagen vooraf")
@@ -2443,23 +2818,25 @@ private struct MacRecurringEditor: View {
                     Stepper("\(item.reminderDaysBefore ?? 7) dagen", value: reminderDaysBinding, in: 1...365)
                         .fixedSize()
                 }
-                .frame(height: rowHeight)
+                .recurringEditorRow(height: rowHeight, showsSeparator: false)
             }
         } else if item.themeRawValue == MacRecurringCategoryStore.holidayID {
             HStack(spacing: 12) {
                 Text("Regel")
                 Spacer(minLength: 12)
-                Picker("", selection: $item.recurrenceKindRawValue) {
-                    Text("Feestdag op vaste dag").tag(RecurrenceKind.annualFixed.rawValue)
-                    Text("Weekdag van een maand").tag(RecurrenceKind.annualOrdinalWeekday.rawValue)
-                }
-                .labelsHidden()
-                .controlSize(.regular)
-                .fixedSize()
+                optionMenu(
+                    selection: $item.recurrenceKindRawValue,
+                    title: item.recurrenceKind == .annualFixed ? "Feestdag op vaste dag" : "Weekdag van een maand",
+                    minWidth: 210,
+                    options: [
+                        (RecurrenceKind.annualFixed.rawValue, "Feestdag op vaste dag"),
+                        (RecurrenceKind.annualOrdinalWeekday.rawValue, "Weekdag van een maand")
+                    ]
+                )
             }
-            .frame(height: rowHeight)
+            .recurringEditorRow(height: rowHeight)
             if item.recurrenceKind == .annualFixed {
-                compactDatePicker("Datum", selection: $item.nextDate)
+                compactDatePicker("Datum", selection: $item.nextDate, showsSeparator: false)
             } else {
                 monthPicker
                 ordinalPicker
@@ -2475,40 +2852,57 @@ private struct MacRecurringEditor: View {
             HStack(spacing: 12) {
                 Text("Type")
                 Spacer(minLength: 12)
-                Picker("", selection: $item.recurrenceKindRawValue) {
-                    Text("Vaste regelmaat").tag(RecurrenceKind.interval.rawValue)
-                    Text("Maandelijks op datum").tag(RecurrenceKind.monthlyDay.rawValue)
-                    Text("Maandelijks op weekdag").tag(RecurrenceKind.monthlyOrdinalWeekday.rawValue)
-                    Text("Elk kwartaal").tag(RecurrenceKind.quarterly.rawValue)
-                    Text("Jaarlijks (jubileum)").tag(RecurrenceKind.yearly.rawValue)
-                    Text("Flexibel (ongeveer)").tag(RecurrenceKind.approximateInterval.rawValue)
-                }
-                .labelsHidden()
-                .controlSize(.regular)
-                .fixedSize()
+                optionMenu(
+                    selection: $item.recurrenceKindRawValue,
+                    title: recurrenceKindTitle(item.recurrenceKind),
+                    minWidth: 205,
+                    options: [
+                        (RecurrenceKind.interval.rawValue, "Vaste regelmaat"),
+                        (RecurrenceKind.monthlyDay.rawValue, "Maandelijks op datum"),
+                        (RecurrenceKind.monthlyOrdinalWeekday.rawValue, "Maandelijks op weekdag"),
+                        (RecurrenceKind.quarterly.rawValue, "Elk kwartaal"),
+                        (RecurrenceKind.yearly.rawValue, "Jaarlijks (jubileum)"),
+                        (RecurrenceKind.approximateInterval.rawValue, "Flexibel (ongeveer)")
+                    ]
+                )
             }
-            .frame(height: rowHeight)
+            .recurringEditorRow(height: rowHeight)
             switch item.recurrenceKind {
             case .monthlyDay:
-                compactStepper("Elke \(item.monthlyDay)e van de maand", value: $item.monthlyDay, range: 1...31)
+                compactStepper(
+                    "Elke \(item.monthlyDay)e van de maand",
+                    value: $item.monthlyDay,
+                    range: 1...31,
+                    showsSeparator: false
+                )
             case .monthlyOrdinalWeekday:
                 ordinalPicker; weekdayPicker
             case .interval, .approximateInterval:
-                compactStepper("Elke \(item.intervalValue)", value: $item.intervalValue, range: 1...99)
+                compactStepper(
+                    "Elke \(item.intervalValue)",
+                    value: $item.intervalValue,
+                    range: 1...99,
+                    showsSeparator: true
+                )
                 HStack(spacing: 12) {
                     Text("Eenheid")
                     Spacer(minLength: 12)
-                    Picker("", selection: $item.intervalUnitRawValue) {
-                        Text("Dagen").tag(RecurrenceUnit.day.rawValue)
-                        Text("Weken").tag(RecurrenceUnit.week.rawValue)
-                        Text("Maanden").tag(RecurrenceUnit.month.rawValue)
-                        Text("Jaren").tag(RecurrenceUnit.year.rawValue)
-                    }
-                    .labelsHidden()
-                    .controlSize(.regular)
-                    .fixedSize()
+                    optionMenu(
+                        selection: $item.intervalUnitRawValue,
+                        title: intervalUnitTitle(item.intervalUnit),
+                        minWidth: 118,
+                        options: [
+                            (RecurrenceUnit.day.rawValue, "Dagen"),
+                            (RecurrenceUnit.week.rawValue, "Weken"),
+                            (RecurrenceUnit.month.rawValue, "Maanden"),
+                            (RecurrenceUnit.year.rawValue, "Jaren")
+                        ]
+                    )
                 }
-                .frame(height: rowHeight)
+                .recurringEditorRow(
+                    height: rowHeight,
+                    showsSeparator: item.recurrenceKind == .approximateInterval
+                )
                 if item.recurrenceKind == .approximateInterval {
                     Text("De datum varieert voorspelbaar rond deze periode.").font(.caption).foregroundStyle(.secondary)
                 }
@@ -2521,86 +2915,127 @@ private struct MacRecurringEditor: View {
         }
     }
 
-    private func compactStepper(_ title: LocalizedStringKey, value: Binding<Int>, range: ClosedRange<Int>) -> some View {
+    private func compactStepper(
+        _ title: LocalizedStringKey,
+        value: Binding<Int>,
+        range: ClosedRange<Int>,
+        showsSeparator: Bool
+    ) -> some View {
         HStack {
             Text(title)
             Spacer()
-            HStack(spacing: 2) {
-                Button { value.wrappedValue = min(range.upperBound, value.wrappedValue + 1) } label: {
-                    Image(systemName: "chevron.up").frame(width: 18, height: 14)
-                }
+            HStack(spacing: 0) {
                 Button { value.wrappedValue = max(range.lowerBound, value.wrappedValue - 1) } label: {
-                    Image(systemName: "chevron.down").frame(width: 18, height: 14)
+                    Image(systemName: "minus")
+                        .frame(width: 28, height: 28)
                 }
+                .disabled(value.wrappedValue <= range.lowerBound)
+
+                Text("\(value.wrappedValue)")
+                    .font(.system(size: 13, weight: .medium, design: .rounded))
+                    .frame(minWidth: 26)
+
+                Button { value.wrappedValue = min(range.upperBound, value.wrappedValue + 1) } label: {
+                    Image(systemName: "plus")
+                        .frame(width: 28, height: 28)
+                }
+                .disabled(value.wrappedValue >= range.upperBound)
             }
-            .font(.system(size: 11, weight: .semibold))
+            .font(.system(size: 12, weight: .semibold))
             .buttonStyle(.plain)
+            .foregroundStyle(.primary)
+            .background(optionFill, in: RoundedRectangle(cornerRadius: 7))
         }
-        .frame(height: rowHeight)
+        .recurringEditorRow(height: rowHeight, showsSeparator: showsSeparator)
     }
 
-    private func trailingToggle(_ title: LocalizedStringKey, isOn: Binding<Bool>) -> some View {
+    private func trailingToggle(
+        _ title: LocalizedStringKey,
+        isOn: Binding<Bool>,
+        showsSeparator: Bool = true
+    ) -> some View {
         HStack(spacing: 12) {
             Text(title)
             Spacer(minLength: 12)
             Toggle("", isOn: isOn)
                 .labelsHidden()
+                .toggleStyle(.switch)
+                .tint(.brandHardBlue)
+                .controlSize(.small)
                 .fixedSize()
         }
-        .frame(height: rowHeight)
+        .recurringEditorRow(height: rowHeight, showsSeparator: showsSeparator)
     }
 
-    private func compactDatePicker(_ title: LocalizedStringKey, selection: Binding<Date>) -> some View {
+    private func compactDatePicker(
+        _ title: LocalizedStringKey,
+        selection: Binding<Date>,
+        showsSeparator: Bool = true
+    ) -> some View {
         HStack(spacing: 12) {
             Text(title)
             Spacer(minLength: 12)
-            DatePicker("", selection: selection, displayedComponents: .date)
-                .labelsHidden()
-                .datePickerStyle(.compact)
-                .controlSize(.regular)
-                .fixedSize()
+            Button {
+                showingDatePicker.toggle()
+            } label: {
+                HStack(spacing: 7) {
+                    Image(systemName: "calendar")
+                        .foregroundStyle(.secondary)
+                    Text(dateText(selection.wrappedValue))
+                }
+                .padding(.horizontal, 9)
+                .frame(minHeight: 27)
+                .background(optionFill, in: RoundedRectangle(cornerRadius: 7))
+            }
+            .buttonStyle(.plain)
+            .popover(isPresented: $showingDatePicker) {
+                DatePicker("", selection: selection, displayedComponents: .date)
+                    .labelsHidden()
+                    .datePickerStyle(.graphical)
+                    .padding()
+            }
         }
-        .frame(height: rowHeight)
+        .recurringEditorRow(height: rowHeight, showsSeparator: showsSeparator)
     }
 
     private var monthPicker: some View {
         HStack(spacing: 12) {
             Text("Maand")
             Spacer(minLength: 12)
-            Picker("", selection: $item.annualMonth) {
-                ForEach(1...12, id: \.self) { Text(AppCalendar.monthName($0)).tag($0) }
-            }
-            .labelsHidden()
-            .controlSize(.regular)
-            .fixedSize()
+            optionMenu(
+                selection: $item.annualMonth,
+                title: AppCalendar.monthName(item.annualMonth),
+                minWidth: 118,
+                options: (1...12).map { ($0, AppCalendar.monthName($0)) }
+            )
         }
-        .frame(height: rowHeight)
+        .recurringEditorRow(height: rowHeight)
     }
     private var ordinalPicker: some View {
         HStack(spacing: 12) {
             Text("Welke")
             Spacer(minLength: 12)
-            Picker("", selection: $item.monthlyOrdinal) {
-                Text("Eerste").tag(1); Text("Tweede").tag(2); Text("Derde").tag(3); Text("Vierde").tag(4); Text("Laatste").tag(5)
-            }
-            .labelsHidden()
-            .controlSize(.regular)
-            .fixedSize()
+            optionMenu(
+                selection: $item.monthlyOrdinal,
+                title: ordinalTitle(item.monthlyOrdinal),
+                minWidth: 108,
+                options: [(1, "Eerste"), (2, "Tweede"), (3, "Derde"), (4, "Vierde"), (5, "Laatste")]
+            )
         }
-        .frame(height: rowHeight)
+        .recurringEditorRow(height: rowHeight)
     }
     private var weekdayPicker: some View {
         HStack(spacing: 12) {
             Text("Weekdag")
             Spacer(minLength: 12)
-            Picker("", selection: $item.monthlyWeekday) {
-                ForEach(1...7, id: \.self) { Text(RecurrenceEngine.weekdayName($0).capitalized).tag($0) }
-            }
-            .labelsHidden()
-            .controlSize(.regular)
-            .fixedSize()
+            optionMenu(
+                selection: $item.monthlyWeekday,
+                title: RecurrenceEngine.weekdayName(item.monthlyWeekday).capitalized,
+                minWidth: 118,
+                options: (1...7).map { ($0, RecurrenceEngine.weekdayName($0).capitalized) }
+            )
         }
-        .frame(height: rowHeight)
+        .recurringEditorRow(height: rowHeight, showsSeparator: false)
     }
     private var birthDateBinding: Binding<Date> { Binding(get: { item.birthDate ?? item.nextDate }, set: { item.birthDate = AppCalendar.startOfDay($0); item.nextDate = AppCalendar.startOfDay($0) }) }
 
@@ -2700,6 +3135,29 @@ private struct MacRecurringEditor: View {
     }
     private func saveRecurrence() { item.recurrenceConfigurationVersion = 1; item.frequencyText = RecurrenceEngine.description(for: item); save() }
     private func save() { PersistenceSafety.save(modelContext) }
+}
+
+private struct MacRecurringEditorRowStyle: ViewModifier {
+    let height: CGFloat
+    let showsSeparator: Bool
+
+    func body(content: Content) -> some View {
+        content
+            .frame(maxWidth: .infinity, minHeight: height, maxHeight: height, alignment: .center)
+            .overlay(alignment: .bottom) {
+                if showsSeparator {
+                    Rectangle()
+                        .fill(Color.primary.opacity(0.09))
+                        .frame(height: 0.5)
+                }
+            }
+    }
+}
+
+private extension View {
+    func recurringEditorRow(height: CGFloat, showsSeparator: Bool = true) -> some View {
+        modifier(MacRecurringEditorRowStyle(height: height, showsSeparator: showsSeparator))
+    }
 }
 
 private extension Collection {

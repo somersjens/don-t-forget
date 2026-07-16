@@ -1169,6 +1169,12 @@
         }
       }
     },
+    "Alles deselecteren" : {
+
+    },
+    "Alles selecteren" : {
+
+    },
     "Alles wat je niet wilt vergeten, op één plek." : {
       "localizations" : {
         "en" : {
@@ -3962,6 +3968,38 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Hele app resetten?"
+          }
+        }
+      }
+    },
+    "Helemaal omhoog" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Move to Top"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Helemaal omhoog"
+          }
+        }
+      }
+    },
+    "Helemaal omlaag" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Move to Bottom"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Helemaal omlaag"
           }
         }
       }
@@ -7297,22 +7335,6 @@
         }
       }
     },
-    "Omhoog verplaatsen" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Move Up"
-          }
-        },
-        "nl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Omhoog verplaatsen"
-          }
-        }
-      }
-    },
     "Omlaag" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -7326,22 +7348,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Omlaag"
-          }
-        }
-      }
-    },
-    "Omlaag verplaatsen" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Move Down"
-          }
-        },
-        "nl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Omlaag verplaatsen"
           }
         }
       }
@@ -9698,6 +9704,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Titel"
+          }
+        }
+      }
+    },
+    "Verplicht veld" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Required field"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Verplicht veld"
           }
         }
       }

@@ -55,7 +55,6 @@ private extension View {
 }
 
 enum TodoGroupStore {
-    static let maxCount = 10
     static let todayID = TodoBucket.today.rawValue
     static let asSoonAsPossibleID = "asSoonAsPossible"
     static let shortTermID = TodoBucket.shortTerm.rawValue
@@ -118,7 +117,7 @@ enum TodoGroupStore {
 
         for group in groups {
             let id = group.id.trimmingCharacters(in: .whitespacesAndNewlines)
-            guard !id.isEmpty, !seen.contains(id), result.count < maxCount else {
+            guard !id.isEmpty, !seen.contains(id) else {
                 continue
             }
 
@@ -491,12 +490,10 @@ struct TodoView: View {
                     )
                 }
 
-                if currentGroups.count < TodoGroupStore.maxCount {
-                    NewTodoGroupLine(
-                        text: $newGroupTitle,
-                        add: addGroup
-                    )
-                }
+                NewTodoGroupLine(
+                    text: $newGroupTitle,
+                    add: addGroup
+                )
             }
             .padding(.horizontal, 14)
             .padding(.vertical, 12)
@@ -606,6 +603,8 @@ struct TodoView: View {
             delete: { deleteGroup(group.id) },
             moveUp: { moveGroup(from: index, direction: -1) },
             moveDown: { moveGroup(from: index, direction: 1) },
+            moveToTop: { moveGroup(from: index, to: 0) },
+            moveToBottom: { moveGroup(from: index, to: allGroups.count - 1) },
             highlightsNewTodoField: highlightsInput,
             highlightsNewTodoPlus: isFirstGroup && step == 1,
             highlightedTodoID: step == 4 ? onboardingTargetTodoID : nil,
@@ -851,11 +850,15 @@ struct TodoView: View {
     }
 
     private func moveGroup(from index: Int, direction: Int) {
-        var updated = groups
-        let target = index + direction
-        guard updated.indices.contains(index), updated.indices.contains(target) else { return }
+        moveGroup(from: index, to: index + direction)
+    }
 
-        updated.swapAt(index, target)
+    private func moveGroup(from index: Int, to target: Int) {
+        var updated = groups
+        guard updated.indices.contains(index), updated.indices.contains(target), index != target else { return }
+
+        let group = updated.remove(at: index)
+        updated.insert(group, at: target)
 
         withAnimation(.easeOut(duration: 0.13)) {
             groups = updated
@@ -864,7 +867,7 @@ struct TodoView: View {
 
     private func addGroup() {
         let title = newGroupTitle.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !title.isEmpty, groups.count < TodoGroupStore.maxCount else { return }
+        guard !title.isEmpty else { return }
 
         var updated = groups
         updated.append(TodoGroup(
@@ -1200,6 +1203,8 @@ private struct TodoBucketCard: View {
     let delete: () -> Void
     let moveUp: () -> Void
     let moveDown: () -> Void
+    let moveToTop: () -> Void
+    let moveToBottom: () -> Void
     let highlightsNewTodoField: Bool
     let highlightsNewTodoPlus: Bool
     let highlightedTodoID: UUID?
@@ -1358,14 +1363,32 @@ private struct TodoBucketCard: View {
     }
 
     private var categoryActionsPopover: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            categoryActionButton("Omhoog verplaatsen", systemImage: "arrow.up", enabled: canMoveUp) {
-                moveUp()
-                categoryReordered()
+        let index = groups.firstIndex(where: { $0.id == group.id }) ?? 0
+
+        return VStack(alignment: .leading, spacing: 0) {
+            if index >= 2 {
+                categoryActionButton("Helemaal omhoog", systemImage: "chevron.up.2") {
+                    moveToTop()
+                    categoryReordered()
+                }
             }
-            categoryActionButton("Omlaag verplaatsen", systemImage: "arrow.down", enabled: canMoveDown) {
-                moveDown()
-                categoryReordered()
+            if canMoveUp {
+                categoryActionButton("Omhoog", systemImage: "arrow.up") {
+                    moveUp()
+                    categoryReordered()
+                }
+            }
+            if canMoveDown {
+                categoryActionButton("Omlaag", systemImage: "arrow.down") {
+                    moveDown()
+                    categoryReordered()
+                }
+            }
+            if groups.count - 1 - index >= 2 {
+                categoryActionButton("Helemaal omlaag", systemImage: "chevron.down.2") {
+                    moveToBottom()
+                    categoryReordered()
+                }
             }
 
             if canDelete {
@@ -1391,7 +1414,6 @@ private struct TodoBucketCard: View {
     private func categoryActionButton(
         _ title: LocalizedStringKey,
         systemImage: String,
-        enabled: Bool,
         action: @escaping () -> Void
     ) -> some View {
         Button {
@@ -1404,8 +1426,6 @@ private struct TodoBucketCard: View {
                 .padding(.vertical, 11)
         }
         .buttonStyle(.plain)
-        .disabled(!enabled)
-        .opacity(enabled ? 1 : 0.35)
     }
 
     private func performCategoryAction(_ action: () -> Void) {
