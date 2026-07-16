@@ -305,6 +305,8 @@ struct AgendaView: View {
     @State private var pendingCompletions: [UUID: AgendaPendingCompletion] = [:]
     @State private var pendingCompletionTask: Task<Void, Never>?
     @State private var deferredCompletionSaveTask: Task<Void, Never>?
+    @State private var completionUndoPresentationTask: Task<Void, Never>?
+    @State private var isUndoingCompletion = false
     @State private var recentlyMovedToTodo: AgendaTodoMoveUndo?
     @State private var recentlyMovedToDate: AgendaDateMoveUndo?
     @State private var dismissDateMoveUndoTask: Task<Void, Never>?
@@ -1173,6 +1175,8 @@ struct AgendaView: View {
 
     private func showCompletionUndo(_ entry: DayEntry) {
         dismissRemovalUndoTask?.cancel()
+        completionUndoPresentationTask?.cancel()
+        isUndoingCompletion = false
         recentlyRemovedEntry = nil
         recentlyMovedToTodo = nil
         pendingCompletions[entry.id] = AgendaPendingCompletion(
@@ -1193,15 +1197,14 @@ struct AgendaView: View {
     }
 
     private func undoCompletion() {
-        guard let entry = recentlyCompletedEntry else { return }
+        guard let entry = recentlyCompletedEntry, !isUndoingCompletion else { return }
+        isUndoingCompletion = true
+        dismissRemovalUndoTask?.cancel()
         if pendingCompletions.removeValue(forKey: entry.id) != nil {
             pendingCompletionTask?.cancel()
             pendingCompletionTask = nil
             schedulePendingCompletionFlush()
-            dismissRemovalUndoTask?.cancel()
-            withAnimation(.easeOut(duration: 0.2)) {
-                recentlyCompletedEntry = nil
-            }
+            finishCompletionUndoPresentation()
             return
         }
         let isRecurringOccurrence = entry.recurringItemIdentifier != nil
@@ -1228,14 +1231,29 @@ struct AgendaView: View {
             }
         }
         deferredCompletionSaveTask = Task { @MainActor in
-            try? await Task.sleep(for: .milliseconds(300))
+            // Keep persistence out of both the restore render pass and the
+            // delayed popup dismissal animation.
+            try? await Task.sleep(for: .milliseconds(560))
             guard !Task.isCancelled else { return }
             _ = PersistenceSafety.save(modelContext)
             deferredCompletionSaveTask = nil
         }
-        dismissRemovalUndoTask?.cancel()
-        withAnimation(.easeOut(duration: 0.2)) {
-            recentlyCompletedEntry = nil
+        finishCompletionUndoPresentation()
+    }
+
+    private func finishCompletionUndoPresentation() {
+        completionUndoPresentationTask?.cancel()
+        completionUndoPresentationTask = Task { @MainActor in
+            // A restored Agenda row can rebuild a large lazy hierarchy. Let
+            // that insertion settle while the popup remains still, then close
+            // the popup in a separate animation transaction.
+            try? await Task.sleep(for: .milliseconds(280))
+            guard !Task.isCancelled else { return }
+            withAnimation(.easeOut(duration: 0.2)) {
+                recentlyCompletedEntry = nil
+            }
+            isUndoingCompletion = false
+            completionUndoPresentationTask = nil
         }
     }
 
@@ -1286,7 +1304,8 @@ struct AgendaView: View {
             message: completionUndoText,
             undoTitle: locale.localized("Ongedaan maken"),
             action: undoCompletion,
-            preferredMessageLineLimit: 2
+            preferredMessageLineLimit: 2,
+            isActionEnabled: !isUndoingCompletion
         )
     }
 

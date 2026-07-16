@@ -7,6 +7,7 @@ struct UndoFeedbackBar: View {
     let undoTitle: String
     let action: () -> Void
     var preferredMessageLineLimit: Int = 1
+    var isActionEnabled = true
 
     private let textFont = Font.system(size: 14, weight: .medium)
     private let buttonFont = Font.system(size: 14, weight: .semibold)
@@ -40,7 +41,10 @@ struct UndoFeedbackBar: View {
         .padding(.horizontal, 14)
         .frame(minHeight: 50)
         .contentShape(RoundedRectangle(cornerRadius: 14))
-        .onTapGesture(perform: action)
+        .onTapGesture {
+            guard isActionEnabled else { return }
+            action()
+        }
         .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 14))
         .overlay {
             RoundedRectangle(cornerRadius: 14)
@@ -77,6 +81,7 @@ struct UndoFeedbackBar: View {
                     wrapsByWord: undoWrapsByWord
                 )
             }
+            .disabled(!isActionEnabled)
             .layoutPriority(1)
         }
     }
@@ -93,11 +98,13 @@ struct UndoFeedbackBar: View {
                 Text(splitTitle.secondLine)
             }
             .font(buttonFont)
+            .foregroundStyle(Color.brandHardBlue)
             .multilineTextAlignment(.center)
             .fixedSize(horizontal: true, vertical: true)
         } else {
             Text(undoTitle)
                 .font(buttonFont)
+                .foregroundStyle(Color.brandHardBlue)
                 .lineLimit(lineLimit)
                 .multilineTextAlignment(.center)
                 .fixedSize(horizontal: needsIdealWidth || wrapsByWord, vertical: true)

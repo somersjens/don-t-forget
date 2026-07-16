@@ -243,6 +243,8 @@ struct TodoView: View {
     @State private var newGroupTitle = ""
     @State private var recentlyCompletedTodo: TodoItem?
     @State private var dismissUndoTask: Task<Void, Never>?
+    @State private var completionUndoPresentationTask: Task<Void, Never>?
+    @State private var isUndoingCompletion = false
     @State private var recentlyRemovedTodo: TodoItem?
     @State private var recentlyRemovedTodoTitle = ""
     @State private var recentlyMovedToAgenda: TodoAgendaMoveUndo?
@@ -899,6 +901,8 @@ struct TodoView: View {
 
     private func showCompletionUndo(_ todo: TodoItem) {
         dismissUndoTask?.cancel()
+        completionUndoPresentationTask?.cancel()
+        isUndoingCompletion = false
         recentlyRemovedTodo = nil
         recentlyMovedToAgenda = nil
         withAnimation(.snappy(duration: 0.25)) {
@@ -1002,13 +1006,33 @@ struct TodoView: View {
     }
 
     private func undoCompletion() {
-        guard let todo = recentlyCompletedTodo else { return }
-        todo.isDone = false
-        todo.completedAt = nil
-        _ = PersistenceSafety.save(modelContext)
+        guard let todo = recentlyCompletedTodo, !isUndoingCompletion else { return }
+        isUndoingCompletion = true
         dismissUndoTask?.cancel()
-        withAnimation(.easeOut(duration: 0.2)) {
-            recentlyCompletedTodo = nil
+        var transaction = Transaction()
+        transaction.disablesAnimations = true
+        withTransaction(transaction) {
+            todo.isDone = false
+            todo.completedAt = nil
+        }
+        completionUndoPresentationTask?.cancel()
+        completionUndoPresentationTask = Task { @MainActor in
+            // Restoring an item invalidates the grouped task list. Keep the
+            // feedback bar static while that work gets its own render pass;
+            // closing it in the same pass made the undo tap appear to stutter.
+            try? await Task.sleep(for: .milliseconds(280))
+            guard !Task.isCancelled else { return }
+            withAnimation(.easeOut(duration: 0.2)) {
+                recentlyCompletedTodo = nil
+            }
+            isUndoingCompletion = false
+
+            // Persist after the visual transition completes, never on the
+            // latency-sensitive tap itself.
+            try? await Task.sleep(for: .milliseconds(240))
+            guard !Task.isCancelled else { return }
+            _ = PersistenceSafety.save(modelContext)
+            completionUndoPresentationTask = nil
         }
     }
 
@@ -1018,7 +1042,8 @@ struct TodoView: View {
             iconColor: .blue,
             message: completionUndoText,
             undoTitle: locale.localized("Ongedaan maken"),
-            action: undoCompletion
+            action: undoCompletion,
+            isActionEnabled: !isUndoingCompletion
         )
     }
 
