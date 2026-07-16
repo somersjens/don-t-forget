@@ -244,6 +244,7 @@ struct TodoView: View {
     @State private var recentlyCompletedTodo: TodoItem?
     @State private var dismissUndoTask: Task<Void, Never>?
     @State private var completionUndoPresentationTask: Task<Void, Never>?
+    @State private var pendingCompletionFeedbackTodo: TodoItem?
     @State private var isUndoingCompletion = false
     @State private var recentlyRemovedTodo: TodoItem?
     @State private var recentlyRemovedTodoTitle = ""
@@ -422,14 +423,21 @@ struct TodoView: View {
                         removalUndoBar
                             .padding(.horizontal, 14)
                             .transition(.move(edge: .bottom).combined(with: .opacity))
-                    } else if recentlyCompletedTodo != nil {
-                        completionUndoBar
-                            .padding(.horizontal, 14)
-                            .transition(.move(edge: .bottom).combined(with: .opacity))
                     }
                 }
                 .adaptiveReadableWidth()
                 .padding(.bottom, 4)
+            }
+            .overlay(alignment: .bottom) {
+                if recentlyCompletedTodo != nil {
+                    // Keep a completion popup from changing the scroll view's
+                    // safe-area layout while its completed row is removed.
+                    completionUndoBar
+                        .padding(.horizontal, 14)
+                        .padding(.bottom, 12)
+                        .adaptiveReadableWidth()
+                        .transition(.move(edge: .bottom).combined(with: .opacity))
+                }
             }
             .onAppear {
                 modelContext.undoManager = undoManager
@@ -901,12 +909,33 @@ struct TodoView: View {
 
     private func showCompletionUndo(_ todo: TodoItem) {
         dismissUndoTask?.cancel()
-        completionUndoPresentationTask?.cancel()
         isUndoingCompletion = false
         recentlyRemovedTodo = nil
         recentlyMovedToAgenda = nil
-        withAnimation(.snappy(duration: 0.25)) {
-            recentlyCompletedTodo = todo
+        if recentlyCompletedTodo != nil {
+            var transaction = Transaction()
+            transaction.disablesAnimations = true
+            withTransaction(transaction) {
+                recentlyCompletedTodo = todo
+            }
+        } else {
+            pendingCompletionFeedbackTodo = todo
+        }
+        if recentlyCompletedTodo == nil, completionUndoPresentationTask == nil {
+            completionUndoPresentationTask = Task { @MainActor in
+                // The item has already been persisted by its row. Give the
+                // query one layout pass before animating the overlay.
+                try? await Task.sleep(for: .milliseconds(180))
+                guard !Task.isCancelled,
+                      let feedbackTodo = pendingCompletionFeedbackTodo else {
+                    return
+                }
+                withAnimation(.snappy(duration: 0.25)) {
+                    recentlyCompletedTodo = feedbackTodo
+                }
+                pendingCompletionFeedbackTodo = nil
+                completionUndoPresentationTask = nil
+            }
         }
         dismissUndoTask = Task { @MainActor in
             try? await Task.sleep(for: .seconds(6))
@@ -1009,14 +1038,22 @@ struct TodoView: View {
         guard let todo = recentlyCompletedTodo, !isUndoingCompletion else { return }
         isUndoingCompletion = true
         dismissUndoTask?.cancel()
-        var transaction = Transaction()
-        transaction.disablesAnimations = true
-        withTransaction(transaction) {
-            todo.isDone = false
-            todo.completedAt = nil
-        }
         completionUndoPresentationTask?.cancel()
         completionUndoPresentationTask = Task { @MainActor in
+            // Let the tap draw before re-inserting the row into the grouped
+            // list, which can be expensive when a section is large.
+            try? await Task.sleep(for: .milliseconds(80))
+            guard !Task.isCancelled,
+                  recentlyCompletedTodo?.id == todo.id else {
+                isUndoingCompletion = false
+                return
+            }
+            var transaction = Transaction()
+            transaction.disablesAnimations = true
+            withTransaction(transaction) {
+                todo.isDone = false
+                todo.completedAt = nil
+            }
             // Restoring an item invalidates the grouped task list. Keep the
             // feedback bar static while that work gets its own render pass;
             // closing it in the same pass made the undo tap appear to stutter.

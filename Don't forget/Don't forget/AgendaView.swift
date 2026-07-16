@@ -306,6 +306,7 @@ struct AgendaView: View {
     @State private var pendingCompletionTask: Task<Void, Never>?
     @State private var deferredCompletionSaveTask: Task<Void, Never>?
     @State private var completionUndoPresentationTask: Task<Void, Never>?
+    @State private var pendingCompletionFeedbackEntry: DayEntry?
     @State private var isUndoingCompletion = false
     @State private var recentlyMovedToTodo: AgendaTodoMoveUndo?
     @State private var recentlyMovedToDate: AgendaDateMoveUndo?
@@ -740,10 +741,6 @@ struct AgendaView: View {
                         removalUndoBar
                             .padding(.horizontal, 14)
                             .transition(.move(edge: .bottom).combined(with: .opacity))
-                    } else if recentlyCompletedEntry != nil {
-                        completionUndoBar
-                            .padding(.horizontal, 14)
-                            .transition(.move(edge: .bottom).combined(with: .opacity))
                     }
                 }
                 .adaptiveReadableWidth()
@@ -759,6 +756,19 @@ struct AgendaView: View {
                 .padding(.bottom, 12)
                 .adaptiveReadableWidth()
                 .zIndex(10)
+            }
+            .overlay(alignment: .bottom) {
+                if recentlyCompletedEntry != nil {
+                    // Unlike a safe-area inset, an overlay does not relayout
+                    // the complete scroll view and its onboarding card when
+                    // the feedback appears or disappears.
+                    completionUndoBar
+                        .padding(.horizontal, 14)
+                        .padding(.bottom, 12)
+                        .adaptiveReadableWidth()
+                        .transition(.move(edge: .bottom).combined(with: .opacity))
+                        .zIndex(9)
+                }
             }
             .onAppear {
                 modelContext.undoManager = undoManager
@@ -1175,7 +1185,6 @@ struct AgendaView: View {
 
     private func showCompletionUndo(_ entry: DayEntry) {
         dismissRemovalUndoTask?.cancel()
-        completionUndoPresentationTask?.cancel()
         isUndoingCompletion = false
         recentlyRemovedEntry = nil
         recentlyMovedToTodo = nil
@@ -1183,10 +1192,36 @@ struct AgendaView: View {
             entry: entry,
             completedAt: .now
         )
-        withAnimation(.snappy(duration: 0.25)) {
-            recentlyCompletedEntry = entry
-        }
         schedulePendingCompletionFlush()
+        if recentlyCompletedEntry != nil {
+            // Keep an already-visible popup in place for a rapid second tap.
+            // Re-entering its transition is more expensive than updating its
+            // label, especially with the onboarding card in the hierarchy.
+            var transaction = Transaction()
+            transaction.disablesAnimations = true
+            withTransaction(transaction) {
+                recentlyCompletedEntry = entry
+            }
+        } else {
+            pendingCompletionFeedbackEntry = entry
+        }
+        if recentlyCompletedEntry == nil, completionUndoPresentationTask == nil {
+            completionUndoPresentationTask = Task { @MainActor in
+                // The fixed completion batch settles after 180 ms. Do not
+                // restart this delay for each rapid tap: one popup then enters
+                // after the whole batch rather than during a later update.
+                try? await Task.sleep(for: .milliseconds(220))
+                guard !Task.isCancelled,
+                      let feedbackEntry = pendingCompletionFeedbackEntry else {
+                    return
+                }
+                withAnimation(.snappy(duration: 0.25)) {
+                    recentlyCompletedEntry = feedbackEntry
+                }
+                pendingCompletionFeedbackEntry = nil
+                completionUndoPresentationTask = nil
+            }
+        }
         dismissRemovalUndoTask = Task { @MainActor in
             try? await Task.sleep(for: .seconds(3))
             guard !Task.isCancelled else { return }
@@ -1200,45 +1235,52 @@ struct AgendaView: View {
         guard let entry = recentlyCompletedEntry, !isUndoingCompletion else { return }
         isUndoingCompletion = true
         dismissRemovalUndoTask?.cancel()
-        if pendingCompletions.removeValue(forKey: entry.id) != nil {
-            pendingCompletionTask?.cancel()
-            pendingCompletionTask = nil
-            schedulePendingCompletionFlush()
+        completionUndoPresentationTask?.cancel()
+        completionUndoPresentationTask = Task { @MainActor in
+            // Let the button press commit before the potentially large query
+            // insertion starts. This keeps the tap itself responsive.
+            try? await Task.sleep(for: .milliseconds(80))
+            guard !Task.isCancelled,
+                  recentlyCompletedEntry?.id == entry.id else {
+                isUndoingCompletion = false
+                return
+            }
+
+            if pendingCompletions.removeValue(forKey: entry.id) != nil {
+                pendingCompletionTask?.cancel()
+                pendingCompletionTask = nil
+                schedulePendingCompletionFlush()
+                finishCompletionUndoPresentation()
+                return
+            }
+
+            let isRecurringOccurrence = entry.recurringItemIdentifier != nil
+            deferredCompletionSaveTask?.cancel()
+            var transaction = Transaction()
+            transaction.disablesAnimations = true
+            withTransaction(transaction) {
+                entry.isDone = false
+                if !isRecurringOccurrence {
+                    entry.completedAt = nil
+                }
+            }
+            if isRecurringOccurrence {
+                Task { @MainActor in
+                    try? await Task.sleep(for: .milliseconds(120))
+                    guard !entry.isDone else { return }
+                    entry.completedAt = nil
+                }
+            }
+            deferredCompletionSaveTask = Task { @MainActor in
+                // Keep persistence out of both the restore render pass and
+                // the delayed popup dismissal animation.
+                try? await Task.sleep(for: .milliseconds(560))
+                guard !Task.isCancelled else { return }
+                _ = PersistenceSafety.save(modelContext)
+                deferredCompletionSaveTask = nil
+            }
             finishCompletionUndoPresentation()
-            return
         }
-        let isRecurringOccurrence = entry.recurringItemIdentifier != nil
-        // A completion save may still be waiting for its 300 ms presentation
-        // window. Replace it with one save after the restored row has rendered,
-        // rather than blocking the undo tap with synchronous persistence.
-        deferredCompletionSaveTask?.cancel()
-        var transaction = Transaction()
-        transaction.disablesAnimations = true
-        withTransaction(transaction) {
-            entry.isDone = false
-            if !isRecurringOccurrence {
-                entry.completedAt = nil
-            }
-        }
-        if isRecurringOccurrence {
-            // Query membership is controlled by isDone. Let that single change
-            // put the generated occurrence back on screen first; completedAt is
-            // history-only metadata and can be cleared after the insertion pass.
-            Task { @MainActor in
-                try? await Task.sleep(for: .milliseconds(120))
-                guard !entry.isDone else { return }
-                entry.completedAt = nil
-            }
-        }
-        deferredCompletionSaveTask = Task { @MainActor in
-            // Keep persistence out of both the restore render pass and the
-            // delayed popup dismissal animation.
-            try? await Task.sleep(for: .milliseconds(560))
-            guard !Task.isCancelled else { return }
-            _ = PersistenceSafety.save(modelContext)
-            deferredCompletionSaveTask = nil
-        }
-        finishCompletionUndoPresentation()
     }
 
     private func finishCompletionUndoPresentation() {
@@ -1258,11 +1300,13 @@ struct AgendaView: View {
     }
 
     private func schedulePendingCompletionFlush() {
-        pendingCompletionTask?.cancel()
         guard !pendingCompletions.isEmpty else {
             pendingCompletionTask = nil
             return
         }
+        // Keep the first short window fixed. Restarting it after every tap
+        // made a fast second completion collide with the popup animation.
+        guard pendingCompletionTask == nil else { return }
         pendingCompletionTask = Task { @MainActor in
             // This window guarantees feedback gets a frame and combines rapid
             // taps into one Agenda/History/widget/reminder query invalidation.
@@ -1290,7 +1334,8 @@ struct AgendaView: View {
 
         deferredCompletionSaveTask?.cancel()
         deferredCompletionSaveTask = Task { @MainActor in
-            try? await Task.sleep(for: .milliseconds(300))
+            // Do not let persistence compete with the delayed popup entrance.
+            try? await Task.sleep(for: .milliseconds(420))
             guard !Task.isCancelled else { return }
             _ = PersistenceSafety.save(modelContext)
             deferredCompletionSaveTask = nil
