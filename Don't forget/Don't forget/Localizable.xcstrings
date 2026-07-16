@@ -1175,18 +1175,18 @@
     "Alles selecteren" : {
 
     },
-    "Alles wat je niet wilt vergeten, op één plek." : {
+    "Schrijf alles op in de app, zodat je niets hoeft te onthouden." : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Everything you don't want to forget, in one place."
+            "value" : "Write everything down in the app, so you don’t have to remember a thing."
           }
         },
         "nl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Alles wat je niet wilt vergeten, op één plek."
+            "value" : "Schrijf alles op in de app, zodat je niets hoeft te onthouden."
           }
         }
       }

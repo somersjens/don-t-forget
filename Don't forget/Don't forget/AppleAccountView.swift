@@ -14,7 +14,7 @@ struct WelcomeView: View {
     @State private var logoIsFloating = false
 
     private var subtitle: String {
-        locale.localized("Alles wat je niet wilt vergeten, op één plek.")
+        locale.localized("Schrijf alles op in de app, zodat je niets hoeft te onthouden.")
     }
 
     var body: some View {
