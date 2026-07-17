@@ -13,6 +13,93 @@ enum AppKeyboard {
     }
 }
 
+/// Tracks the software keyboard's end frame. Consumers read it on demand to
+/// decide whether an input row is actually covered; nothing is published, so
+/// keyboard animations never invalidate views through this type.
+@MainActor
+final class KeyboardObserver {
+    static let shared = KeyboardObserver()
+
+    private var latestFrame: CGRect?
+
+    private init() {
+        let center = NotificationCenter.default
+        center.addObserver(
+            forName: UIResponder.keyboardWillChangeFrameNotification,
+            object: nil,
+            queue: .main
+        ) { note in
+            let frame = note.userInfo?[UIResponder.keyboardFrameEndUserInfoKey] as? CGRect
+            MainActor.assumeIsolated {
+                KeyboardObserver.shared.latestFrame = frame
+            }
+        }
+        center.addObserver(
+            forName: UIResponder.keyboardWillHideNotification,
+            object: nil,
+            queue: .main
+        ) { _ in
+            MainActor.assumeIsolated {
+                KeyboardObserver.shared.latestFrame = nil
+            }
+        }
+    }
+
+    /// Top of the software keyboard in screen coordinates. `nil` when the
+    /// keyboard is hidden, offscreen, or only a hardware-keyboard accessory
+    /// strip is visible — in those cases no automatic scrolling is needed.
+    var topOfKeyboard: CGFloat? {
+        guard let latestFrame else { return nil }
+        let screenBounds = UIScreen.main.bounds
+        guard latestFrame.height > 110 else { return nil }
+        guard latestFrame.minY < screenBounds.maxY - 1 else { return nil }
+        return latestFrame.minY
+    }
+}
+
+/// Records the global frame of the focused inline input row. Agenda and Todo
+/// use this to scroll only when the row is genuinely (about to be) covered by
+/// the keyboard, instead of unconditionally pinning it above the keyboard and
+/// making the whole screen jump while it was already visible.
+@MainActor
+final class FocusedInputFrameTracker {
+    static let agenda = FocusedInputFrameTracker()
+    static let todo = FocusedInputFrameTracker()
+
+    private var owner: AnyHashable?
+    private var latestFrame: CGRect?
+
+    func update(owner: AnyHashable, frame: CGRect) {
+        self.owner = owner
+        latestFrame = frame
+    }
+
+    func clear(owner: AnyHashable) {
+        guard self.owner == owner else { return }
+        self.owner = nil
+        latestFrame = nil
+    }
+
+    /// Whether an automatic scroll is required to keep this input row usable.
+    /// `true` when the row's bottom falls below the keyboard (minus a small
+    /// comfort margin), when it sits above the viewport, or when its position
+    /// is unknown — the previous always-scroll behavior remains the fallback.
+    func needsKeyboardScroll(
+        for owner: AnyHashable,
+        comfortMargin: CGFloat = 16
+    ) -> Bool {
+        guard self.owner == owner, let frame = latestFrame else { return true }
+        let screenBounds = UIScreen.main.bounds
+        let visibleBottom = min(
+            KeyboardObserver.shared.topOfKeyboard ?? screenBounds.maxY,
+            screenBounds.maxY
+        ) - comfortMargin
+        if frame.maxY > visibleBottom { return true }
+        if frame.minY < screenBounds.minY { return true }
+        return false
+    }
+}
+
 struct RootTabView: View {
     private enum MainTab: Hashable {
         case agenda, recurring, todo, history
@@ -60,6 +147,10 @@ struct RootTabView: View {
     private var actionButtonDefaultDestination = ActionButtonDefaultDestination.topTodoCategory.rawValue
 
     init() {
+        // Register the keyboard-frame observers before the first keyboard
+        // appearance, so the very first visibility decision is correct.
+        _ = KeyboardObserver.shared
+
         let badgeColor = UIColor(Color.brandHardBlue)
         let inactiveIconColor = UIColor.label.withAlphaComponent(0.72)
         UITabBarItem.appearance().badgeColor = badgeColor
@@ -183,8 +274,12 @@ struct RootTabView: View {
         }
         .onChange(of: scenePhase) { _, phase in
             if phase == .active {
-                removeExpiredHistory()
+                scheduleExpiredHistoryCleanup()
                 presentRequestedQuickCapture()
+            } else if phase == .background || phase == .inactive {
+                // Never leave a coalesced save window open while the app can
+                // be suspended.
+                PersistenceSafety.flushScheduledSave()
             }
         }
         .onReceive(NotificationCenter.default.publisher(for: .quickTodoCaptureRequested)) { _ in
@@ -199,12 +294,20 @@ struct RootTabView: View {
             }
         }
         .task {
-            removeExpiredHistory()
+            // History cleanup can fetch the complete history and write an
+            // automatic backup. Launching the first tab, its queries and the
+            // keyboard always outranks that maintenance, so it runs deferred.
+            scheduleExpiredHistoryCleanup()
 
             guard !hasPerformedLaunchSync else { return }
             hasPerformedLaunchSync = true
             guard calendarSyncEnabled else { return }
 
+            // EventKit round-trips are XPC calls. Delay the launch sync so it
+            // cannot collide with the first render or the user's first
+            // interactions.
+            try? await Task.sleep(for: .milliseconds(1500))
+            guard !Task.isCancelled else { return }
             do {
                 try CalendarSyncService.syncAll(in: modelContext)
                 try modelContext.save()
@@ -212,6 +315,20 @@ struct RootTabView: View {
             } catch {
                 // A manual retry remains available in Settings.
             }
+        }
+    }
+
+    @State private var expiredHistoryCleanupTask: Task<Void, Never>?
+
+    private func scheduleExpiredHistoryCleanup() {
+        guard expiredHistoryCleanupTask == nil else { return }
+        expiredHistoryCleanupTask = Task { @MainActor in
+            // Keep the fetch/delete pass out of the foreground transition so
+            // returning to the app never starts with a blocked main actor.
+            try? await Task.sleep(for: .milliseconds(900))
+            defer { expiredHistoryCleanupTask = nil }
+            guard !Task.isCancelled else { return }
+            removeExpiredHistory()
         }
     }
 
@@ -310,19 +427,22 @@ private struct EndOfDayReminderPublisherView: View {
 
     @State private var pendingScheduleTask: Task<Void, Never>?
 
-    private var reminderSignature: String {
-        let entrySignature = entries.map {
-            [
-                $0.id.uuidString,
-                String($0.date.timeIntervalSinceReferenceDate),
-                $0.rawText,
-                String($0.startMinutes ?? -1),
-                String($0.manualOrder)
-            ].joined(separator: "|")
-        }.joined(separator: "\n")
-
-        return [String(isEnabled), String(reminderMinutes), language, entrySignature]
-            .joined(separator: "\n")
+    /// A hash keeps this per-mutation signature allocation-free; the previous
+    /// joined string grew linearly with the agenda and was rebuilt on the main
+    /// actor for every observed change.
+    private var reminderSignature: Int {
+        var hasher = Hasher()
+        for entry in entries {
+            hasher.combine(entry.id)
+            hasher.combine(entry.date)
+            hasher.combine(entry.rawText)
+            hasher.combine(entry.startMinutes)
+            hasher.combine(entry.manualOrder)
+        }
+        hasher.combine(isEnabled)
+        hasher.combine(reminderMinutes)
+        hasher.combine(language)
+        return hasher.finalize()
     }
 
     var body: some View {
@@ -405,45 +525,42 @@ private struct WidgetSnapshotPublisherView: View, Equatable {
 
     @State private var pendingPublishTask: Task<Void, Never>?
 
-    private var snapshotSignature: String {
-        let entrySignature = entries.map {
-            [
-                $0.id.uuidString,
-                String($0.date.timeIntervalSinceReferenceDate),
-                $0.rawText,
-                String($0.startMinutes ?? -1),
-                String($0.manualOrder),
-                $0.accentRawValue
-            ].joined(separator: "|")
-        }.joined(separator: "\n")
-        let todoSignature = todos.map {
-            [
-                $0.id.uuidString,
-                $0.text,
-                $0.bucketRawValue,
-                String($0.createdAt.timeIntervalSinceReferenceDate)
-            ].joined(separator: "|")
-        }.joined(separator: "\n")
-        return [
-            categoriesData,
-            todoGroupsData,
-            language,
-            dateFormat,
-            lockScreenContent,
-            lockScreenDatePrefix,
-            String(lockScreenItemCount),
-            lockScreenWordTruncation,
-            homeWidgetContent,
-            homeWidgetCalendarRange,
-            homeWidgetDatePrefix,
-            homeWidgetTextFlow,
-            String(homeWidgetShowsTitle),
-            homeWidgetBackground,
-            String(homeWidgetShowsOtherWhenEmpty),
-            homeWidgetTodoCategoryID,
-            entrySignature,
-            todoSignature
-        ].joined(separator: "\n")
+    /// Hash-based for the same reason as the reminder signature: this value is
+    /// recomputed after every observed mutation and must stay cheap even with
+    /// thousands of entries.
+    private var snapshotSignature: Int {
+        var hasher = Hasher()
+        for entry in entries {
+            hasher.combine(entry.id)
+            hasher.combine(entry.date)
+            hasher.combine(entry.rawText)
+            hasher.combine(entry.startMinutes)
+            hasher.combine(entry.manualOrder)
+            hasher.combine(entry.accentRawValue)
+        }
+        for todo in todos {
+            hasher.combine(todo.id)
+            hasher.combine(todo.text)
+            hasher.combine(todo.bucketRawValue)
+            hasher.combine(todo.createdAt)
+        }
+        hasher.combine(categoriesData)
+        hasher.combine(todoGroupsData)
+        hasher.combine(language)
+        hasher.combine(dateFormat)
+        hasher.combine(lockScreenContent)
+        hasher.combine(lockScreenDatePrefix)
+        hasher.combine(lockScreenItemCount)
+        hasher.combine(lockScreenWordTruncation)
+        hasher.combine(homeWidgetContent)
+        hasher.combine(homeWidgetCalendarRange)
+        hasher.combine(homeWidgetDatePrefix)
+        hasher.combine(homeWidgetTextFlow)
+        hasher.combine(homeWidgetShowsTitle)
+        hasher.combine(homeWidgetBackground)
+        hasher.combine(homeWidgetShowsOtherWhenEmpty)
+        hasher.combine(homeWidgetTodoCategoryID)
+        return hasher.finalize()
     }
 
     var body: some View {

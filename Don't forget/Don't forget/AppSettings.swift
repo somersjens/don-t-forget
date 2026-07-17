@@ -238,7 +238,9 @@ struct AppActivityIndicator: View {
     @State private var activityState = AppActivityState.shared
 
     var body: some View {
-        if activityState.isActive {
+        // Delayed presentation: short activities never surface an indicator,
+        // and it disappears as soon as all work has settled.
+        if activityState.isIndicatorVisible {
             AppActivitySpinner()
                 .frame(width: 44, height: 44)
                 .background(.regularMaterial, in: Circle())

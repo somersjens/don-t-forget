@@ -182,7 +182,7 @@ struct MacRootView: View {
                 .font(.system(size: 22, weight: .semibold))
             HStack {
                 Group {
-                    if appActivityState.isActive {
+                    if appActivityState.isIndicatorVisible {
                         AppActivitySpinner(controlSize: .small)
                             .frame(width: 32, height: 32)
                             .background(.regularMaterial, in: Circle())

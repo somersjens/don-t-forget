@@ -64,6 +64,35 @@ private struct AgendaRecurringCategoryAppearance: Decodable {
     let colorRawValue: String
 }
 
+/// Every agenda row resolves its accent color while rendering. Decoding the
+/// category-appearance JSON once per data revision — instead of once per row
+/// per render pass — keeps scrolling and completion passes free of repeated
+/// JSONDecoder work.
+@MainActor
+private enum AgendaRecurringCategoryColorCache {
+    private static var cachedData: String?
+    private static var colorsByID: [String: String] = [:]
+
+    static func colorRawValues(for data: String) -> [String: String] {
+        if data != cachedData {
+            cachedData = data
+            if let encoded = data.data(using: .utf8),
+               let categories = try? JSONDecoder().decode(
+                   [AgendaRecurringCategoryAppearance].self,
+                   from: encoded
+               ) {
+                colorsByID = Dictionary(
+                    categories.map { ($0.id, $0.colorRawValue) },
+                    uniquingKeysWith: { first, _ in first }
+                )
+            } else {
+                colorsByID = [:]
+            }
+        }
+        return colorsByID
+    }
+}
+
 private struct RecurringMoveBarStyle: ViewModifier {
     func body(content: Content) -> some View {
         content
@@ -490,6 +519,12 @@ struct AgendaView: View {
         let visibleWeeks = weeks
         let loadedWeekLimit = loadedFutureWeeks
         let weatherByDay = weatherStore.days
+        // Decode/derive once per render pass instead of once per week card.
+        let currentTodoGroups = todoGroups
+        let currentMatchIDs = searchMatchIDs
+        let currentMatchIDSet = Set(currentMatchIDs)
+        let currentMatchID = currentMatchIDs.indices.contains(currentSearchMatch)
+            ? currentMatchIDs[currentSearchMatch] : nil
         let firstWeatherWeekID = visibleWeeks.first { week in
             week.days.contains { weatherByDay[AppCalendar.startOfDay($0.date)] != nil }
         }?.id
@@ -523,7 +558,7 @@ struct AgendaView: View {
                                 moveEntry: moveEntry,
                                 moveEntryOneStep: moveEntryOneStep,
                                 moveEntryToTodo: moveEntryToTodo,
-                                todoGroups: todoGroups,
+                                todoGroups: currentTodoGroups,
                                 activeMoveEntryID: $activeMoveEntryID,
                                 moveDraftDate: $moveDraftDate,
                                 toggleMoveControls: toggleMoveControls,
@@ -549,9 +584,8 @@ struct AgendaView: View {
                                 onboardingMoveCancelled: {
                                     returnToAgendaTutorialMoveStep()
                                 },
-                                searchMatchIDs: Set(searchMatchIDs),
-                                currentSearchMatchID: searchMatchIDs.indices.contains(currentSearchMatch)
-                                    ? searchMatchIDs[currentSearchMatch] : nil
+                                searchMatchIDs: currentMatchIDSet,
+                                currentSearchMatchID: currentMatchID
                             )
                             .id(AgendaScrollTarget.week(week.startDate))
                         }
@@ -636,30 +670,34 @@ struct AgendaView: View {
                         )
 
                         HStack {
-                            Group {
-                                if appActivityState.isActive {
-                                    AppActivitySpinner()
-                                        .frame(width: 44, height: 44)
-                                        .compatibleAgendaGlassEffect()
-                                        .accessibilityLabel("App is bezig")
+                            // The undo button stays present and tappable while
+                            // background work runs. Activity is shown as a
+                            // small non-interactive badge, and only when the
+                            // work lasts long enough to be noticeable.
+                            Button {
+                                undoManager?.undo()
+                            } label: {
+                                Image(systemName: "arrow.uturn.backward")
+                                    .font(.system(size: 20, weight: .semibold))
+                                    .foregroundStyle(
+                                        (undoManager?.canUndo ?? false)
+                                            ? Color.brandHardBlue
+                                            : Color.secondary
+                                    )
+                                    .frame(width: 44, height: 44)
+                            }
+                            .compatibleAgendaGlassEffect()
+                            .disabled(!(undoManager?.canUndo ?? false))
+                            .accessibilityLabel("Laatste wijziging terugdraaien")
+                            .overlay(alignment: .topTrailing) {
+                                if appActivityState.isIndicatorVisible {
+                                    AppActivitySpinner(controlSize: .mini)
+                                        .frame(width: 20, height: 20)
+                                        .background(.regularMaterial, in: Circle())
+                                        .offset(x: 5, y: -5)
+                                        .allowsHitTesting(false)
                                         .transition(.opacity)
-                                } else {
-                                    Button {
-                                        undoManager?.undo()
-                                    } label: {
-                                        Image(systemName: "arrow.uturn.backward")
-                                            .font(.system(size: 20, weight: .semibold))
-                                            .foregroundStyle(
-                                                (undoManager?.canUndo ?? false)
-                                                    ? Color.brandHardBlue
-                                                    : Color.secondary
-                                            )
-                                            .frame(width: 44, height: 44)
-                                    }
-                                    .compatibleAgendaGlassEffect()
-                                    .disabled(!(undoManager?.canUndo ?? false))
-                                    .accessibilityLabel("Laatste wijziging terugdraaien")
-                                    .transition(.opacity)
+                                        .accessibilityLabel("App is bezig")
                                 }
                             }
                             .frame(width: 44, height: 44)
@@ -717,7 +755,7 @@ struct AgendaView: View {
                         InlineMatchSearchBar(
                             text: $searchText,
                             isFocused: $isSearchFocused,
-                            matchCount: searchMatchIDs.count,
+                            matchCount: currentMatchIDs.count,
                             currentMatch: currentSearchMatch,
                             next: advanceAgendaMatch,
                             clear: clearAgendaSearch
@@ -914,15 +952,27 @@ struct AgendaView: View {
         inputScrollTask = Task { @MainActor in
             try? await Task.sleep(for: .milliseconds(40))
             guard !Task.isCancelled, isKeyboardVisible else { return }
-            withAnimation(.smooth(duration: 0.22, extraBounce: 0)) {
-                proxy.scrollTo(AgendaScrollTarget.newEntry(date), anchor: .bottom)
+            // Scroll only when the input row is genuinely covered by the
+            // keyboard or offscreen. When it is already fully visible the
+            // current scroll position is kept, so opening the next input or
+            // tapping plus higher up in the list no longer makes the whole
+            // screen jump. Anchor .bottom then moves exactly the minimal
+            // distance needed to clear the keyboard.
+            if FocusedInputFrameTracker.agenda.needsKeyboardScroll(for: date) {
+                withAnimation(.smooth(duration: 0.22, extraBounce: 0)) {
+                    proxy.scrollTo(AgendaScrollTarget.newEntry(date), anchor: .bottom)
+                }
             }
 
             // The query update and keyboard safe area do not always settle in
-            // the same pass. Correct once more after both layouts are complete.
+            // the same pass. Correct once more after both layouts are
+            // complete — but only if the row still needs it, so a row that
+            // ended up visible is never nudged a second time.
             try? await Task.sleep(for: .milliseconds(240))
             guard !Task.isCancelled, isKeyboardVisible else { return }
-            proxy.scrollTo(AgendaScrollTarget.newEntry(date), anchor: .bottom)
+            if FocusedInputFrameTracker.agenda.needsKeyboardScroll(for: date) {
+                proxy.scrollTo(AgendaScrollTarget.newEntry(date), anchor: .bottom)
+            }
             inputScrollTask = nil
         }
     }
@@ -1962,9 +2012,7 @@ struct AgendaView: View {
         }
 
         let eventIdentifier = entry.calendarEventIdentifier
-        let allEntries = ((try? modelContext.fetch(FetchDescriptor<DayEntry>())) ?? entries)
-            .filter { !$0.isRemoved }
-        CalendarSyncService.deleteEventIfUnshared(for: entry, among: allEntries)
+        CalendarSyncService.deleteEventIfUnshared(for: entry, in: modelContext)
 
         let todo = TodoItem(text: cleanText, bucket: .today)
         todo.bucketRawValue = groupID
@@ -2012,8 +2060,12 @@ struct AgendaView: View {
     private func undoMoveToTodo() {
         guard let move = recentlyMovedToTodo else { return }
 
-        let todos = (try? modelContext.fetch(FetchDescriptor<TodoItem>())) ?? []
-        if let todo = todos.first(where: { $0.id == move.todoID }) {
+        let todoID = move.todoID
+        var todoDescriptor = FetchDescriptor<TodoItem>(
+            predicate: #Predicate { $0.id == todoID }
+        )
+        todoDescriptor.fetchLimit = 1
+        if let todo = (try? modelContext.fetch(todoDescriptor))?.first {
             modelContext.delete(todo)
         }
 
@@ -2996,12 +3048,19 @@ struct AgendaEntryLine: View {
         focusedField.wrappedValue = nil
         AppKeyboard.dismiss()
 
+        // Only entries that actually reference the same calendar event matter
+        // here. The previous full-table fetch made clearing a row's text pay
+        // for the size of the complete store.
         let eventIdentifier = entry.calendarEventIdentifier
-        let allEntries = (try? modelContext.fetch(FetchDescriptor<DayEntry>())) ?? []
+        let entryID = entry.id
         let eventIsShared = eventIdentifier.map { identifier in
-            allEntries.contains {
-                $0.id != entry.id && $0.calendarEventIdentifier == identifier
-            }
+            let descriptor = FetchDescriptor<DayEntry>(
+                predicate: #Predicate { other in
+                    other.calendarEventIdentifier == identifier
+                        && other.id != entryID
+                }
+            )
+            return ((try? modelContext.fetchCount(descriptor)) ?? 0) > 0
         } ?? false
 
         Task { @MainActor in
@@ -3022,9 +3081,7 @@ struct AgendaEntryLine: View {
         AppKeyboard.dismiss()
 
         let eventIdentifier = entry.calendarEventIdentifier
-        let activeEntries = ((try? modelContext.fetch(FetchDescriptor<DayEntry>())) ?? [])
-            .filter { !$0.isRemoved }
-        CalendarSyncService.deleteEventIfUnshared(for: entry, among: activeEntries)
+        CalendarSyncService.deleteEventIfUnshared(for: entry, in: modelContext)
         entry.isDone = false
         entry.isRemoved = true
         entry.completedAt = .now
@@ -3047,9 +3104,8 @@ struct AgendaEntryLine: View {
             ? RecurringTheme.birthday.rawValue
             : entry.accentRawValue
 
-        if let data = recurringCategoriesData.data(using: .utf8),
-           let categories = try? JSONDecoder().decode([AgendaRecurringCategoryAppearance].self, from: data),
-           let colorRawValue = categories.first(where: { $0.id == categoryID })?.colorRawValue {
+        if let colorRawValue = AgendaRecurringCategoryColorCache
+            .colorRawValues(for: recurringCategoriesData)[categoryID] {
             return recurringColor(colorRawValue)
         }
 
@@ -3195,6 +3251,28 @@ struct AgendaInputLine: View {
                 .buttonStyle(.plain)
                 .opacity(cleanText.isEmpty ? 0 : 1)
                 .offset(x: -AgendaLayout.completionControlInset)
+            }
+        }
+        .background {
+            // Report this row's on-screen position only while it owns the
+            // focus. The tracker is not observable state, so these frequent
+            // frame updates never invalidate the agenda hierarchy.
+            if focusedField.wrappedValue == .newEntry(date) {
+                GeometryReader { proxy in
+                    Color.clear
+                        .onAppear {
+                            FocusedInputFrameTracker.agenda.update(
+                                owner: date,
+                                frame: proxy.frame(in: .global)
+                            )
+                        }
+                        .onChange(of: proxy.frame(in: .global)) { _, frame in
+                            FocusedInputFrameTracker.agenda.update(owner: date, frame: frame)
+                        }
+                        .onDisappear {
+                            FocusedInputFrameTracker.agenda.clear(owner: date)
+                        }
+                }
             }
         }
         .onChange(of: focusedField.wrappedValue) { oldValue, newValue in

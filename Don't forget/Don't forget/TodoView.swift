@@ -405,7 +405,7 @@ struct TodoView: View {
                     InlineMatchSearchBar(
                         text: $searchText,
                         isFocused: $isSearchFocused,
-                        matchCount: searchMatchIDs.count,
+                        matchCount: currentSearchMatchIDs.count,
                         currentMatch: currentSearchMatch,
                         next: advanceTodoMatch,
                         clear: clearTodoSearch
@@ -457,6 +457,7 @@ struct TodoView: View {
             .onDisappear {
                 searchScrollTask?.cancel()
                 inputScrollTask?.cancel()
+                PersistenceSafety.flushScheduledSave()
             }
         }
     }
@@ -573,15 +574,23 @@ struct TodoView: View {
         inputScrollTask = Task { @MainActor in
             try? await Task.sleep(for: .milliseconds(40))
             guard !Task.isCancelled, isKeyboardVisible else { return }
-            withAnimation(.smooth(duration: 0.22, extraBounce: 0)) {
-                proxy.scrollTo(TodoScrollTarget.newEntry(groupID), anchor: .bottom)
+            // Only scroll when the input row is actually covered by the
+            // keyboard or offscreen; a row that is already fully visible keeps
+            // the current scroll position, so rapid successive entries and
+            // plus-taps higher up in the list no longer jump the screen.
+            if FocusedInputFrameTracker.todo.needsKeyboardScroll(for: groupID) {
+                withAnimation(.smooth(duration: 0.22, extraBounce: 0)) {
+                    proxy.scrollTo(TodoScrollTarget.newEntry(groupID), anchor: .bottom)
+                }
             }
 
             // The inserted row and keyboard safe area can settle in separate
-            // layout passes. Re-apply the target so the empty input stays visible.
+            // layout passes. Correct once more, but only if still needed.
             try? await Task.sleep(for: .milliseconds(240))
             guard !Task.isCancelled, isKeyboardVisible else { return }
-            proxy.scrollTo(TodoScrollTarget.newEntry(groupID), anchor: .bottom)
+            if FocusedInputFrameTracker.todo.needsKeyboardScroll(for: groupID) {
+                proxy.scrollTo(TodoScrollTarget.newEntry(groupID), anchor: .bottom)
+            }
             inputScrollTask = nil
         }
     }
@@ -1000,8 +1009,12 @@ struct TodoView: View {
     private func undoMoveToAgenda() {
         guard let move = recentlyMovedToAgenda else { return }
 
-        let entries = (try? modelContext.fetch(FetchDescriptor<DayEntry>())) ?? []
-        if let entry = entries.first(where: { $0.id == move.entryID }) {
+        let entryID = move.entryID
+        var entryDescriptor = FetchDescriptor<DayEntry>(
+            predicate: #Predicate { $0.id == entryID }
+        )
+        entryDescriptor.fetchLimit = 1
+        if let entry = (try? modelContext.fetch(entryDescriptor))?.first {
             modelContext.delete(entry)
         }
 
@@ -1698,7 +1711,10 @@ private struct TodoLine: View {
             Button {
                 commitDraft()
                 todo.toggleDone()
-                _ = PersistenceSafety.save(modelContext)
+                // The row leaves the filtered query through the model change
+                // itself. Coalescing the store commit keeps rapid consecutive
+                // completions from paying one synchronous save per tap.
+                PersistenceSafety.scheduleSave(modelContext)
                 if todo.isDone {
                     completed(todo)
                 }
@@ -2208,6 +2224,28 @@ private struct NewTodoLine: View {
                     .stroke(Color.brandHardBlue, lineWidth: 3)
                     .padding(-4)
                     .allowsHitTesting(false)
+            }
+        }
+        .background {
+            // Report this row's position only while focused, so the owning
+            // list can skip the automatic keyboard scroll when the row is
+            // already fully visible. The tracker is not observable state.
+            if isTextFieldFocused {
+                GeometryReader { proxy in
+                    Color.clear
+                        .onAppear {
+                            FocusedInputFrameTracker.todo.update(
+                                owner: groupID,
+                                frame: proxy.frame(in: .global)
+                            )
+                        }
+                        .onChange(of: proxy.frame(in: .global)) { _, frame in
+                            FocusedInputFrameTracker.todo.update(owner: groupID, frame: frame)
+                        }
+                        .onDisappear {
+                            FocusedInputFrameTracker.todo.clear(owner: groupID)
+                        }
+                }
             }
         }
         .onDisappear {

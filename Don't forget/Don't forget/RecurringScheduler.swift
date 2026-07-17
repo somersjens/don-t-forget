@@ -18,7 +18,14 @@ final class AppActivityState {
 
     static let shared = AppActivityState()
     private(set) var activeActivities: Set<Activity> = []
+
+    /// Drives the visible indicator. It intentionally lags `isActive`: very
+    /// short activities finish before this becomes true, so the indicator
+    /// never flickers, and it is cleared immediately once all work is done.
+    private(set) var isIndicatorVisible = false
+
     @ObservationIgnored private var delayedFinishTasks: [Activity: Task<Void, Never>] = [:]
+    @ObservationIgnored private var indicatorPresentationTask: Task<Void, Never>?
 
     var isActive: Bool { !activeActivities.isEmpty }
     var isRecurringSyncActive: Bool { activeActivities.contains(.recurringSync) }
@@ -29,6 +36,20 @@ final class AppActivityState {
         delayedFinishTasks[activity]?.cancel()
         delayedFinishTasks[activity] = nil
         activeActivities.insert(activity)
+        scheduleIndicatorPresentationIfNeeded()
+    }
+
+    private func scheduleIndicatorPresentationIfNeeded() {
+        guard !isIndicatorVisible, indicatorPresentationTask == nil else { return }
+        indicatorPresentationTask = Task { @MainActor in
+            // Present only when the work lasts long enough to be noticeable.
+            try? await Task.sleep(for: .milliseconds(400))
+            indicatorPresentationTask = nil
+            guard !Task.isCancelled, !activeActivities.isEmpty else { return }
+            withAnimation(.easeIn(duration: 0.15)) {
+                isIndicatorVisible = true
+            }
+        }
     }
 
     /// A private-context save completes before live queries have merged the
@@ -46,6 +67,13 @@ final class AppActivityState {
             guard !Task.isCancelled else { return }
             activeActivities.remove(activity)
             delayedFinishTasks[activity] = nil
+            if activeActivities.isEmpty {
+                // Hide immediately once the interface is fully interactive
+                // again; never let the indicator linger.
+                indicatorPresentationTask?.cancel()
+                indicatorPresentationTask = nil
+                isIndicatorVisible = false
+            }
         }
     }
 }
@@ -511,6 +539,42 @@ struct RecurringSeriesSyncPlan: Sendable {
     let entries: [Entry]
 }
 
+/// Shared by the private-context workers. Writes only fields that actually
+/// changed: unconditional assignments marked every touched occurrence dirty,
+/// which turned each horizon extension into a large save whose merge stalled
+/// the main actor (visible as scrolling that briefly stopped responding).
+nonisolated enum RecurringWorkerUpdate {
+    static func apply(
+        _ desired: RecurringSeriesSyncPlan.Entry,
+        to entry: DayEntry,
+        itemID: UUID
+    ) {
+        let desiredDate = entry.recurringDateOverride ?? desired.date
+        let needsParsing = entry.rawText != desired.title
+        if entry.date != desiredDate {
+            entry.date = desiredDate
+        }
+        if needsParsing {
+            entry.rawText = desired.title
+        }
+        if !entry.showOnWidget {
+            entry.showOnWidget = true
+        }
+        if entry.recurringItemIdentifier != itemID {
+            entry.recurringItemIdentifier = itemID
+        }
+        if entry.recurringOccurrenceKey != desired.key {
+            entry.recurringOccurrenceKey = desired.key
+        }
+        if entry.accentRawValue != desired.accent {
+            entry.accentRawValue = desired.accent
+        }
+        if needsParsing {
+            entry.refreshParsedFields()
+        }
+    }
+}
+
 /// Reconciles all generated occurrences in one private-context transaction.
 /// This avoids publishing hundreds of individual inserts on the main context
 /// when a daily (or dense weekly) series is added.
@@ -625,17 +689,7 @@ nonisolated enum RecurringFullSyncWorker {
         with desired: RecurringSeriesSyncPlan.Entry,
         itemID: UUID
     ) {
-        let desiredDate = entry.recurringDateOverride ?? desired.date
-        let needsParsing = entry.rawText != desired.title
-        entry.date = desiredDate
-        entry.rawText = desired.title
-        entry.showOnWidget = true
-        entry.recurringItemIdentifier = itemID
-        entry.recurringOccurrenceKey = desired.key
-        entry.accentRawValue = desired.accent
-        if needsParsing {
-            entry.refreshParsedFields()
-        }
+        RecurringWorkerUpdate.apply(desired, to: entry, itemID: itemID)
     }
 
     private static func remove(
@@ -695,6 +749,13 @@ nonisolated enum RecurringExtensionWorker {
             existingByIdentity[Identity(itemID: itemID, key: key)] = entry
         }
 
+        // Save in bounded batches. One monolithic save merged hundreds of new
+        // occurrences into the main context in a single pass, which stalled
+        // touch handling exactly when the user resumed scrolling. Smaller
+        // merges let user interaction interleave with the background work.
+        let saveBatchSize = 120
+        var insertedSinceLastSave = 0
+
         for series in plan.series {
             for desired in series.entries {
                 let identity = Identity(itemID: series.itemID, key: desired.key)
@@ -718,6 +779,12 @@ nonisolated enum RecurringExtensionWorker {
                 entry.accentRawValue = desired.accent
                 context.insert(entry)
                 existingByIdentity[identity] = entry
+                insertedSinceLastSave += 1
+
+                if insertedSinceLastSave >= saveBatchSize {
+                    try context.save()
+                    insertedSinceLastSave = 0
+                }
             }
         }
 
@@ -731,17 +798,7 @@ nonisolated enum RecurringExtensionWorker {
         with desired: RecurringSeriesSyncPlan.Entry,
         itemID: UUID
     ) {
-        let desiredDate = entry.recurringDateOverride ?? desired.date
-        let needsParsing = entry.rawText != desired.title
-        entry.date = desiredDate
-        entry.rawText = desired.title
-        entry.showOnWidget = true
-        entry.recurringItemIdentifier = itemID
-        entry.recurringOccurrenceKey = desired.key
-        entry.accentRawValue = desired.accent
-        if needsParsing {
-            entry.refreshParsedFields()
-        }
+        RecurringWorkerUpdate.apply(desired, to: entry, itemID: itemID)
     }
 }
 
@@ -806,17 +863,7 @@ nonisolated enum RecurringSeriesWorker {
         with desired: RecurringSeriesSyncPlan.Entry,
         itemID: UUID
     ) {
-        let desiredDate = entry.recurringDateOverride ?? desired.date
-        let needsParsing = entry.rawText != desired.title
-        entry.date = desiredDate
-        entry.rawText = desired.title
-        entry.showOnWidget = true
-        entry.recurringItemIdentifier = itemID
-        entry.recurringOccurrenceKey = desired.key
-        entry.accentRawValue = desired.accent
-        if needsParsing {
-            entry.refreshParsedFields()
-        }
+        RecurringWorkerUpdate.apply(desired, to: entry, itemID: itemID)
     }
 
     private static func remove(

@@ -604,8 +604,13 @@ struct HistoryView: View {
 
     private func tutorialExampleEntry() -> DayEntry? {
         guard let id = tutorialExampleID else { return nil }
-        let allEntries = (try? modelContext.fetch(FetchDescriptor<DayEntry>())) ?? []
-        return allEntries.first { $0.id == id }
+        // This runs on every appearance of the History tab; fetch only the
+        // one row instead of the complete table.
+        var descriptor = FetchDescriptor<DayEntry>(
+            predicate: #Predicate { $0.id == id }
+        )
+        descriptor.fetchLimit = 1
+        return (try? modelContext.fetch(descriptor))?.first
     }
 
     private func tutorialExampleRow() -> HistoryRow? {
@@ -2014,8 +2019,7 @@ private struct HistoryRow: Identifiable {
 
     func permanentlyDelete(in modelContext: ModelContext) {
         if let entry {
-            let entries = (try? modelContext.fetch(FetchDescriptor<DayEntry>())) ?? []
-            CalendarSyncService.deleteEventIfUnshared(for: entry, among: entries)
+            CalendarSyncService.deleteEventIfUnshared(for: entry, in: modelContext)
             modelContext.delete(entry)
         }
         if let todo {

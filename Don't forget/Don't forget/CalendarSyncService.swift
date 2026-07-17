@@ -115,6 +115,31 @@ enum CalendarSyncService {
         UserDefaults.standard.removeObject(forKey: pendingDeletionKey)
     }
 
+    /// Predicate-based variant for latency-sensitive paths (deleting or moving
+    /// a single entry). The common case — no linked calendar event — performs
+    /// no fetch at all; otherwise only rows sharing this identifier are
+    /// counted instead of loading the complete table.
+    static func deleteEventIfUnshared(
+        for entry: DayEntry,
+        in modelContext: ModelContext
+    ) {
+        guard let identifier = entry.calendarEventIdentifier else { return }
+
+        let entryID = entry.id
+        let descriptor = FetchDescriptor<DayEntry>(
+            predicate: #Predicate { other in
+                other.calendarEventIdentifier == identifier
+                    && other.id != entryID
+                    && !other.isRemoved
+            }
+        )
+        let isShared = ((try? modelContext.fetchCount(descriptor)) ?? 0) > 0
+
+        guard !isShared else { return }
+        enqueueEventDeletion(withIdentifier: identifier)
+        entry.calendarEventIdentifier = nil
+    }
+
     static func deleteEventIfUnshared(
         for entry: DayEntry,
         among entries: [DayEntry]
