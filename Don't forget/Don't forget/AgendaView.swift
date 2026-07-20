@@ -2470,6 +2470,12 @@ struct WeekCard: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
+            if let weatherAttribution {
+                AgendaWeatherAttributionLink(attribution: weatherAttribution)
+                    .frame(maxWidth: .infinity, alignment: .center)
+                    .padding(.horizontal, 14)
+            }
+
             Text(verbatim: "week #\(week.weekNumber) · start \(startDateLabel) · \(startYear)")
                 .font(.system(size: 14, weight: .semibold))
                 .foregroundStyle(
@@ -2520,13 +2526,6 @@ struct WeekCard: View {
         .overlay {
             RoundedRectangle(cornerRadius: 14).stroke(Color.appCardOutline, lineWidth: 1)
         }
-
-
-            if let weatherAttribution {
-                AgendaWeatherAttributionLink(attribution: weatherAttribution)
-                    .frame(maxWidth: .infinity, alignment: .trailing)
-                    .padding(.trailing, 4)
-            }
         }
     }
 }
@@ -2542,7 +2541,7 @@ private struct AgendaWeatherAttributionLink: View {
                     .resizable()
                     .scaledToFit()
             } placeholder: {
-                Text("Apple Weather")
+                Text(verbatim: " Weather")
                     .font(.caption2.weight(.medium))
                     .foregroundStyle(.secondary)
             }

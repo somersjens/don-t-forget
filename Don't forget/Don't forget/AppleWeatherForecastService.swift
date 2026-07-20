@@ -20,6 +20,7 @@ struct AgendaWeatherAttribution: Sendable {
 @MainActor
 final class AppleWeatherForecastStore {
     static let authenticationError = "weatherkit.authenticationFailed"
+    private static let usesAppleWeatherKit = false
 
     private(set) var days: [Date: AgendaWeatherDay] = [:]
     private(set) var attribution: AgendaWeatherAttribution?
@@ -49,6 +50,21 @@ final class AppleWeatherForecastStore {
         isLoading = true
         defer { isLoading = false }
 
+        guard Self.usesAppleWeatherKit else {
+            do {
+                days = try await Self.openMeteoForecast(for: location)
+                attribution = nil
+                defaults.removeObject(forKey: SettingsKeys.weatherLastError)
+                defaults.removeObject(forKey: SettingsKeys.weatherLastErrorDetails)
+            } catch {
+                days = [:]
+                attribution = nil
+                defaults.set(error.localizedDescription, forKey: SettingsKeys.weatherLastError)
+                defaults.set(Self.diagnosticDescription(for: error), forKey: SettingsKeys.weatherLastErrorDetails)
+            }
+            return
+        }
+
         do {
             let daily = try await WeatherService.shared.weather(for: location, including: .daily)
             days = Dictionary(uniqueKeysWithValues: daily.forecast.map { weather in
@@ -66,14 +82,24 @@ final class AppleWeatherForecastStore {
             defaults.removeObject(forKey: SettingsKeys.weatherLastError)
             defaults.removeObject(forKey: SettingsKeys.weatherLastErrorDetails)
         } catch {
-            days = [:]
-            attribution = nil
             if Self.isAuthenticationFailure(error) {
-                defaults.set(Self.authenticationError, forKey: SettingsKeys.weatherLastError)
+                do {
+                    days = try await Self.openMeteoForecast(for: location)
+                    attribution = nil
+                    defaults.removeObject(forKey: SettingsKeys.weatherLastError)
+                    defaults.removeObject(forKey: SettingsKeys.weatherLastErrorDetails)
+                } catch {
+                    days = [:]
+                    attribution = nil
+                    defaults.set(error.localizedDescription, forKey: SettingsKeys.weatherLastError)
+                    defaults.set(Self.diagnosticDescription(for: error), forKey: SettingsKeys.weatherLastErrorDetails)
+                }
             } else {
+                days = [:]
+                attribution = nil
                 defaults.set(error.localizedDescription, forKey: SettingsKeys.weatherLastError)
+                defaults.set(Self.diagnosticDescription(for: error), forKey: SettingsKeys.weatherLastErrorDetails)
             }
-            defaults.set(Self.diagnosticDescription(for: error), forKey: SettingsKeys.weatherLastErrorDetails)
         }
     }
 

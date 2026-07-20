@@ -1344,6 +1344,7 @@
       }
     },
     "Apple Weather" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
