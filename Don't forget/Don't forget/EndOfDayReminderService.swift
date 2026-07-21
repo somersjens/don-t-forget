@@ -62,7 +62,8 @@ enum EndOfDayReminderService {
             return
         }
 
-        removeStoredPendingReminders()
+        await removeAllPendingReminders(for: generation)
+        guard generation == schedulingGeneration else { return }
 
         let calendar = AppCalendar.calendar
         let today = calendar.startOfDay(for: now)
@@ -110,10 +111,10 @@ enum EndOfDayReminderService {
                 dateMatching: dateComponents,
                 repeats: false
             )
-            let identifier = identifierPrefix
-                + String(Int(day.timeIntervalSince1970))
-                + "."
-                + UUID().uuidString
+            // A calendar day can have exactly one end-of-day reminder. A
+            // stable identifier also lets UserNotifications replace a request
+            // from an earlier app state instead of accumulating duplicates.
+            let identifier = reminderIdentifier(for: day, calendar: calendar)
             try await center.add(UNNotificationRequest(
                 identifier: identifier,
                 content: content,
@@ -170,17 +171,58 @@ enum EndOfDayReminderService {
 
     static func cancelPendingReminders() {
         schedulingGeneration += 1
+        let generation = schedulingGeneration
         removeStoredPendingReminders()
+        Task { @MainActor in
+            await removeAllPendingReminders(for: generation)
+        }
     }
 
+    /// Synchronously removes the known requests so turning the setting off
+    /// takes effect immediately; the asynchronous prefix sweep below also
+    /// catches any legacy or untracked requests.
     private static func removeStoredPendingReminders() {
         let defaults = UserDefaults.standard
         let identifiers = defaults.stringArray(forKey: scheduledIdentifiersKey) ?? []
-        guard !identifiers.isEmpty else { return }
-        UNUserNotificationCenter.current().removePendingNotificationRequests(
-            withIdentifiers: identifiers
-        )
+        if !identifiers.isEmpty {
+            UNUserNotificationCenter.current().removePendingNotificationRequests(
+                withIdentifiers: identifiers
+            )
+        }
         defaults.removeObject(forKey: scheduledIdentifiersKey)
+    }
+
+    /// Removes both requests tracked by this installation and older requests
+    /// that may have been scheduled before the identifier was persisted (or
+    /// on another device). This is deliberately prefix-scoped so unrelated
+    /// app notifications are left untouched.
+    private static func removeAllPendingReminders(for generation: Int) async {
+        let defaults = UserDefaults.standard
+        let storedIdentifiers = defaults.stringArray(forKey: scheduledIdentifiersKey) ?? []
+        let center = UNUserNotificationCenter.current()
+        let pendingIdentifiers = await center.pendingNotificationRequests()
+            .map(\.identifier)
+            .filter { $0.hasPrefix(identifierPrefix) }
+
+        // An older, suspended scheduling pass must never remove requests
+        // added by the newer pass.
+        guard generation == schedulingGeneration else { return }
+
+        let identifiers = Array(Set(storedIdentifiers).union(pendingIdentifiers))
+        if !identifiers.isEmpty {
+            center.removePendingNotificationRequests(withIdentifiers: identifiers)
+        }
+        defaults.removeObject(forKey: scheduledIdentifiersKey)
+    }
+
+    private static func reminderIdentifier(for day: Date, calendar: Calendar) -> String {
+        let components = calendar.dateComponents([.year, .month, .day], from: day)
+        return String(
+            format: "\(identifierPrefix)%04d-%02d-%02d",
+            components.year ?? 0,
+            components.month ?? 0,
+            components.day ?? 0
+        )
     }
 
     static func reminderBody(texts: [String]) -> String {

@@ -2397,6 +2397,9 @@ private enum AgendaLayout {
     static let rowSpacing: CGFloat = 8
     static let completionControlInset: CGFloat = 8
     static let weatherBadgeWidth: CGFloat = 48
+    static let weatherTemperatureWidth: CGFloat = 28
+    static let weatherIconWidth: CGFloat = 20
+    static let weatherIconOpticalOffset: CGFloat = -1
     static let moveActionSpacing: CGFloat = 8
     static let categoryControlWidth: CGFloat = 22
     static let dateControlWidth: CGFloat = 76
@@ -3340,10 +3343,10 @@ private struct AgendaWeatherBadge: View {
     let weather: AgendaWeatherDay
 
     var body: some View {
-        HStack(spacing: 2) {
-            weatherIcon
-
+        HStack(spacing: 0) {
             temperatureText
+
+            weatherIcon
         }
         .frame(width: AgendaLayout.weatherBadgeWidth, alignment: .trailing)
         .padding(.top, -1)
@@ -3365,7 +3368,16 @@ private struct AgendaWeatherBadge: View {
                 .foregroundStyle(Color.appPrimaryText)
                 .offset(x: 5, y: -1)
         }
-        .frame(width: 24, height: 18, alignment: .center)
+        .frame(width: AgendaLayout.weatherTemperatureWidth, height: 18, alignment: .center)
+    }
+
+    private var cloudColor: Color {
+        Color.appDarkModeTextColor(
+            otherwise: Color.appThemeColor(
+                lightBlue: Color.black.opacity(0.16),
+                gray: .white
+            )
+        )
     }
 
     @ViewBuilder private var weatherIcon: some View {
@@ -3374,12 +3386,38 @@ private struct AgendaWeatherBadge: View {
                 .font(.system(size: 13, weight: .medium))
                 .symbolRenderingMode(.monochrome)
                 .foregroundStyle(.yellow)
-                .frame(width: 15, height: 18)
+                .frame(width: AgendaLayout.weatherIconWidth, height: 18)
+                .offset(x: AgendaLayout.weatherIconOpticalOffset)
+        } else if weather.symbolName.contains("cloud.sun") {
+            Image(systemName: weather.symbolName)
+                .font(.system(size: 13, weight: .medium))
+                .symbolRenderingMode(.palette)
+                .foregroundStyle(cloudColor, Color.yellow)
+                .frame(width: AgendaLayout.weatherIconWidth, height: 18)
+                .offset(x: AgendaLayout.weatherIconOpticalOffset)
+        } else if weather.symbolName.contains("rain")
+                    || weather.symbolName.contains("drizzle")
+                    || weather.symbolName.contains("sleet")
+                    || weather.symbolName.contains("snow") {
+            Image(systemName: weather.symbolName)
+                .font(.system(size: 13, weight: .medium))
+                .symbolRenderingMode(.palette)
+                .foregroundStyle(cloudColor, Color.cyan)
+                .frame(width: AgendaLayout.weatherIconWidth, height: 18)
+                .offset(x: AgendaLayout.weatherIconOpticalOffset)
+        } else if weather.symbolName.contains("cloud") {
+            Image(systemName: weather.symbolName)
+                .font(.system(size: 13, weight: .medium))
+                .symbolRenderingMode(.monochrome)
+                .foregroundStyle(cloudColor)
+                .frame(width: AgendaLayout.weatherIconWidth, height: 18)
+                .offset(x: AgendaLayout.weatherIconOpticalOffset)
         } else {
             Image(systemName: weather.symbolName)
                 .font(.system(size: 13, weight: .medium))
                 .symbolRenderingMode(.multicolor)
-                .frame(width: 15, height: 18)
+                .frame(width: AgendaLayout.weatherIconWidth, height: 18)
+                .offset(x: AgendaLayout.weatherIconOpticalOffset)
         }
     }
 }

@@ -91,9 +91,14 @@ extension Color {
 
     static var appCardBackground: Color {
 #if os(macOS)
-        let gray = Color.black.opacity(0.045)
+        let gray = Color(nsColor: NSColor(name: nil) { appearance in
+            let isDark = appearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua
+            return isDark ? NSColor.black.withAlphaComponent(0.045) : .white
+        })
 #else
-        let gray = Color(.secondarySystemBackground)
+        let gray = Color(uiColor: UIColor { traits in
+            traits.userInterfaceStyle == .dark ? .secondarySystemBackground : .white
+        })
 #endif
         return appThemeColor(lightBlue: .white, gray: gray)
     }

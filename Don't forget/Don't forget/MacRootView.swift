@@ -1272,7 +1272,13 @@ private struct MacTodoBoard: View {
                         addTodo(to: group.id, continueEditing: false)
                     }
             }
-            .padding(12)
+            // Keep the entry field aligned with an existing task row. A full
+            // card inset here made the gap above "Nieuwe taak" noticeably
+            // larger than the spacing between tasks.
+            .padding(.horizontal, 12)
+            .padding(.vertical, 2)
+            .padding(.bottom, 6)
+            .frame(minHeight: 24)
         }
         .background(Color.appCardBackground, in: RoundedRectangle(cornerRadius: 10))
         .overlay { RoundedRectangle(cornerRadius: 10).stroke(Color.appCardOutline) }
@@ -1576,10 +1582,10 @@ private struct MacTodoBoard: View {
     }
     private func ageBadge(_ date: Date) -> String {
         let days = max(0, Calendar.current.dateComponents([.day], from: Calendar.current.startOfDay(for: date), to: Calendar.current.startOfDay(for: .now)).day ?? 0)
-        if days == 0 { return "nu" }
-        if days < 14 { return "\(days)d" }
-        if days < 70 { return "\(days / 7)w" }
-        return "\(days / 30)m"
+        if days == 0 { return locale.localized("todo.age.now") }
+        if days < 14 { return locale.localizedFormat("todo.age.daysShort", days) }
+        if days < 70 { return locale.localizedFormat("todo.age.weeksShort", days / 7) }
+        return locale.localizedFormat("todo.age.monthsShort", days / 30)
     }
 
     private func save() { PersistenceSafety.save(modelContext) }
