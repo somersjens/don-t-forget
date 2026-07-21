@@ -91,14 +91,9 @@ extension Color {
 
     static var appCardBackground: Color {
 #if os(macOS)
-        let gray = Color(nsColor: NSColor(name: nil) { appearance in
-            let isDark = appearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua
-            return isDark ? NSColor.black.withAlphaComponent(0.045) : .white
-        })
+        let gray = Color.black.opacity(0.045)
 #else
-        let gray = Color(uiColor: UIColor { traits in
-            traits.userInterfaceStyle == .dark ? .secondarySystemBackground : .white
-        })
+        let gray = Color(.secondarySystemBackground)
 #endif
         return appThemeColor(lightBlue: .white, gray: gray)
     }
@@ -159,6 +154,7 @@ private struct SettingsCardRowShape: Shape {
 
 private struct SettingsCardOuterBorder: View {
     let position: SettingsCardRowPosition
+    let background: Color
 
     var body: some View {
         SettingsCardRowShape(position: position)
@@ -166,14 +162,14 @@ private struct SettingsCardOuterBorder: View {
             .padding(0.5)
             .overlay(alignment: .top) {
                 if !position.roundsTop {
-                    Color.appCardBackground
+                    background
                         .frame(height: 2)
                         .padding(.horizontal, 1)
                 }
             }
             .overlay(alignment: .bottom) {
                 if !position.roundsBottom {
-                    Color.appCardBackground
+                    background
                         .frame(height: 2)
                         .padding(.horizontal, 1)
                 }
@@ -182,13 +178,18 @@ private struct SettingsCardOuterBorder: View {
 }
 
 private struct SettingsCardRowBackground: View {
+    @Environment(\.colorScheme) private var colorScheme
     let position: SettingsCardRowPosition
+
+    private var background: Color {
+        colorScheme == .light ? .white : .appCardBackground
+    }
 
     var body: some View {
         SettingsCardRowShape(position: position)
-            .fill(Color.appCardBackground)
+            .fill(background)
             .overlay {
-                SettingsCardOuterBorder(position: position)
+                SettingsCardOuterBorder(position: position, background: background)
             }
     }
 }
