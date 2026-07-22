@@ -23,8 +23,6 @@
 	<string>Forget It gebruikt toegang om je agenda-items met de iPhone Kalender te synchroniseren.</string>
 	<key>NSMicrophoneUsageDescription</key>
 	<string>Forget It gebruikt de microfoon om gesproken tekst aan een nieuwe invoer toe te voegen.</string>
-	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>Forget It gebruikt je locatie om het weer bij toekomstige dagen in je agenda te tonen.</string>
 	<key>NSSpeechRecognitionUsageDescription</key>
 	<string>Forget It gebruikt spraakherkenning om je gesproken invoer om te zetten naar tekst.</string>
 	<key>UIBackgroundModes</key>

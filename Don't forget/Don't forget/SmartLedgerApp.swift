@@ -1,6 +1,9 @@
 import SwiftUI
 import SwiftData
 import UniformTypeIdentifiers
+#if os(macOS)
+import AppKit
+#endif
 
 @main
 @MainActor
@@ -21,7 +24,7 @@ struct SmartLedgerApp: App {
 
     var body: some Scene {
 #if os(macOS)
-        WindowGroup {
+        Window("Forget It", id: "main") {
             MacLocalizedContent {
                 StoreRootView()
             }
@@ -33,6 +36,14 @@ struct SmartLedgerApp: App {
                     NotificationCenter.default.post(name: .macCreateItem, object: nil)
                 }
                 .keyboardShortcut("n", modifiers: .command)
+            }
+
+            CommandGroup(after: .windowArrangement) {
+                Button(AppLanguage.resolved(from: language).locale.localized("Open Forget It")) {
+                    NSApp.activate(ignoringOtherApps: true)
+                    openWindow(id: "main")
+                }
+                .keyboardShortcut("1", modifiers: .command)
             }
         }
 
@@ -55,6 +66,10 @@ struct SmartLedgerApp: App {
         }
 #endif
     }
+
+#if os(macOS)
+    @Environment(\.openWindow) private var openWindow
+#endif
 }
 
 #if os(macOS)
