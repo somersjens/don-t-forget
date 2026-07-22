@@ -355,7 +355,7 @@ struct HistoryView: View {
                             replay: replayHistoryTutorial,
                             close: { isHelpExpanded = false }
                         )
-                        .padding(.bottom, 2)
+                        .padding(.bottom, AdaptiveLayout.scaled(2))
                     }
 
                     HistoryFilterBar(
@@ -425,8 +425,8 @@ struct HistoryView: View {
                         }
                     }
                 }
-                .padding(.horizontal, 14)
-                .padding(.vertical, 12)
+                .padding(.horizontal, AdaptiveLayout.scaled(14))
+                .padding(.vertical, AdaptiveLayout.scaled(12))
                 .adaptiveReadableWidth()
             }
             .background(Color.appCanvasBackground)
@@ -454,9 +454,9 @@ struct HistoryView: View {
                             isShowingSettings = true
                         } label: {
                             Image(systemName: "gearshape")
-                                .font(.system(size: 20, weight: .semibold))
+                                .font(.system(size: AdaptiveLayout.scaled(20), weight: .semibold))
                                 .foregroundStyle(Color.brandHardBlue)
-                                .frame(width: 44, height: 44)
+                                .frame(width: AdaptiveLayout.scaled(44), height: AdaptiveLayout.scaled(44))
                         }
                         .compatibleHistoryGlassEffect()
                         .background(
@@ -474,24 +474,27 @@ struct HistoryView: View {
                         }
                     }
                 }
-                .padding(.horizontal, 18)
-                .padding(.vertical, 6)
+                .padding(.horizontal, AdaptiveLayout.scaled(18))
+                .padding(.vertical, AdaptiveLayout.scaled(6))
+                // Give the sticky-header buttons breathing room below the
+                // iPad status bar instead of hugging the very top edge.
+                .padding(.top, AdaptiveLayout.isPad ? 10 : 0)
                 .adaptiveReadableWidth()
             }
             .safeAreaInset(edge: .bottom, spacing: 8) {
                 Group {
                     if let pendingPermanentDeletion {
                         permanentDeletionBar(title: pendingPermanentDeletion.title)
-                            .padding(.horizontal, 14)
+                            .padding(.horizontal, AdaptiveLayout.scaled(14))
                             .transition(.move(edge: .bottom).combined(with: .opacity))
                     } else if let recentlyRestoredRow {
                         restoreBar(title: recentlyRestoredRow.title)
-                            .padding(.horizontal, 14)
+                            .padding(.horizontal, AdaptiveLayout.scaled(14))
                             .overlay {
                                 if visibleOnboardingStep == 3 {
-                                    RoundedRectangle(cornerRadius: 18)
+                                    RoundedRectangle(cornerRadius: AdaptiveLayout.scaled(18))
                                         .stroke(Color.brandHardBlue, lineWidth: 3)
-                                        .padding(.horizontal, 10)
+                                        .padding(.horizontal, AdaptiveLayout.scaled(10))
                                         .padding(.vertical, -4)
                                         .allowsHitTesting(false)
                                 }
@@ -500,10 +503,11 @@ struct HistoryView: View {
                     }
                 }
                 .adaptiveReadableWidth()
-                .padding(.bottom, 4)
+                .padding(.bottom, AdaptiveLayout.scaled(4))
             }
             .sheet(isPresented: $isShowingSettings) {
                 SettingsView()
+                    .iPadComfortableControls(textFloor: .xLarge)
             }
             .onAppear {
                 modelContext.undoManager = undoManager
@@ -921,11 +925,11 @@ private struct HistoryTopTitle: View {
         Button(action: toggleHelp) {
             HStack(spacing: 6) {
                 Text(AppSection.history.title(for: locale))
-                    .font(.system(size: 26, weight: .bold))
+                    .font(.system(size: AdaptiveLayout.scaled(26), weight: .bold))
 
                 if showsInfoHint {
                     Image(systemName: "info.circle.fill")
-                        .font(.system(size: 14, weight: .semibold))
+                        .font(.system(size: AdaptiveLayout.scaled(14), weight: .semibold))
                         .foregroundStyle(Color.brandHardBlue)
                 }
             }
@@ -1011,19 +1015,19 @@ private struct HistoryHelpCard: View {
                     VStack(alignment: .leading, spacing: 7) {
                         HStack(spacing: 7) {
                             Image(systemName: currentStep.icon)
-                                .font(.system(size: 13, weight: .semibold))
+                                .font(.system(size: AdaptiveLayout.scaled(13), weight: .semibold))
                                 .foregroundStyle(Color.brandHardBlue)
-                                .frame(width: 16, height: 16)
+                                .frame(width: AdaptiveLayout.scaled(16), height: AdaptiveLayout.scaled(16))
 
                             Text(locale.localizedFormat("tutorial.step", step + 1, Self.stepCount))
-                            .font(.system(size: 12, weight: .bold))
+                            .font(.system(size: AdaptiveLayout.scaled(12), weight: .bold))
                             .foregroundStyle(Color.brandHardBlue)
                         }
 
                         Text(step == 4 && isDeleteRevealed
                             ? locale.localized("Tik nu op het prullenbakje om het item definitief te verwijderen.")
                             : currentStep.text(for: locale))
-                            .font(.system(size: 16, weight: .semibold))
+                            .font(.system(size: AdaptiveLayout.scaled(16), weight: .semibold))
                             .fixedSize(horizontal: false, vertical: true)
                     }
                     .frame(minHeight: step == 5 ? 0 : 84, alignment: .topLeading)
@@ -1169,7 +1173,7 @@ private struct HistorySummaryCard: View {
         VStack(spacing: 0) {
             HStack(spacing: 13) {
                 ZStack {
-                    RoundedRectangle(cornerRadius: 11)
+                    RoundedRectangle(cornerRadius: AdaptiveLayout.scaled(11))
                         .fill(
                             Color.appThemeColor(
                                 lightBlue: Color.brandCanvasBlue,
@@ -1179,13 +1183,13 @@ private struct HistorySummaryCard: View {
                             )
                         )
                     Image(systemName: "checkmark.circle.fill")
-                        .font(.system(size: 20, weight: .semibold))
+                        .font(.system(size: AdaptiveLayout.scaled(20), weight: .semibold))
                         .foregroundStyle(Color.brandHardBlue)
                 }
-                .frame(width: 42, height: 42)
+                .frame(width: AdaptiveLayout.scaled(42), height: AdaptiveLayout.scaled(42))
                 .scaleEffect(isPressingDemoActivation ? 0.92 : 1)
                 .animation(.easeInOut(duration: 0.18), value: isPressingDemoActivation)
-                .contentShape(RoundedRectangle(cornerRadius: 11))
+                .contentShape(RoundedRectangle(cornerRadius: AdaptiveLayout.scaled(11)))
                 .onTapGesture {
                     guard isDemoActive else { return }
                     deactivateDemoData()
@@ -1209,9 +1213,9 @@ private struct HistorySummaryCard: View {
 
                 VStack(alignment: .leading, spacing: 3) {
                     Text("\(total) afgerond")
-                        .font(.system(size: 17, weight: .semibold))
+                        .font(.system(size: AdaptiveLayout.scaled(17), weight: .semibold))
                     Text("\(lastSevenDays) in afgelopen 7 dagen")
-                        .font(.system(size: 12, weight: .medium))
+                        .font(.system(size: AdaptiveLayout.scaled(12), weight: .medium))
                         .foregroundStyle(.secondary)
                 }
 
@@ -1219,23 +1223,23 @@ private struct HistorySummaryCard: View {
 
                 chartControl
             }
-            .padding(14)
+            .padding(AdaptiveLayout.scaled(14))
 
             Divider()
                 .overlay(Color.primary.opacity(0.07))
-                .padding(.horizontal, 14)
+                .padding(.horizontal, AdaptiveLayout.scaled(14))
                 .frame(height: isExpanded ? 1 : 0)
                 .clipped()
 
             HistoryCharts(completionDates: completionDates)
-                .padding(14)
+                .padding(AdaptiveLayout.scaled(14))
                 .frame(height: isExpanded ? chartsHeight : 0, alignment: .top)
                 .clipped()
         }
         .animation(.snappy(duration: 0.38, extraBounce: 0), value: isExpanded)
-        .background(Color.appCardBackground, in: RoundedRectangle(cornerRadius: 14))
+        .background(Color.appCardBackground, in: RoundedRectangle(cornerRadius: AdaptiveLayout.scaled(14)))
         .overlay {
-            RoundedRectangle(cornerRadius: 14)
+            RoundedRectangle(cornerRadius: AdaptiveLayout.scaled(14))
                 .stroke(
                     Color.appThemeColor(
                         lightBlue: Color.appCardOutline,
@@ -1254,13 +1258,13 @@ private struct HistorySummaryCard: View {
         } label: {
             HStack(spacing: 7) {
                 Image(systemName: "chart.bar.fill")
-                    .font(.system(size: 17, weight: .medium))
+                    .font(.system(size: AdaptiveLayout.scaled(17), weight: .medium))
                 Image(systemName: "chevron.down")
-                    .font(.system(size: 11, weight: .semibold))
+                    .font(.system(size: AdaptiveLayout.scaled(11), weight: .semibold))
                     .rotationEffect(.degrees(isExpanded ? 180 : 0))
             }
             .foregroundStyle(Color.brandHardBlue)
-            .frame(width: 52, height: 42)
+            .frame(width: AdaptiveLayout.scaled(52), height: AdaptiveLayout.scaled(42))
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
@@ -1310,7 +1314,7 @@ private struct HistoryBarChart: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             Text(period.title(for: locale))
-                .font(.system(size: 14, weight: .semibold))
+                .font(.system(size: AdaptiveLayout.scaled(14), weight: .semibold))
 
             Chart(buckets) { bucket in
                 BarMark(
@@ -1328,7 +1332,7 @@ private struct HistoryBarChart: View {
                 .annotation(position: .top, spacing: 3) {
                     if bucket.isCurrent {
                         Text("\(bucket.count)")
-                            .font(.system(size: 10, weight: .semibold))
+                            .font(.system(size: AdaptiveLayout.scaled(10), weight: .semibold))
                             .foregroundStyle(Color.gray)
                     }
                 }
@@ -1338,7 +1342,7 @@ private struct HistoryBarChart: View {
             .chartXAxis {
                 AxisMarks { _ in
                     AxisValueLabel()
-                        .font(.system(size: 9, weight: .medium))
+                        .font(.system(size: AdaptiveLayout.scaled(9), weight: .medium))
                         .foregroundStyle(Color.gray)
                 }
             }
@@ -1347,19 +1351,19 @@ private struct HistoryBarChart: View {
                     AxisGridLine()
                         .foregroundStyle(Color.primary.opacity(0.07))
                     AxisValueLabel()
-                        .font(.system(size: 9, weight: .medium))
+                        .font(.system(size: AdaptiveLayout.scaled(9), weight: .medium))
                         .foregroundStyle(Color.gray)
                 }
             }
-            .frame(height: 142)
+            .frame(height: AdaptiveLayout.scaled(142))
         }
-        .padding(12)
+        .padding(AdaptiveLayout.scaled(12))
         .background(
             Color.appThemeColor(
                 lightBlue: Color.brandCanvasBlue,
                 gray: Color(.tertiarySystemFill)
             ),
-            in: RoundedRectangle(cornerRadius: 12)
+            in: RoundedRectangle(cornerRadius: AdaptiveLayout.scaled(12))
         )
         .frame(height: Self.layoutHeight, alignment: .top)
         .transaction { transaction in
@@ -1481,10 +1485,10 @@ private struct HistoryFilterBar: View {
             }
         }
         .frame(maxWidth: .infinity)
-        .padding(4)
+        .padding(AdaptiveLayout.scaled(4))
         .overlay {
             if isOnboardingHighlighted {
-                RoundedRectangle(cornerRadius: 24)
+                RoundedRectangle(cornerRadius: AdaptiveLayout.scaled(24))
                     .stroke(Color.brandHardBlue, lineWidth: 3)
                     .allowsHitTesting(false)
             }
@@ -1524,21 +1528,24 @@ private struct HistoryFilterChip: View {
     private var label: some View {
         HStack(spacing: 6) {
             Image(systemName: filter.icon)
-                .font(.system(size: 13.2, weight: .semibold))
+                .font(.system(size: AdaptiveLayout.scaled(13.2), weight: .semibold))
 
             if showsTitle {
                 Text(filter.title(for: locale))
-                    .font(.system(size: 13, weight: .semibold))
+                    .font(.system(size: AdaptiveLayout.scaled(13), weight: .semibold))
                     .fixedSize(horizontal: true, vertical: false)
             }
         }
         .foregroundStyle(foregroundColor)
-        .padding(.horizontal, 12)
+        .padding(.horizontal, AdaptiveLayout.scaled(12))
+        // Every chip may stretch, so the row divides the available width into
+        // four equal parts; the titled chip's larger minimum only wins when
+        // space is genuinely tight.
         .frame(
-            minWidth: showsTitle ? 100 : nil,
-            maxWidth: showsTitle ? nil : .infinity,
-            minHeight: 36,
-            maxHeight: 36
+            minWidth: showsTitle ? AdaptiveLayout.scaled(100) : nil,
+            maxWidth: .infinity,
+            minHeight: AdaptiveLayout.scaled(36),
+            maxHeight: AdaptiveLayout.scaled(36)
         )
         .background(backgroundColor, in: Capsule())
         .overlay {
@@ -1560,14 +1567,14 @@ private struct HistorySearchBar: View {
     var body: some View {
         HStack(spacing: 10) {
             Image(systemName: "magnifyingglass")
-                .font(.system(size: 15, weight: .semibold))
+                .font(.system(size: AdaptiveLayout.scaled(15), weight: .semibold))
                 .foregroundStyle(.secondary)
 
             TextField(
                 locale.localized("Zoek in Afgerond"),
                 text: $text
             )
-            .font(.system(size: 15))
+            .font(.system(size: AdaptiveLayout.scaled(15)))
             .textInputAutocapitalization(.never)
             .autocorrectionDisabled()
             .submitLabel(.search)
@@ -1578,18 +1585,18 @@ private struct HistorySearchBar: View {
                     text = ""
                 } label: {
                     Image(systemName: "xmark.circle.fill")
-                        .font(.system(size: 17, weight: .semibold))
+                        .font(.system(size: AdaptiveLayout.scaled(17), weight: .semibold))
                         .foregroundStyle(.secondary)
                 }
                 .buttonStyle(.plain)
                 .accessibilityLabel(locale.localized("Zoekopdracht wissen"))
             }
         }
-        .padding(.horizontal, 13)
-        .frame(minHeight: 44)
-        .background(Color.appCardBackground, in: RoundedRectangle(cornerRadius: 14))
+        .padding(.horizontal, AdaptiveLayout.scaled(13))
+        .frame(minHeight: AdaptiveLayout.scaled(44))
+        .background(Color.appCardBackground, in: RoundedRectangle(cornerRadius: AdaptiveLayout.scaled(14)))
         .overlay {
-            RoundedRectangle(cornerRadius: 14)
+            RoundedRectangle(cornerRadius: AdaptiveLayout.scaled(14))
                 .stroke(
                     isOnboardingHighlighted
                         ? Color.brandHardBlue
@@ -1621,8 +1628,8 @@ private struct HistoryDayCard: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text(section.title(for: locale))
-                .font(.system(size: 14, weight: .semibold))
-                .padding(.horizontal, 4)
+                .font(.system(size: AdaptiveLayout.scaled(14), weight: .semibold))
+                .padding(.horizontal, AdaptiveLayout.scaled(4))
 
             VStack(spacing: 0) {
                 ForEach(Array(section.rows.enumerated()), id: \.element.id) { index, row in
@@ -1643,20 +1650,20 @@ private struct HistoryDayCard: View {
                         dismissPermanentDelete: dismissPermanentDelete,
                         restore: { restore(row) }
                     )
-                    .padding(.leading, 14)
-                    .padding(.trailing, 8)
-                    .padding(.vertical, 11)
+                    .padding(.leading, AdaptiveLayout.scaled(14))
+                    .padding(.trailing, AdaptiveLayout.scaled(8))
+                    .padding(.vertical, AdaptiveLayout.scaled(11))
 
                     if index < section.rows.count - 1 {
                         Divider()
                             .overlay(Color.primary.opacity(0.06))
-                            .padding(.leading, 67)
+                            .padding(.leading, AdaptiveLayout.scaled(67))
                     }
                 }
             }
-            .background(Color.appCardBackground, in: RoundedRectangle(cornerRadius: 14))
+            .background(Color.appCardBackground, in: RoundedRectangle(cornerRadius: AdaptiveLayout.scaled(14)))
             .overlay {
-                RoundedRectangle(cornerRadius: 14)
+                RoundedRectangle(cornerRadius: AdaptiveLayout.scaled(14))
                     .stroke(
                         Color.appThemeColor(
                             lightBlue: Color.appCardOutline,
@@ -1688,19 +1695,19 @@ private struct HistoryItemRow: View {
         HStack(alignment: .center, spacing: 11) {
             Button(action: revealPermanentDelete) {
                 ZStack {
-                    RoundedRectangle(cornerRadius: 11)
+                    RoundedRectangle(cornerRadius: AdaptiveLayout.scaled(11))
                         .fill(row.backgroundColor)
                     Image(systemName: row.source.icon)
-                        .font(.system(size: 15, weight: .semibold))
+                        .font(.system(size: AdaptiveLayout.scaled(15), weight: .semibold))
                         .foregroundStyle(row.color)
                 }
-                .frame(width: 42, height: 42)
+                .frame(width: AdaptiveLayout.scaled(42), height: AdaptiveLayout.scaled(42))
             }
             .buttonStyle(.plain)
             .accessibilityLabel("Acties voor \(row.title)")
             .overlay {
                 if highlightsSourceIcon {
-                    RoundedRectangle(cornerRadius: 14)
+                    RoundedRectangle(cornerRadius: AdaptiveLayout.scaled(14))
                         .stroke(Color.brandHardBlue, lineWidth: 3)
                         .padding(-4)
                         .allowsHitTesting(false)
@@ -1709,7 +1716,7 @@ private struct HistoryItemRow: View {
 
             VStack(alignment: .leading, spacing: 4) {
                 Text(highlightedTitle)
-                    .font(.system(size: 15, weight: .medium))
+                    .font(.system(size: AdaptiveLayout.scaled(15), weight: .medium))
                     .foregroundStyle(.primary)
                     .lineLimit(2)
                     .strikethrough(row.isRemoved)
@@ -1719,7 +1726,7 @@ private struct HistoryItemRow: View {
                     Text("·")
                     Text(row.completedAt.formatted(date: .omitted, time: .shortened))
                 }
-                .font(.system(size: 11, weight: .medium))
+                .font(.system(size: AdaptiveLayout.scaled(11), weight: .medium))
                 .foregroundStyle(.secondary)
             }
 
@@ -1728,9 +1735,9 @@ private struct HistoryItemRow: View {
             if showsPermanentDelete {
                 Button(role: .destructive, action: permanentlyDelete) {
                     Image(systemName: "trash")
-                        .font(.system(size: 14, weight: .semibold))
+                        .font(.system(size: AdaptiveLayout.scaled(14), weight: .semibold))
                         .foregroundStyle(.red)
-                        .frame(width: 36, height: 36)
+                        .frame(width: AdaptiveLayout.scaled(36), height: AdaptiveLayout.scaled(36))
                         .background(RecurringThemeColorOption.red.backgroundColor, in: Circle())
                 }
                 .buttonStyle(.plain)
@@ -1747,9 +1754,9 @@ private struct HistoryItemRow: View {
             } else {
                 Button(action: restore) {
                     Image(systemName: "arrow.uturn.backward")
-                        .font(.system(size: 14, weight: .semibold))
+                        .font(.system(size: AdaptiveLayout.scaled(14), weight: .semibold))
                         .foregroundStyle(row.color)
-                        .frame(width: 36, height: 36)
+                        .frame(width: AdaptiveLayout.scaled(36), height: AdaptiveLayout.scaled(36))
                         .background(row.backgroundColor, in: Circle())
                 }
                 .buttonStyle(.plain)
@@ -1798,7 +1805,7 @@ private struct HistoryItemRow: View {
             if let attributedMatch = Range(match, in: title) {
                 title[attributedMatch].backgroundColor = Color.brandLightBlue
                 title[attributedMatch].foregroundColor = Color.brandHardBlue
-                title[attributedMatch].font = .system(size: 15, weight: .semibold)
+                title[attributedMatch].font = .system(size: AdaptiveLayout.scaled(15), weight: .semibold)
             }
             searchRange = match.upperBound..<row.title.endIndex
         }
@@ -1843,26 +1850,26 @@ private struct HistoryEmptyState: View {
                         )
                     )
                 Image(systemName: hasSearchQuery ? "magnifyingglass" : (filter == .all ? "clock.arrow.circlepath" : filter.icon))
-                    .font(.system(size: 27, weight: .medium))
+                    .font(.system(size: AdaptiveLayout.scaled(27), weight: .medium))
                     .foregroundStyle(.secondary)
             }
-            .frame(width: 62, height: 62)
+            .frame(width: AdaptiveLayout.scaled(62), height: AdaptiveLayout.scaled(62))
 
             Text(title)
-                .font(.system(size: 17, weight: .semibold))
+                .font(.system(size: AdaptiveLayout.scaled(17), weight: .semibold))
                 .multilineTextAlignment(.center)
             Text(subtitle)
-                .font(.system(size: 13))
+                .font(.system(size: AdaptiveLayout.scaled(13)))
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
-                .frame(maxWidth: 280)
+                .frame(maxWidth: AdaptiveLayout.scaled(280))
         }
         .frame(maxWidth: .infinity)
-        .padding(.vertical, 42)
-        .padding(.horizontal, 20)
-        .background(Color.appCardBackground, in: RoundedRectangle(cornerRadius: 14))
+        .padding(.vertical, AdaptiveLayout.scaled(42))
+        .padding(.horizontal, AdaptiveLayout.scaled(20))
+        .background(Color.appCardBackground, in: RoundedRectangle(cornerRadius: AdaptiveLayout.scaled(14)))
         .overlay {
-            RoundedRectangle(cornerRadius: 14).stroke(Color.appCardOutline, lineWidth: 1)
+            RoundedRectangle(cornerRadius: AdaptiveLayout.scaled(14)).stroke(Color.appCardOutline, lineWidth: 1)
         }
     }
 }

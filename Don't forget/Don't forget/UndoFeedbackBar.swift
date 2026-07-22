@@ -9,8 +9,8 @@ struct UndoFeedbackBar: View {
     var preferredMessageLineLimit: Int = 1
     var isActionEnabled = true
 
-    private let textFont = Font.system(size: 14, weight: .medium)
-    private let buttonFont = Font.system(size: 14, weight: .semibold)
+    private var textFont: Font { .system(size: AdaptiveLayout.scaled(14), weight: .medium) }
+    private var buttonFont: Font { .system(size: AdaptiveLayout.scaled(14), weight: .semibold) }
 
     var body: some View {
         ViewThatFits(in: .horizontal) {
@@ -38,16 +38,16 @@ struct UndoFeedbackBar: View {
                 undoWrapsByWord: true
             )
         }
-        .padding(.horizontal, 14)
-        .frame(minHeight: 50)
-        .contentShape(RoundedRectangle(cornerRadius: 14))
+        .padding(.horizontal, AdaptiveLayout.scaled(14))
+        .frame(minHeight: AdaptiveLayout.scaled(50))
+        .contentShape(RoundedRectangle(cornerRadius: AdaptiveLayout.scaled(14)))
         .onTapGesture {
             guard isActionEnabled else { return }
             action()
         }
-        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 14))
+        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: AdaptiveLayout.scaled(14)))
         .overlay {
-            RoundedRectangle(cornerRadius: 14)
+            RoundedRectangle(cornerRadius: AdaptiveLayout.scaled(14))
                 .stroke(Color.primary.opacity(0.08), lineWidth: 1)
         }
         .shadow(color: .black.opacity(0.12), radius: 12, y: 4)
@@ -62,6 +62,7 @@ struct UndoFeedbackBar: View {
     ) -> some View {
         HStack(spacing: 12) {
             Image(systemName: iconSystemName)
+                .font(.system(size: AdaptiveLayout.scaled(16), weight: .semibold))
                 .foregroundStyle(iconColor)
 
             Text(message)

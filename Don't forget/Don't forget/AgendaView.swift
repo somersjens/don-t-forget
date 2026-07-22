@@ -96,12 +96,12 @@ private enum AgendaRecurringCategoryColorCache {
 private struct RecurringMoveBarStyle: ViewModifier {
     func body(content: Content) -> some View {
         content
-            .padding(.horizontal, 14)
-            .frame(maxWidth: .infinity, minHeight: 50, alignment: .leading)
-            .contentShape(RoundedRectangle(cornerRadius: 14))
-            .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 14))
+            .padding(.horizontal, AdaptiveLayout.scaled(14))
+            .frame(maxWidth: .infinity, minHeight: AdaptiveLayout.scaled(50), alignment: .leading)
+            .contentShape(RoundedRectangle(cornerRadius: AdaptiveLayout.scaled(14)))
+            .background(.regularMaterial, in: RoundedRectangle(cornerRadius: AdaptiveLayout.scaled(14)))
             .overlay {
-                RoundedRectangle(cornerRadius: 14)
+                RoundedRectangle(cornerRadius: AdaptiveLayout.scaled(14))
                     .stroke(Color.primary.opacity(0.08), lineWidth: 1)
             }
             .shadow(color: .black.opacity(0.12), radius: 12, y: 4)
@@ -158,9 +158,9 @@ private struct AgendaRecurringMoveBar: View {
                 Button(action: apply) {
                     HStack(spacing: 12) {
                         leadingIcon(for: offer.phase)
-                            .frame(width: 18, height: 18)
+                            .frame(width: AdaptiveLayout.scaled(18), height: AdaptiveLayout.scaled(18))
                         Text(message(for: offer.phase))
-                            .font(.system(size: 14, weight: offer.phase == .prompt ? .semibold : .medium))
+                            .font(.system(size: AdaptiveLayout.scaled(14), weight: offer.phase == .prompt ? .semibold : .medium))
                             .multilineTextAlignment(.leading)
                             .layoutPriority(1)
                         Spacer(minLength: 4)
@@ -168,7 +168,7 @@ private struct AgendaRecurringMoveBar: View {
                         // same slot. The material card therefore cannot resize
                         // or appear to be replaced when only its state changes.
                         trailingAction(for: offer.phase)
-                            .frame(width: 72, alignment: .trailing)
+                            .frame(width: AdaptiveLayout.scaled(72), alignment: .trailing)
                     }
                     .modifier(RecurringMoveBarStyle())
                 }
@@ -203,7 +203,7 @@ private struct AgendaRecurringMoveBar: View {
         switch phase {
         case .prompt:
             Text(locale.localized("Ja graag"))
-                .font(.system(size: 14, weight: .semibold))
+                .font(.system(size: AdaptiveLayout.scaled(14), weight: .semibold))
                 .foregroundStyle(Color.brandHardBlue)
                 .fixedSize(horizontal: true, vertical: false)
         case .processing:
@@ -214,11 +214,11 @@ private struct AgendaRecurringMoveBar: View {
                 .scaleEffect(1.08)
         case .success:
             Image(systemName: "checkmark")
-                .font(.system(size: 18, weight: .bold))
+                .font(.system(size: AdaptiveLayout.scaled(18), weight: .bold))
                 .foregroundStyle(Color.brandHardBlue)
         case .failure:
             Text(locale.localized("recurring.retry"))
-                .font(.system(size: 14, weight: .semibold))
+                .font(.system(size: AdaptiveLayout.scaled(14), weight: .semibold))
                 .foregroundStyle(Color.brandHardBlue)
                 .fixedSize(horizontal: true, vertical: false)
         }
@@ -543,7 +543,7 @@ struct AgendaView: View {
                                 replay: replayAgendaTutorial,
                                 close: collapseHelp
                             )
-                            .padding(.bottom, 4)
+                            .padding(.bottom, AdaptiveLayout.scaled(4))
                         }
 
                         ForEach(visibleWeeks) { week in
@@ -604,8 +604,8 @@ struct AgendaView: View {
                                 }
                         }
                     }
-                    .padding(.horizontal, 14)
-                    .padding(.vertical, 12)
+                    .padding(.horizontal, AdaptiveLayout.scaled(14))
+                    .padding(.vertical, AdaptiveLayout.scaled(12))
                     .adaptiveReadableWidth()
                 }
                 .contentMargins(.bottom, isSearchPresented ? 96 : 0, for: .scrollContent)
@@ -678,13 +678,13 @@ struct AgendaView: View {
                                 undoManager?.undo()
                             } label: {
                                 Image(systemName: "arrow.uturn.backward")
-                                    .font(.system(size: 20, weight: .semibold))
+                                    .font(.system(size: AdaptiveLayout.scaled(20), weight: .semibold))
                                     .foregroundStyle(
                                         (undoManager?.canUndo ?? false)
                                             ? Color.brandHardBlue
                                             : Color.secondary
                                     )
-                                    .frame(width: 44, height: 44)
+                                    .frame(width: AdaptiveLayout.scaled(44), height: AdaptiveLayout.scaled(44))
                             }
                             .compatibleAgendaGlassEffect()
                             .disabled(!(undoManager?.canUndo ?? false))
@@ -692,7 +692,7 @@ struct AgendaView: View {
                             .overlay(alignment: .topTrailing) {
                                 if appActivityState.isIndicatorVisible {
                                     AppActivitySpinner(controlSize: .mini)
-                                        .frame(width: 20, height: 20)
+                                        .frame(width: AdaptiveLayout.scaled(20), height: AdaptiveLayout.scaled(20))
                                         .background(.regularMaterial, in: Circle())
                                         .offset(x: 5, y: -5)
                                         .allowsHitTesting(false)
@@ -700,7 +700,7 @@ struct AgendaView: View {
                                         .accessibilityLabel("App is bezig")
                                 }
                             }
-                            .frame(width: 44, height: 44)
+                            .frame(width: AdaptiveLayout.scaled(44), height: AdaptiveLayout.scaled(44))
 
                             Spacer()
 
@@ -721,9 +721,9 @@ struct AgendaView: View {
                                 }
                             } label: {
                                 Image(systemName: (isKeyboardVisible || isSearchPresented || activeMoveEntryID != nil) ? "checkmark" : "magnifyingglass")
-                                    .font(.system(size: 20, weight: .semibold))
+                                    .font(.system(size: AdaptiveLayout.scaled(20), weight: .semibold))
                                     .foregroundStyle(Color.brandHardBlue)
-                                    .frame(width: 44, height: 44)
+                                    .frame(width: AdaptiveLayout.scaled(44), height: AdaptiveLayout.scaled(44))
                             }
                             .compatibleAgendaGlassEffect()
                             .background(
@@ -746,9 +746,12 @@ struct AgendaView: View {
                             }
                         }
                     }
-                    .padding(.leading, 22)
-                    .padding(.trailing, 18)
-                    .padding(.vertical, 6)
+                    .padding(.leading, AdaptiveLayout.scaled(22))
+                    .padding(.trailing, AdaptiveLayout.scaled(18))
+                    .padding(.vertical, AdaptiveLayout.scaled(6))
+                    // Give the sticky-header buttons breathing room below the
+                    // iPad status bar instead of hugging the very top edge.
+                    .padding(.top, AdaptiveLayout.isPad ? 10 : 0)
                     .adaptiveReadableWidth()
 
                     if isSearchPresented {
@@ -769,20 +772,24 @@ struct AgendaView: View {
                 Group {
                     if recentlyMovedToDate != nil {
                         dateMoveUndoBar
-                            .padding(.horizontal, 14)
+                            .padding(.horizontal, AdaptiveLayout.scaled(14))
                             .transition(.move(edge: .bottom).combined(with: .opacity))
                     } else if recentlyMovedToTodo != nil {
                         moveToTodoUndoBar
-                            .padding(.horizontal, 14)
+                            .padding(.horizontal, AdaptiveLayout.scaled(14))
                             .transition(.move(edge: .bottom).combined(with: .opacity))
                     } else if recentlyRemovedEntry != nil {
                         removalUndoBar
-                            .padding(.horizontal, 14)
+                            .padding(.horizontal, AdaptiveLayout.scaled(14))
+                            .transition(.move(edge: .bottom).combined(with: .opacity))
+                    } else if recentlyCompletedEntry != nil {
+                        completionUndoBar
+                            .padding(.horizontal, AdaptiveLayout.scaled(14))
                             .transition(.move(edge: .bottom).combined(with: .opacity))
                     }
                 }
                 .adaptiveReadableWidth()
-                .padding(.bottom, 4)
+                .padding(.bottom, AdaptiveLayout.scaled(4))
             }
             .overlay(alignment: .bottom) {
                 AgendaRecurringMoveBar(
@@ -790,23 +797,10 @@ struct AgendaView: View {
                     locale: locale,
                     apply: applyRecurringMoveOffer
                 )
-                .padding(.horizontal, 14)
-                .padding(.bottom, 12)
+                .padding(.horizontal, AdaptiveLayout.scaled(14))
+                .padding(.bottom, AdaptiveLayout.scaled(12))
                 .adaptiveReadableWidth()
                 .zIndex(10)
-            }
-            .overlay(alignment: .bottom) {
-                if recentlyCompletedEntry != nil {
-                    // Unlike a safe-area inset, an overlay does not relayout
-                    // the complete scroll view and its onboarding card when
-                    // the feedback appears or disappears.
-                    completionUndoBar
-                        .padding(.horizontal, 14)
-                        .padding(.bottom, 12)
-                        .adaptiveReadableWidth()
-                        .transition(.move(edge: .bottom).combined(with: .opacity))
-                        .zIndex(9)
-                }
             }
             .onAppear {
                 modelContext.undoManager = undoManager
@@ -2166,11 +2160,11 @@ private struct AgendaTopTitle: View {
         Button(action: toggleHelp) {
             HStack(spacing: 6) {
                 Text(AppSection.agenda.title(for: locale))
-                    .font(.system(size: 26, weight: .bold))
+                    .font(.system(size: AdaptiveLayout.scaled(26), weight: .bold))
 
                 if showsInfoHint {
                     Image(systemName: "info.circle.fill")
-                        .font(.system(size: 14, weight: .semibold))
+                        .font(.system(size: AdaptiveLayout.scaled(14), weight: .semibold))
                         .foregroundStyle(Color.brandHardBlue)
                 }
             }
@@ -2272,29 +2266,29 @@ private struct AgendaHelpCard: View {
             VStack(alignment: .leading, spacing: 7) {
                 HStack(spacing: 7) {
                     Image(systemName: currentStep.icon)
-                        .font(.system(size: 13, weight: .semibold))
+                        .font(.system(size: AdaptiveLayout.scaled(13), weight: .semibold))
                         .foregroundStyle(Color.brandHardBlue)
-                        .frame(width: 16, height: 16)
+                        .frame(width: AdaptiveLayout.scaled(16), height: AdaptiveLayout.scaled(16))
 
                     Text(locale.localizedFormat("tutorial.step", step + 1, Self.stepCount))
-                    .font(.system(size: 12, weight: .bold))
+                    .font(.system(size: AdaptiveLayout.scaled(12), weight: .bold))
                     .foregroundStyle(Color.brandHardBlue)
                 }
 
                 Text(currentStep.text(for: locale))
-                    .font(.system(size: 16, weight: .semibold))
+                    .font(.system(size: AdaptiveLayout.scaled(16), weight: .semibold))
                     .fixedSize(horizontal: false, vertical: true)
             }
 
             if let note = currentStep.note(for: locale) {
                 HStack(alignment: .top, spacing: 7) {
                     Image(systemName: "info.circle")
-                        .font(.system(size: 13, weight: .semibold))
+                        .font(.system(size: AdaptiveLayout.scaled(13), weight: .semibold))
                         .foregroundStyle(.secondary)
-                        .frame(width: 16, height: 16)
+                        .frame(width: AdaptiveLayout.scaled(16), height: AdaptiveLayout.scaled(16))
 
                     Text(highlightedNote(note))
-                        .font(.system(size: 13, weight: .medium))
+                        .font(.system(size: AdaptiveLayout.scaled(13), weight: .medium))
                         .foregroundStyle(.secondary)
                         .fixedSize(horizontal: false, vertical: true)
                 }
@@ -2358,13 +2352,13 @@ private struct AgendaFutureLoadingFooter: View {
         HStack(spacing: 10) {
             ProgressView()
             Text(locale.localized("Volgende 3 maanden laden…"))
-            .font(.system(size: 16, weight: .medium))
+            .font(.system(size: AdaptiveLayout.scaled(16), weight: .medium))
             .foregroundStyle(.secondary)
         }
         .frame(maxWidth: .infinity)
-        .frame(minHeight: 51)
+        .frame(minHeight: AdaptiveLayout.scaled(51))
         .background {
-            RoundedRectangle(cornerRadius: 14)
+            RoundedRectangle(cornerRadius: AdaptiveLayout.scaled(14))
                 .fill(Color.appCardBackground)
         }
         .accessibilityElement(children: .combine)
@@ -2383,29 +2377,31 @@ private enum AgendaScrollTarget: Hashable {
 }
 
 private enum AgendaLayout {
-    static let dateWidth: CGFloat = 47
+    // The prefix column scales with the ×1.5 iPad fonts; otherwise the date
+    // label wraps ("22-\n07") and the hairline sits cramped against the text.
+    static let dateWidth: CGFloat = AdaptiveLayout.scaled(48)
     static var weekdayWidth: CGFloat {
         switch AppCalendar.weekdayLabelLength {
-        case 1: 14
-        case 2: 22
-        default: 30
+        case 1: AdaptiveLayout.scaled(14)
+        case 2: AdaptiveLayout.scaled(22)
+        default: AdaptiveLayout.scaled(30)
         }
     }
-    static let dateWeekdaySpacing: CGFloat = 2
-    static let lineSpacing: CGFloat = 6
+    static let dateWeekdaySpacing: CGFloat = AdaptiveLayout.scaled(2)
+    static let lineSpacing: CGFloat = AdaptiveLayout.scaled(6)
     static let lineWidth: CGFloat = 1
-    static let rowSpacing: CGFloat = 8
-    static let completionControlInset: CGFloat = 8
-    static let weatherBadgeWidth: CGFloat = 48
-    static let weatherTemperatureWidth: CGFloat = 28
-    static let weatherIconWidth: CGFloat = 20
+    static let rowSpacing: CGFloat = AdaptiveLayout.scaled(8)
+    static let completionControlInset: CGFloat = AdaptiveLayout.scaled(8)
+    static let weatherBadgeWidth: CGFloat = AdaptiveLayout.scaled(48)
+    static let weatherTemperatureWidth: CGFloat = AdaptiveLayout.scaled(28)
+    static let weatherIconWidth: CGFloat = AdaptiveLayout.scaled(20)
     static let weatherIconOpticalOffset: CGFloat = -1
-    static let moveActionSpacing: CGFloat = 8
-    static let categoryControlWidth: CGFloat = 22
-    static let dateControlWidth: CGFloat = 76
-    static let stepControlWidth: CGFloat = 24
-    static let finishControlWidth: CGFloat = 20
-    static let onboardingControlsTrailingSpace: CGFloat = 6
+    static let moveActionSpacing: CGFloat = AdaptiveLayout.scaled(8)
+    static let categoryControlWidth: CGFloat = AdaptiveLayout.scaled(22)
+    static let dateControlWidth: CGFloat = AdaptiveLayout.scaled(76)
+    static let stepControlWidth: CGFloat = AdaptiveLayout.scaled(24)
+    static let finishControlWidth: CGFloat = AdaptiveLayout.scaled(20)
+    static let onboardingControlsTrailingSpace: CGFloat = AdaptiveLayout.scaled(6)
 
     static var moveControlsFixedWidth: CGFloat {
         categoryControlWidth + dateControlWidth
@@ -2476,11 +2472,11 @@ struct WeekCard: View {
             if let weatherAttribution {
                 AgendaWeatherAttributionLink(attribution: weatherAttribution)
                     .frame(maxWidth: .infinity, alignment: .center)
-                    .padding(.horizontal, 14)
+                    .padding(.horizontal, AdaptiveLayout.scaled(14))
             }
 
             Text(verbatim: "week #\(week.weekNumber) · start \(startDateLabel) · \(startYear)")
-                .font(.system(size: 14, weight: .semibold))
+                .font(.system(size: AdaptiveLayout.scaled(14), weight: .semibold))
                 .foregroundStyle(
                     Color.appThemeColor(
                         lightBlue: Color.brandHardBlue.opacity(0.70),
@@ -2488,7 +2484,7 @@ struct WeekCard: View {
                     )
                 )
                 .frame(maxWidth: .infinity, alignment: .center)
-                .padding(.horizontal, 14)
+                .padding(.horizontal, AdaptiveLayout.scaled(14))
 
             VStack(alignment: .leading, spacing: 6) {
                 ForEach(visibleDays) { day in
@@ -2519,15 +2515,15 @@ struct WeekCard: View {
                     )
                 }
             }
-            .padding(.leading, 14)
-            .padding(.trailing, 8)
-            .padding(.vertical, 13)
+            .padding(.leading, AdaptiveLayout.scaled(14))
+            .padding(.trailing, AdaptiveLayout.scaled(8))
+            .padding(.vertical, AdaptiveLayout.scaled(13))
         .background {
-            RoundedRectangle(cornerRadius: 14)
+            RoundedRectangle(cornerRadius: AdaptiveLayout.scaled(14))
                 .fill(Color.appCardBackground)
         }
         .overlay {
-            RoundedRectangle(cornerRadius: 14).stroke(Color.appCardOutline, lineWidth: 1)
+            RoundedRectangle(cornerRadius: AdaptiveLayout.scaled(14)).stroke(Color.appCardOutline, lineWidth: 1)
         }
         }
     }
@@ -2548,7 +2544,7 @@ private struct AgendaWeatherAttributionLink: View {
                     .font(.caption2.weight(.medium))
                     .foregroundStyle(.secondary)
             }
-            .frame(width: 82, height: 13)
+            .frame(width: AdaptiveLayout.scaled(82), height: AdaptiveLayout.scaled(13))
         }
         .accessibilityLabel("Apple Weather, broninformatie")
     }
@@ -2697,7 +2693,7 @@ struct DayBlock: View {
 
                 Rectangle()
                     .fill(Color.clear)
-                    .frame(width: 17)
+                    .frame(width: AdaptiveLayout.scaled(17))
                     .overlay {
                         Rectangle()
                             .fill(Color.appDarkModeTextColor(otherwise: Color.primary.opacity(0.32)))
@@ -2705,7 +2701,7 @@ struct DayBlock: View {
                     }
                     .contentShape(Rectangle())
                     .padding(.leading, AgendaLayout.lineX - 8)
-                    .padding(.vertical, 3)
+                    .padding(.vertical, AdaptiveLayout.scaled(3))
                     .onTapGesture(perform: handleDayLineTap)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -2811,9 +2807,9 @@ struct AgendaEntryLine: View {
 
                 if entry.isUncertain {
                     Image(systemName: "questionmark.circle")
-                        .font(.system(size: 14))
+                        .font(.system(size: AdaptiveLayout.scaled(14)))
                         .foregroundStyle(.secondary)
-                        .padding(.top, 2)
+                        .padding(.top, AdaptiveLayout.scaled(2))
                 }
 
                 Spacer(minLength: 2)
@@ -2870,7 +2866,7 @@ struct AgendaEntryLine: View {
                 .accessibilityLabel("\(weather.temperature) graden, afvinken")
                 .overlay {
                     if highlightsCompletion {
-                        RoundedRectangle(cornerRadius: 8)
+                        RoundedRectangle(cornerRadius: AdaptiveLayout.scaled(8))
                             .stroke(Color.brandHardBlue, lineWidth: 3)
                             .padding(.horizontal, -4)
                             .padding(.vertical, -5)
@@ -2879,11 +2875,11 @@ struct AgendaEntryLine: View {
                 .offset(x: -AgendaLayout.completionControlInset)
         } else {
             Image(systemName: entry.isDone ? "checkmark.circle.fill" : "circle")
-                .font(.system(size: 18))
+                .font(.system(size: AdaptiveLayout.scaled(18)))
                 .symbolRenderingMode(.hierarchical)
                 .foregroundStyle(entryAccentColor)
-                .frame(width: 20, height: 20)
-                .padding(.top, 1)
+                .frame(width: AdaptiveLayout.scaled(20), height: AdaptiveLayout.scaled(20))
+                .padding(.top, AdaptiveLayout.scaled(1))
                 .contentShape(Circle())
                 .onTapGesture(perform: toggleDone)
                 .accessibilityLabel("Afvinken")
@@ -2943,7 +2939,7 @@ struct AgendaEntryLine: View {
                     }
             }
         }
-        .font(.system(size: 16, weight: .regular))
+        .font(.system(size: AdaptiveLayout.scaled(16), weight: .regular))
         .lineLimit(1...)
         // Completed entries leave this filtered query immediately. Avoid
         // rendering a transient crossed-out/grey frame while SwiftData removes
@@ -3218,15 +3214,15 @@ struct AgendaInputLine: View {
                         }
                     }
                 }
-            .font(.system(size: 16, weight: .regular))
+            .font(.system(size: AdaptiveLayout.scaled(16), weight: .regular))
             .lineLimit(1...)
             .foregroundStyle(Color.appPrimaryText)
             .overlay {
                 if isOnboardingHighlighted {
-                    RoundedRectangle(cornerRadius: 7)
+                    RoundedRectangle(cornerRadius: AdaptiveLayout.scaled(7))
                         .stroke(Color.brandHardBlue, lineWidth: 3)
                         .padding(.leading, -4)
-                        .padding(.trailing, 2)
+                        .padding(.trailing, AdaptiveLayout.scaled(2))
                         .padding(.vertical, -5)
                 }
             }
@@ -3247,8 +3243,8 @@ struct AgendaInputLine: View {
                     addEntry()
                 } label: {
                     Image(systemName: "plus.circle")
-                        .font(.system(size: 17))
-                        .frame(width: 20, height: 20)
+                        .font(.system(size: AdaptiveLayout.scaled(17)))
+                        .frame(width: AdaptiveLayout.scaled(20), height: AdaptiveLayout.scaled(20))
                 }
                 .buttonStyle(.plain)
                 .opacity(cleanText.isEmpty ? 0 : 1)
@@ -3356,19 +3352,19 @@ private struct AgendaWeatherBadge: View {
     private var temperatureText: some View {
         ZStack(alignment: .topTrailing) {
             Text("\(weather.temperature)")
-                .font(.system(size: 13, weight: .semibold, design: .rounded))
+                .font(.system(size: AdaptiveLayout.scaled(13), weight: .semibold, design: .rounded))
                 .monospacedDigit()
                 .foregroundStyle(Color.appPrimaryText)
                 .lineLimit(1)
                 .minimumScaleFactor(0.8)
-                .frame(width: 19, alignment: .center)
+                .frame(width: AdaptiveLayout.scaled(19), alignment: .center)
 
             Text("°")
-                .font(.system(size: 11, weight: .semibold, design: .rounded))
+                .font(.system(size: AdaptiveLayout.scaled(11), weight: .semibold, design: .rounded))
                 .foregroundStyle(Color.appPrimaryText)
                 .offset(x: 5, y: -1)
         }
-        .frame(width: AgendaLayout.weatherTemperatureWidth, height: 18, alignment: .center)
+        .frame(width: AgendaLayout.weatherTemperatureWidth, height: AdaptiveLayout.scaled(18), alignment: .center)
     }
 
     private var cloudColor: Color {
@@ -3383,40 +3379,40 @@ private struct AgendaWeatherBadge: View {
     @ViewBuilder private var weatherIcon: some View {
         if weather.symbolName == "sun.max.fill" || weather.symbolName == "sun.min.fill" {
             Image(systemName: weather.symbolName)
-                .font(.system(size: 13, weight: .medium))
+                .font(.system(size: AdaptiveLayout.scaled(13), weight: .medium))
                 .symbolRenderingMode(.monochrome)
                 .foregroundStyle(.yellow)
-                .frame(width: AgendaLayout.weatherIconWidth, height: 18)
+                .frame(width: AgendaLayout.weatherIconWidth, height: AdaptiveLayout.scaled(18))
                 .offset(x: AgendaLayout.weatherIconOpticalOffset)
         } else if weather.symbolName.contains("cloud.sun") {
             Image(systemName: weather.symbolName)
-                .font(.system(size: 13, weight: .medium))
+                .font(.system(size: AdaptiveLayout.scaled(13), weight: .medium))
                 .symbolRenderingMode(.palette)
                 .foregroundStyle(cloudColor, Color.yellow)
-                .frame(width: AgendaLayout.weatherIconWidth, height: 18)
+                .frame(width: AgendaLayout.weatherIconWidth, height: AdaptiveLayout.scaled(18))
                 .offset(x: AgendaLayout.weatherIconOpticalOffset)
         } else if weather.symbolName.contains("rain")
                     || weather.symbolName.contains("drizzle")
                     || weather.symbolName.contains("sleet")
                     || weather.symbolName.contains("snow") {
             Image(systemName: weather.symbolName)
-                .font(.system(size: 13, weight: .medium))
+                .font(.system(size: AdaptiveLayout.scaled(13), weight: .medium))
                 .symbolRenderingMode(.palette)
                 .foregroundStyle(cloudColor, Color.cyan)
-                .frame(width: AgendaLayout.weatherIconWidth, height: 18)
+                .frame(width: AgendaLayout.weatherIconWidth, height: AdaptiveLayout.scaled(18))
                 .offset(x: AgendaLayout.weatherIconOpticalOffset)
         } else if weather.symbolName.contains("cloud") {
             Image(systemName: weather.symbolName)
-                .font(.system(size: 13, weight: .medium))
+                .font(.system(size: AdaptiveLayout.scaled(13), weight: .medium))
                 .symbolRenderingMode(.monochrome)
                 .foregroundStyle(cloudColor)
-                .frame(width: AgendaLayout.weatherIconWidth, height: 18)
+                .frame(width: AgendaLayout.weatherIconWidth, height: AdaptiveLayout.scaled(18))
                 .offset(x: AgendaLayout.weatherIconOpticalOffset)
         } else {
             Image(systemName: weather.symbolName)
-                .font(.system(size: 13, weight: .medium))
+                .font(.system(size: AdaptiveLayout.scaled(13), weight: .medium))
                 .symbolRenderingMode(.multicolor)
-                .frame(width: AgendaLayout.weatherIconWidth, height: 18)
+                .frame(width: AgendaLayout.weatherIconWidth, height: AdaptiveLayout.scaled(18))
                 .offset(x: AgendaLayout.weatherIconOpticalOffset)
         }
     }
@@ -3437,7 +3433,7 @@ private struct AgendaMoveControls: View {
     var body: some View {
         HStack(spacing: AgendaLayout.rowSpacing) {
             Color.clear
-                .frame(width: AgendaLayout.prefixWidth, height: 32)
+                .frame(width: AgendaLayout.prefixWidth, height: AdaptiveLayout.scaled(32))
 
             movementControls
                 .frame(maxWidth: .infinity)
@@ -3449,7 +3445,7 @@ private struct AgendaMoveControls: View {
                                 (geometry.size.width - AgendaLayout.moveControlsFixedWidth) / 4
                             )
 
-                            RoundedRectangle(cornerRadius: 9)
+                            RoundedRectangle(cornerRadius: AdaptiveLayout.scaled(9))
                                 .stroke(Color.brandHardBlue, lineWidth: 3)
                                 .frame(
                                     width: geometry.size.width
@@ -3464,7 +3460,7 @@ private struct AgendaMoveControls: View {
                 }
                 .padding(.trailing, AgendaLayout.completionControlInset)
         }
-        .font(.system(size: 13, weight: .medium))
+        .font(.system(size: AdaptiveLayout.scaled(13), weight: .medium))
         .foregroundStyle(.secondary)
     }
 
@@ -3495,10 +3491,10 @@ private struct AgendaMoveControls: View {
                 .tint(.red)
             } label: {
                 Color.clear
-                    .frame(width: AgendaLayout.categoryControlWidth, height: 32)
+                    .frame(width: AgendaLayout.categoryControlWidth, height: AdaptiveLayout.scaled(32))
                     .overlay {
                         Image(systemName: "arrow.left.arrow.right")
-                            .font(.system(size: 13, weight: .semibold))
+                            .font(.system(size: AdaptiveLayout.scaled(13), weight: .semibold))
                             .foregroundStyle(.secondary)
                     }
             }
@@ -3516,7 +3512,7 @@ private struct AgendaMoveControls: View {
                     Text(AppCalendar.localizedDate(date, template: "dMMMyyyy"))
                         .allowsHitTesting(false)
                 }
-                .frame(width: AgendaLayout.dateControlWidth, height: 32)
+                .frame(width: AgendaLayout.dateControlWidth, height: AdaptiveLayout.scaled(32))
                 .contentShape(Rectangle().inset(by: -4))
                 .accessibilityValue(AppCalendar.localizedDate(date, template: "dMMMyyyy"))
 
@@ -3526,7 +3522,7 @@ private struct AgendaMoveControls: View {
                 performStep(moveUp)
             } label: {
                 Image(systemName: "chevron.up")
-                    .frame(width: AgendaLayout.stepControlWidth, height: 32)
+                    .frame(width: AgendaLayout.stepControlWidth, height: AdaptiveLayout.scaled(32))
                     .contentShape(Rectangle().inset(by: -4))
             }
             .buttonStyle(.plain)
@@ -3538,7 +3534,7 @@ private struct AgendaMoveControls: View {
                 performStep(moveDown)
             } label: {
                 Image(systemName: "chevron.down")
-                    .frame(width: AgendaLayout.stepControlWidth, height: 32)
+                    .frame(width: AgendaLayout.stepControlWidth, height: AdaptiveLayout.scaled(32))
                     .contentShape(Rectangle().inset(by: -4))
             }
             .buttonStyle(.plain)
@@ -3553,10 +3549,10 @@ private struct AgendaMoveControls: View {
     private var finishButton: some View {
         Button(action: finishMove) {
             Image(systemName: "checkmark")
-                .font(.system(size: 13, weight: .medium))
+                .font(.system(size: AdaptiveLayout.scaled(13), weight: .medium))
                 .foregroundStyle(.secondary)
                 .offset(y: -2)
-                .frame(width: AgendaLayout.finishControlWidth, height: 32)
+                .frame(width: AgendaLayout.finishControlWidth, height: AdaptiveLayout.scaled(32))
                 .contentShape(Rectangle().inset(by: -4))
         }
         .buttonStyle(.plain)
@@ -3618,27 +3614,27 @@ private struct AgendaLinePrefix: View {
                 .minimumScaleFactor(0.8)
                 .frame(
                     width: AgendaLayout.weekdayWidth,
-                    height: 22,
+                    height: AdaptiveLayout.scaled(22),
                     alignment: AppCalendar.weekdayLabelLength == 1 ? .center : .leading
                 )
                 .background {
                     if isMoveActive {
-                        RoundedRectangle(cornerRadius: 5)
+                        RoundedRectangle(cornerRadius: AdaptiveLayout.scaled(5))
                             .fill(Color.green.opacity(0.18))
                     } else if isMoveTargetHighlighted {
-                        RoundedRectangle(cornerRadius: 5)
+                        RoundedRectangle(cornerRadius: AdaptiveLayout.scaled(5))
                             .fill(Color.yellow.opacity(0.28))
                     }
                 }
                 .overlay {
                     if isOnboardingHighlighted {
-                        RoundedRectangle(cornerRadius: 6)
+                        RoundedRectangle(cornerRadius: AdaptiveLayout.scaled(6))
                             .stroke(Color.brandHardBlue, lineWidth: 3)
                             .padding(-3)
                     }
                 }
         }
-        .font(.system(size: 15, weight: .medium))
+        .font(.system(size: AdaptiveLayout.scaled(15), weight: .medium))
         .frame(width: AgendaLayout.prefixWidth, alignment: .leading)
     }
 }

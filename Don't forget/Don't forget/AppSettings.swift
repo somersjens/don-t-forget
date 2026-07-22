@@ -159,19 +159,19 @@ private struct SettingsCardOuterBorder: View {
     var body: some View {
         SettingsCardRowShape(position: position)
             .stroke(Color.appCardOutline, lineWidth: 1)
-            .padding(0.5)
+            .padding(AdaptiveLayout.scaled(0.5))
             .overlay(alignment: .top) {
                 if !position.roundsTop {
                     background
-                        .frame(height: 2)
-                        .padding(.horizontal, 1)
+                        .frame(height: AdaptiveLayout.scaled(2))
+                        .padding(.horizontal, AdaptiveLayout.scaled(1))
                 }
             }
             .overlay(alignment: .bottom) {
                 if !position.roundsBottom {
                     background
-                        .frame(height: 2)
-                        .padding(.horizontal, 1)
+                        .frame(height: AdaptiveLayout.scaled(2))
+                        .padding(.horizontal, AdaptiveLayout.scaled(1))
                 }
             }
     }
@@ -248,7 +248,7 @@ struct AppActivityIndicator: View {
         // and it disappears as soon as all work has settled.
         if activityState.isIndicatorVisible {
             AppActivitySpinner()
-                .frame(width: 44, height: 44)
+                .frame(width: AdaptiveLayout.scaled(44), height: AdaptiveLayout.scaled(44))
                 .background(.regularMaterial, in: Circle())
                 .shadow(color: .black.opacity(0.10), radius: 7, y: 2)
                 .accessibilityLabel("App is bezig")
@@ -278,28 +278,31 @@ struct TutorialCardStyle: ViewModifier {
     let close: () -> Void
 
     func body(content: Content) -> some View {
+        let cardPadding = AdaptiveLayout.isPad ? 22.0 : 16.0
+        let cornerRadius = AdaptiveLayout.isPad ? 24.0 : 18.0
+
         content
-            .padding(.leading, isCompleted ? 6 : 16)
-            .padding(.trailing, 16)
-            .padding(.vertical, 16)
+            .padding(.leading, isCompleted ? (AdaptiveLayout.isPad ? 10 : 6) : cardPadding)
+            .padding(.trailing, cardPadding)
+            .padding(.vertical, cardPadding)
             .background {
-                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
                     .fill(.regularMaterial)
                     .overlay {
-                        RoundedRectangle(cornerRadius: 18, style: .continuous)
+                        RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
                             .fill(colorScheme == .light
                                 ? Color.brandLightBlue.opacity(0.28)
                                 : Color.brandHardBlue.opacity(0.12))
                     }
             }
             .overlay {
-                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
                     .stroke(Color.brandHardBlue.opacity(0.38), lineWidth: 2)
             }
             .shadow(color: Color.brandHardBlue.opacity(0.10), radius: 12, y: 5)
             .coordinateSpace(name: "tutorialCompletionCard")
             .onPreferenceChange(TutorialReplayFramePreferenceKey.self) { replayFrame = $0 }
-            .contentShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+            .contentShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
             .simultaneousGesture(
                 SpatialTapGesture(coordinateSpace: .named("tutorialCompletionCard"))
                     .onEnded { value in
@@ -335,7 +338,7 @@ struct TutorialCompletionBrandIcon: View {
     var body: some View {
         ZStack {
             Image(systemName: "sparkles")
-                .font(.system(size: 18, weight: .bold))
+                .font(.system(size: AdaptiveLayout.scaled(18), weight: .bold))
                 .foregroundStyle(Color.brandHardBlue)
                 .scaleEffect(isCelebrating ? 1 : 0.35)
                 .opacity(isCelebrating ? 1 : 0)
@@ -346,12 +349,12 @@ struct TutorialCompletionBrandIcon: View {
                 .resizable()
                 .interpolation(.high)
                 .scaledToFit()
-                .frame(width: 55, height: 55)
+                .frame(width: AdaptiveLayout.scaled(55), height: AdaptiveLayout.scaled(55))
                 .scaleEffect(isCelebrating ? 1 : 0.58)
                 .rotationEffect(.degrees(reduceMotion ? 0 : (isCelebrating ? 0 : -12)))
         }
         // Match the vertical footprint of the 44-point leading sticky-header button.
-        .frame(width: 48, height: 44)
+        .frame(width: AdaptiveLayout.scaled(48), height: AdaptiveLayout.scaled(44))
         .onAppear {
             withAnimation(reduceMotion ? nil : .spring(response: 0.55, dampingFraction: 0.58)) {
                 isCelebrating = true
@@ -391,7 +394,7 @@ struct TutorialCompletionContent: View {
 
     private var messageLabel: some View {
         Text(message)
-            .font(.system(size: 15, weight: .semibold))
+            .font(.system(size: AdaptiveLayout.scaled(15), weight: .semibold))
             .lineLimit(nil)
             .multilineTextAlignment(.leading)
             .fixedSize(horizontal: false, vertical: true)
@@ -403,15 +406,15 @@ struct TutorialCompletionContent: View {
         HStack(spacing: 5) {
             Button(action: back) {
                 Image(systemName: "arrow.backward")
-                    .font(.system(size: 13, weight: .bold))
+                    .font(.system(size: AdaptiveLayout.scaled(13), weight: .bold))
                     .foregroundStyle(.secondary)
-                    .frame(width: 22, height: 22)
+                    .frame(width: AdaptiveLayout.scaled(22), height: AdaptiveLayout.scaled(22))
             }
             .buttonStyle(.plain)
             .accessibilityLabel(backAccessibilityLabel)
 
             Button(replayTitle, action: replay)
-                .font(.system(size: 13, weight: .semibold))
+                .font(.system(size: AdaptiveLayout.scaled(13), weight: .semibold))
                 .lineLimit(1)
                 .fixedSize(horizontal: true, vertical: false)
         }
@@ -430,9 +433,9 @@ struct TutorialCompletionContent: View {
     private var closeButton: some View {
         Button(action: close) {
             Image(systemName: "xmark")
-                .font(.system(size: 12, weight: .bold))
+                .font(.system(size: AdaptiveLayout.scaled(12), weight: .bold))
                 .foregroundStyle(Color.brandHardBlue)
-                .frame(width: 20, height: 20)
+                .frame(width: AdaptiveLayout.scaled(20), height: AdaptiveLayout.scaled(20))
         }
         .buttonStyle(.plain)
         .accessibilityLabel(closeAccessibilityLabel)
@@ -1160,19 +1163,19 @@ struct InlineMatchSearchBar: View {
     var body: some View {
         HStack(spacing: 10) {
             Image(systemName: "magnifyingglass")
-                .font(.system(size: 15, weight: .semibold))
+                .font(.system(size: AdaptiveLayout.scaled(15), weight: .semibold))
                 .foregroundStyle(Color.brandHardBlue)
 
             #if os(macOS)
             TextField(locale.localized("Zoeken"), text: $text)
-                .font(.system(size: 15))
+                .font(.system(size: AdaptiveLayout.scaled(15)))
                 .focused($isFocused)
                 .textFieldStyle(.plain)
-                .frame(minWidth: 0)
+                .frame(minWidth: AdaptiveLayout.scaled(0))
                 .onSubmit(next)
             #else
             TextField(locale.localized("Zoeken"), text: $text)
-                .font(.system(size: 15))
+                .font(.system(size: AdaptiveLayout.scaled(15)))
                 .textInputAutocapitalization(.never)
                 .autocorrectionDisabled()
                 .submitLabel(.search)
@@ -1182,17 +1185,17 @@ struct InlineMatchSearchBar: View {
             if !text.isEmpty {
                 HStack(spacing: 10) {
                     Text(matchCount == 0 ? "0" : "\(min(currentMatch + 1, matchCount))/\(matchCount)")
-                        .font(.system(size: 14.4, weight: .semibold))
+                        .font(.system(size: AdaptiveLayout.scaled(14.4), weight: .semibold))
                         .foregroundStyle(Color.brandHardBlue)
                         .monospacedDigit()
 
                     Button(action: next) {
                         Image(systemName: "chevron.down")
-                            .font(.system(size: 11, weight: .bold))
-                            .frame(width: 24, height: 24)
+                            .font(.system(size: AdaptiveLayout.scaled(11), weight: .bold))
+                            .frame(width: AdaptiveLayout.scaled(24), height: AdaptiveLayout.scaled(24))
                             .background(Color.brandHardBlue.opacity(0.10), in: Circle())
                     }
-                    .frame(width: 36, height: 44)
+                    .frame(width: AdaptiveLayout.scaled(36), height: AdaptiveLayout.scaled(44))
                     .contentShape(Rectangle())
                     .buttonStyle(.plain)
                     .foregroundStyle(Color.brandHardBlue)
@@ -1203,22 +1206,22 @@ struct InlineMatchSearchBar: View {
 
                 Button(action: clear) {
                     Image(systemName: "xmark")
-                        .font(.system(size: 11, weight: .bold))
+                        .font(.system(size: AdaptiveLayout.scaled(11), weight: .bold))
                         .foregroundStyle(Color.brandHardBlue)
-                        .frame(width: 24, height: 24)
+                        .frame(width: AdaptiveLayout.scaled(24), height: AdaptiveLayout.scaled(24))
                         .background(Color.brandHardBlue.opacity(0.10), in: Circle())
                 }
-                .frame(width: 36, height: 44)
+                .frame(width: AdaptiveLayout.scaled(36), height: AdaptiveLayout.scaled(44))
                 .contentShape(Rectangle())
                 .buttonStyle(.plain)
                 .accessibilityLabel(locale.localized("Zoekopdracht wissen"))
             }
         }
         .padding(contentInsets)
-        .frame(minHeight: 44)
-        .background(Color.appCardBackground, in: RoundedRectangle(cornerRadius: 14))
+        .frame(minHeight: AdaptiveLayout.scaled(44))
+        .background(Color.appCardBackground, in: RoundedRectangle(cornerRadius: AdaptiveLayout.scaled(14)))
         .overlay {
-            RoundedRectangle(cornerRadius: 14)
+            RoundedRectangle(cornerRadius: AdaptiveLayout.scaled(14))
                 .stroke(Color.appThemeColor(
                     lightBlue: Color.appCardOutline,
                     gray: Color.primary.opacity(0.045)
@@ -1226,7 +1229,7 @@ struct InlineMatchSearchBar: View {
         }
         .padding(.horizontal, outerHorizontalPadding)
         .padding(.top, topPadding)
-        .padding(.bottom, 8)
+        .padding(.bottom, AdaptiveLayout.scaled(8))
     }
 }
 
@@ -1238,14 +1241,14 @@ struct SearchMatchHighlight: ViewModifier {
         if isMatch {
             content
                 .background {
-                RoundedRectangle(cornerRadius: 9)
+                RoundedRectangle(cornerRadius: AdaptiveLayout.scaled(9))
                     .fill(Color.brandLightBlue.opacity(isCurrent ? 0.72 : 0.38))
                     .padding(.horizontal, -4)
                     .padding(.vertical, -2)
                 }
                 .overlay {
                     if isCurrent {
-                        RoundedRectangle(cornerRadius: 9)
+                        RoundedRectangle(cornerRadius: AdaptiveLayout.scaled(9))
                             .stroke(Color.brandHardBlue, lineWidth: 2)
                             .padding(.horizontal, -4)
                             .padding(.vertical, -2)

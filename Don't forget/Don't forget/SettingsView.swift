@@ -265,9 +265,9 @@ struct SettingsView: View {
                         .labelsHidden()
                         .datePickerStyle(.compact)
                         .controlSize(.small)
-                        .frame(height: 24)
+                        .frame(height: AdaptiveLayout.scaled(24))
                     }
-                    .frame(height: 44)
+                    .frame(height: AdaptiveLayout.scaled(44))
                     .listRowInsets(EdgeInsets(top: 0, leading: 16, bottom: 0, trailing: 16))
                     .settingsCardRow(.middle)
 
@@ -560,6 +560,7 @@ struct SettingsView: View {
                     weatherInAgendaEnabled = true
                     weatherReloadToken += 1
                 }
+                .iPadComfortableControls(textFloor: .xLarge)
             }
             .alert(
                 locale.localized("Backup mislukt"),
@@ -1256,7 +1257,7 @@ private struct ActionButtonSettingsView: View {
                         HStack(spacing: 5) {
                             Text(selectedWordTruncation.title(for: locale))
                             Image(systemName: "chevron.up.chevron.down")
-                                .font(.system(size: 11, weight: .semibold))
+                                .font(.system(size: AdaptiveLayout.scaled(11), weight: .semibold))
                                 .foregroundStyle(.secondary)
                         }
                     }
@@ -1292,7 +1293,7 @@ private struct ActionButtonSettingsView: View {
                                      ? datePrefixTitle
                                      : selectedDatePrefix.title(for: locale))
                                 Image(systemName: "chevron.up.chevron.down")
-                                    .font(.system(size: 11, weight: .semibold))
+                                    .font(.system(size: AdaptiveLayout.scaled(11), weight: .semibold))
                                     .foregroundStyle(.secondary)
                             }
                         }
@@ -1868,7 +1869,7 @@ private struct HomeWidgetSettingsView: View {
                     showsOtherWhenEmpty: showsOtherWhenEmpty
                 )
                 .frame(maxWidth: .infinity)
-                .padding(.vertical, 8)
+                .padding(.vertical, AdaptiveLayout.scaled(8))
                 .animation(.easeInOut(duration: 0.2), value: previewFamily)
                 .settingsCardRow(.last)
             }

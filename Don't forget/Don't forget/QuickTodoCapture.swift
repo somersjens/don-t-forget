@@ -276,9 +276,9 @@ private struct QuickCaptureSnippetView: View {
                 .foregroundStyle(.secondary)
         }
         .font(.subheadline.weight(.medium))
-        .padding(.horizontal, 11)
-        .frame(minHeight: 38)
-        .background(Color.accentColor.opacity(0.12), in: RoundedRectangle(cornerRadius: 10))
+        .padding(.horizontal, AdaptiveLayout.scaled(11))
+        .frame(minHeight: AdaptiveLayout.scaled(38))
+        .background(Color.accentColor.opacity(0.12), in: RoundedRectangle(cornerRadius: AdaptiveLayout.scaled(10)))
     }
 
     private func toggleVoiceRecording() {
@@ -410,7 +410,7 @@ struct QuickTodoCaptureView: View {
             VStack(alignment: .leading, spacing: 18) {
                 HStack(spacing: 10) {
                     TextField("Wat wil je niet vergeten?", text: $text)
-                        .font(.system(size: 18))
+                        .font(.system(size: AdaptiveLayout.scaled(18)))
                         .focused($isTextFieldFocused)
                         .submitLabel(.done)
                         .onSubmit(save)
@@ -423,14 +423,14 @@ struct QuickTodoCaptureView: View {
                         }
                     } label: {
                         Image(systemName: speechRecorder.isRecording ? "waveform.circle.fill" : "mic.circle")
-                            .font(.system(size: 23, weight: .medium))
+                            .font(.system(size: AdaptiveLayout.scaled(23), weight: .medium))
                             .foregroundStyle(speechRecorder.isRecording ? .red : .secondary)
                     }
                     .buttonStyle(.plain)
                     .accessibilityLabel(speechRecorder.isRecording ? "Spraakopname stoppen" : "Spraakopname starten")
                 }
-                .padding(14)
-                .background(Color(.secondarySystemBackground), in: RoundedRectangle(cornerRadius: 14))
+                .padding(AdaptiveLayout.scaled(14))
+                .background(Color(.secondarySystemBackground), in: RoundedRectangle(cornerRadius: AdaptiveLayout.scaled(14)))
 
                 if let error = speechRecorder.errorMessage {
                     Text(error)
@@ -484,15 +484,16 @@ struct QuickTodoCaptureView: View {
                         )
                         .datePickerStyle(.graphical)
                         .labelsHidden()
-                        .frame(width: 320)
-                        .padding(8)
+                        .frame(width: AdaptiveLayout.scaled(320))
+                        .padding(AdaptiveLayout.scaled(8))
+                        .iPadComfortableControls()
                         .presentationCompactAdaptation(.popover)
                     }
                 }
 
                 Spacer(minLength: 0)
             }
-            .padding(18)
+            .padding(AdaptiveLayout.scaled(18))
             .navigationTitle("Snel toevoegen")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -554,16 +555,16 @@ struct QuickTodoCaptureView: View {
                 .lineLimit(1)
             Spacer(minLength: 0)
             Image(systemName: "chevron.down")
-                .font(.system(size: 10, weight: .semibold))
+                .font(.system(size: AdaptiveLayout.scaled(10), weight: .semibold))
                 .foregroundStyle(.secondary)
         }
-        .font(.system(size: 14, weight: .medium))
+        .font(.system(size: AdaptiveLayout.scaled(14), weight: .medium))
         .foregroundStyle(.primary)
-        .padding(.horizontal, 12)
-        .frame(maxWidth: .infinity, minHeight: 44)
+        .padding(.horizontal, AdaptiveLayout.scaled(12))
+        .frame(maxWidth: .infinity, minHeight: AdaptiveLayout.scaled(44))
         .background(
             isSelected ? Color.accentColor.opacity(0.12) : Color(.secondarySystemBackground),
-            in: RoundedRectangle(cornerRadius: 12)
+            in: RoundedRectangle(cornerRadius: AdaptiveLayout.scaled(12))
         )
     }
 

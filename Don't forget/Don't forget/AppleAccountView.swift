@@ -20,19 +20,23 @@ struct WelcomeView: View {
     var body: some View {
         GeometryReader { geometry in
             let compactHeight = geometry.size.height < 720
+            let isPad = AdaptiveLayout.isPad
+            let logoSize: CGFloat = isPad
+                ? min(max(230, geometry.size.height * 0.29), 290)
+                : (compactHeight ? 154 : 190)
 
             ZStack {
                 WelcomeBackground()
 
                 VStack(spacing: 0) {
-                    Spacer(minLength: compactHeight ? 12 : 30)
+                    Spacer(minLength: isPad ? 42 : (compactHeight ? 12 : 30))
 
                     Image("OnboardingLogo")
                         .resizable()
                         .scaledToFit()
                         .frame(
-                            width: compactHeight ? 154 : 190,
-                            height: compactHeight ? 154 : 190
+                            width: logoSize,
+                            height: logoSize
                         )
                         .shadow(color: Color.brandHardBlue.opacity(0.18), radius: 22, y: 10)
                         .scaleEffect(logoIsFloating ? 1.025 : 0.985)
@@ -40,21 +44,25 @@ struct WelcomeView: View {
                         .accessibilityHidden(true)
 
                     Text(locale.appDisplayName)
-                        .font(.system(size: compactHeight ? 36 : 40, weight: .bold, design: .rounded))
+                        .font(.system(
+                            size: isPad ? 50 : (compactHeight ? 36 : 40),
+                            weight: .bold,
+                            design: .rounded
+                        ))
                         .lineLimit(1)
                         .minimumScaleFactor(0.78)
-                        .padding(.top, compactHeight ? 16 : 24)
+                        .padding(.top, isPad ? 28 : (compactHeight ? 16 : 24))
 
-                    WelcomeSubtitle(text: subtitle, compact: compactHeight)
-                        .padding(.top, compactHeight ? 8 : 10)
+                    WelcomeSubtitle(text: subtitle, compact: compactHeight, expanded: isPad)
+                        .padding(.top, isPad ? 14 : (compactHeight ? 8 : 10))
 
-                    Spacer(minLength: compactHeight ? 14 : 24)
+                    Spacer(minLength: isPad ? 38 : (compactHeight ? 14 : 24))
 
                     controlsCard
-                        .adaptiveReadableWidth(maxWidth: 620)
+                        .adaptiveReadableWidth(maxWidth: isPad ? 720 : 620)
                 }
-                .padding(.horizontal, compactHeight ? 20 : 24)
-                .padding(.bottom, compactHeight ? 14 : 22)
+                .padding(.horizontal, isPad ? 32 : (compactHeight ? 20 : 24))
+                .padding(.bottom, isPad ? 38 : (compactHeight ? 14 : 22))
             }
         }
         .interactiveDismissDisabled()
@@ -67,7 +75,7 @@ struct WelcomeView: View {
     }
 
     private var controlsCard: some View {
-        VStack(spacing: 18) {
+        VStack(spacing: AdaptiveLayout.isPad ? 24 : 18) {
             Toggle(isOn: $iCloudSyncEnabled) {
                 Label {
                     Text(locale.localized("iCloud-synchronisatie"))
@@ -75,7 +83,7 @@ struct WelcomeView: View {
                     Image(systemName: "icloud.fill")
                         .foregroundStyle(Color.brandHardBlue)
                 }
-                .font(.body.weight(.semibold))
+                .font(AdaptiveLayout.isPad ? .title3.weight(.semibold) : .body.weight(.semibold))
                 .foregroundStyle(.primary)
             }
             .tint(.brandHardBlue)
@@ -99,7 +107,7 @@ struct WelcomeView: View {
                 .font(.headline)
                 .foregroundStyle(.white)
                 .frame(maxWidth: .infinity)
-                .frame(minHeight: 56)
+                .frame(minHeight: AdaptiveLayout.isPad ? 66 : 56)
                 .background(
                     LinearGradient(
                         colors: [Color.brandHardBlue, Color.brandHardBlue.opacity(0.82)],
@@ -112,13 +120,13 @@ struct WelcomeView: View {
             }
             .buttonStyle(.plain)
         }
-        .padding(20)
+        .padding(AdaptiveLayout.isPad ? 28 : 20)
         .background(
             (colorScheme == .light ? Color.white.opacity(0.84) : Color.black.opacity(0.34)),
-            in: RoundedRectangle(cornerRadius: 28, style: .continuous)
+            in: RoundedRectangle(cornerRadius: AdaptiveLayout.isPad ? 34 : 28, style: .continuous)
         )
         .overlay {
-            RoundedRectangle(cornerRadius: 28, style: .continuous)
+            RoundedRectangle(cornerRadius: AdaptiveLayout.isPad ? 34 : 28, style: .continuous)
                 .stroke(
                     colorScheme == .light ? Color.white.opacity(0.9) : Color.white.opacity(0.14),
                     lineWidth: 1
@@ -131,6 +139,7 @@ struct WelcomeView: View {
 private struct WelcomeSubtitle: View {
     let text: String
     let compact: Bool
+    let expanded: Bool
 
     private var wrappedText: String {
         let commaCharacters: Set<Character> = [",", "،", "，", "、"]
@@ -151,14 +160,14 @@ private struct WelcomeSubtitle: View {
 
     var body: some View {
         Text(wrappedText)
-            .font(.system(size: compact ? 19 : 21, weight: .regular, design: .rounded))
+            .font(.system(size: expanded ? 25 : (compact ? 19 : 21), weight: .regular, design: .rounded))
             .foregroundStyle(.secondary)
             .multilineTextAlignment(.center)
             .lineSpacing(3)
             .lineLimit(2)
             .minimumScaleFactor(0.72)
             .allowsTightening(true)
-            .frame(maxWidth: 540)
+            .frame(maxWidth: expanded ? 660 : 540)
             .accessibilityLabel(text)
     }
 }

@@ -345,7 +345,7 @@ struct RecurringView: View {
                             replay: replayRecurringTutorial,
                             close: { isRecurringHelpExpanded = false }
                         )
-                        .padding(.bottom, 4)
+                        .padding(.bottom, AdaptiveLayout.scaled(4))
                     }
 
                     ForEach(visibleCategories, id: \.element.id) { index, category in
@@ -396,12 +396,12 @@ struct RecurringView: View {
                         isOnboardingHighlighted: visibleTutorialStep == 0
                     )
                 }
-                .padding(.horizontal, 14)
-                .padding(.vertical, 14)
+                .padding(.horizontal, AdaptiveLayout.scaled(14))
+                .padding(.vertical, AdaptiveLayout.scaled(14))
                 .adaptiveReadableWidth()
             }
             .onPreferenceChange(RecurringLeadingColumnWidthPreferenceKey.self) { width in
-                leadingColumnWidth = max(38, width)
+                leadingColumnWidth = max(AdaptiveLayout.scaled(38), width)
             }
             .background(Color.appCanvasBackground)
             .recurringScrollCompatibility(isScrolled: $isScrolled)
@@ -424,9 +424,9 @@ struct RecurringView: View {
                             }
                         } label: {
                             Image(systemName: "arrow.trianglehead.2.clockwise.rotate.90")
-                                .font(.system(size: 20, weight: .semibold))
+                                .font(.system(size: AdaptiveLayout.scaled(20), weight: .semibold))
                                 .foregroundStyle(Color.brandHardBlue)
-                                .frame(width: 44, height: 44)
+                                .frame(width: AdaptiveLayout.scaled(44), height: AdaptiveLayout.scaled(44))
                         }
                         .compatibleRecurringGlassEffect()
                         .background(
@@ -448,23 +448,26 @@ struct RecurringView: View {
                             newItemRequest = RecurringNewItemRequest(categoryID: nil)
                         } label: {
                             Image(systemName: "plus")
-                                .font(.system(size: 20, weight: .semibold))
+                                .font(.system(size: AdaptiveLayout.scaled(20), weight: .semibold))
                                 .foregroundStyle(Color.brandHardBlue)
-                                .frame(width: 44, height: 44)
+                                .frame(width: AdaptiveLayout.scaled(44), height: AdaptiveLayout.scaled(44))
                         }
                         .compatibleRecurringGlassEffect()
                     }
                 }
-                .padding(.leading, 22)
-                .padding(.trailing, 18)
-                .padding(.vertical, 6)
+                .padding(.leading, AdaptiveLayout.scaled(22))
+                .padding(.trailing, AdaptiveLayout.scaled(18))
+                .padding(.vertical, AdaptiveLayout.scaled(6))
+                // Give the sticky-header buttons breathing room below the
+                // iPad status bar instead of hugging the very top edge.
+                .padding(.top, AdaptiveLayout.isPad ? 10 : 0)
                 .adaptiveReadableWidth()
             }
             .safeAreaInset(edge: .bottom, spacing: 8) {
                 if let recentlyRemovedItem {
                     removalUndoBar(title: recentlyRemovedItem.title)
-                        .padding(.horizontal, 14)
-                        .padding(.bottom, 4)
+                        .padding(.horizontal, AdaptiveLayout.scaled(14))
+                        .padding(.bottom, AdaptiveLayout.scaled(4))
                         .adaptiveReadableWidth()
                         .transition(.move(edge: .bottom).combined(with: .opacity))
                 }
@@ -475,12 +478,15 @@ struct RecurringView: View {
                     categories: categories,
                     initialCategoryID: request.categoryID
                 )
+                .iPadComfortableControls(textFloor: .xLarge)
             }
             .sheet(isPresented: $showingSettings) {
                 RecurringSettingsView()
+                    .iPadComfortableControls(textFloor: .xLarge)
             }
             .sheet(isPresented: $showingHolidayManager) {
                 HolidayManagerView()
+                    .iPadComfortableControls(textFloor: .xLarge)
             }
             .sheet(item: $editingItem) { item in
                 RecurringEditorView(
@@ -488,6 +494,7 @@ struct RecurringView: View {
                     categories: categories,
                     deleted: showRemovalUndo
                 )
+                .iPadComfortableControls(textFloor: .xLarge)
             }
             .onAppear {
                 modelContext.undoManager = undoManager
@@ -784,11 +791,11 @@ private struct RecurringTopTitle: View {
         Button(action: toggleHelp) {
             HStack(spacing: 6) {
                 Text(AppSection.recurring.title(for: locale))
-                    .font(.system(size: 26, weight: .bold))
+                    .font(.system(size: AdaptiveLayout.scaled(26), weight: .bold))
 
                 if showsInfoHint {
                     Image(systemName: "info.circle.fill")
-                        .font(.system(size: 14, weight: .semibold))
+                        .font(.system(size: AdaptiveLayout.scaled(14), weight: .semibold))
                         .foregroundStyle(Color.brandHardBlue)
                 }
             }
@@ -867,17 +874,17 @@ private struct RecurringHelpCard: View {
                     VStack(alignment: .leading, spacing: 7) {
                         HStack(spacing: 7) {
                             Image(systemName: currentStep.icon)
-                                .font(.system(size: 13, weight: .semibold))
+                                .font(.system(size: AdaptiveLayout.scaled(13), weight: .semibold))
                                 .foregroundStyle(Color.brandHardBlue)
-                                .frame(width: 16, height: 16)
+                                .frame(width: AdaptiveLayout.scaled(16), height: AdaptiveLayout.scaled(16))
 
                             Text(locale.localizedFormat("tutorial.step", step + 1, Self.stepCount))
-                            .font(.system(size: 12, weight: .bold))
+                            .font(.system(size: AdaptiveLayout.scaled(12), weight: .bold))
                             .foregroundStyle(Color.brandHardBlue)
                         }
 
                         Text(currentStep.text(for: locale))
-                            .font(.system(size: 16, weight: .semibold))
+                            .font(.system(size: AdaptiveLayout.scaled(16), weight: .semibold))
                             .fixedSize(horizontal: false, vertical: true)
                     }
 
@@ -977,21 +984,21 @@ private struct RecurringThemeCard: View {
                     showingAppearancePicker = true
                 } label: {
                     ZStack {
-                        RoundedRectangle(cornerRadius: 9)
+                        RoundedRectangle(cornerRadius: AdaptiveLayout.scaled(9))
                             .fill(category.backgroundColor)
                         Image(systemName: categoryIcon)
-                            .font(.system(size: 15, weight: .semibold))
+                            .font(.system(size: AdaptiveLayout.scaled(15), weight: .semibold))
                             .foregroundStyle(color)
                     }
-                    .frame(width: 36, height: 36)
-                    .contentShape(RoundedRectangle(cornerRadius: 9))
+                    .frame(width: AdaptiveLayout.scaled(36), height: AdaptiveLayout.scaled(36))
+                    .contentShape(RoundedRectangle(cornerRadius: AdaptiveLayout.scaled(9)))
                 }
                 .buttonStyle(.plain)
                 .frame(width: leadingColumnWidth)
                 .accessibilityLabel("Kleur en icoon van \(category.title) aanpassen")
                 .overlay {
                     if highlightsAppearance {
-                        RoundedRectangle(cornerRadius: 11)
+                        RoundedRectangle(cornerRadius: AdaptiveLayout.scaled(11))
                             .stroke(Color.brandHardBlue, lineWidth: 3)
                             .padding(-4)
                     }
@@ -1013,14 +1020,14 @@ private struct RecurringThemeCard: View {
                             .lineLimit(1)
                         }
                     }
-                    .font(.system(size: 17, weight: .semibold))
+                    .font(.system(size: AdaptiveLayout.scaled(17), weight: .semibold))
                     .foregroundStyle(.primary)
 
                     Text(categorySubtitle)
-                        .font(.system(size: 12, weight: .medium))
+                        .font(.system(size: AdaptiveLayout.scaled(12), weight: .medium))
                         .foregroundStyle(.secondary)
                 }
-                .frame(minHeight: 36, alignment: .center)
+                .frame(minHeight: AdaptiveLayout.scaled(36), alignment: .center)
                 .offset(y: -2)
                 .layoutPriority(1)
 
@@ -1028,13 +1035,13 @@ private struct RecurringThemeCard: View {
 
                 actionToolbar
             }
-            .padding(.leading, 11)
-            .padding(.trailing, 8)
-            .padding(.vertical, 14)
+            .padding(.leading, AdaptiveLayout.scaled(11))
+            .padding(.trailing, AdaptiveLayout.scaled(8))
+            .padding(.vertical, AdaptiveLayout.scaled(14))
 
             Divider()
                 .overlay(Color.primary.opacity(0.07))
-                .padding(.leading, 11 + leadingColumnWidth + 12)
+                .padding(.leading, AdaptiveLayout.scaled(11) + leadingColumnWidth + AdaptiveLayout.scaled(12))
 
             if items.isEmpty {
                 Button(action: addItem) {
@@ -1042,7 +1049,7 @@ private struct RecurringThemeCard: View {
                         Image(systemName: category.id == RecurringCategoryStore.holidayID
                             ? "calendar.badge.plus"
                             : "plus.circle.fill")
-                            .font(.system(size: 16, weight: .semibold))
+                            .font(.system(size: AdaptiveLayout.scaled(16), weight: .semibold))
                             .foregroundStyle(color)
                             .frame(width: leadingColumnWidth)
                         Text(category.id == RecurringCategoryStore.holidayID
@@ -1050,20 +1057,20 @@ private struct RecurringThemeCard: View {
                             : category.id == RecurringCategoryStore.birthdayID
                                 ? "Eerste verjaardag toevoegen"
                                 : "Eerste herhaling toevoegen")
-                            .font(.system(size: 14, weight: .medium))
+                            .font(.system(size: AdaptiveLayout.scaled(14), weight: .medium))
                             .foregroundStyle(.primary)
                         Spacer()
                         Image(systemName: "chevron.forward")
-                            .font(.system(size: 11, weight: .semibold))
+                            .font(.system(size: AdaptiveLayout.scaled(11), weight: .semibold))
                             .foregroundStyle(color)
-                            .frame(width: 36)
+                            .frame(width: AdaptiveLayout.scaled(36))
                     }
                     .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
-                .padding(.leading, 11)
-                .padding(.trailing, 8)
-                .padding(.vertical, compactRows ? 10 : 12)
+                .padding(.leading, AdaptiveLayout.scaled(11))
+                .padding(.trailing, AdaptiveLayout.scaled(8))
+                .padding(.vertical, compactRows ? AdaptiveLayout.scaled(10) : AdaptiveLayout.scaled(12))
             } else {
                 ForEach(Array(items.enumerated()), id: \.element.id) { index, item in
                     HStack(spacing: 2) {
@@ -1092,9 +1099,9 @@ private struct RecurringThemeCard: View {
                                let destination = firstLink.destination {
                                 Link(destination: destination) {
                                     Image(systemName: "link")
-                                        .font(.system(size: 13, weight: .semibold))
+                                        .font(.system(size: AdaptiveLayout.scaled(13), weight: .semibold))
                                         .foregroundStyle(color)
-                                        .frame(width: 36, height: 36)
+                                        .frame(width: AdaptiveLayout.scaled(36), height: AdaptiveLayout.scaled(36))
                                         .contentShape(Rectangle())
                                 }
                                 .buttonStyle(.plain)
@@ -1104,9 +1111,9 @@ private struct RecurringThemeCard: View {
                                     edit(item)
                                 } label: {
                                     Image(systemName: "chevron.forward")
-                                        .font(.system(size: 11, weight: .semibold))
+                                        .font(.system(size: AdaptiveLayout.scaled(11), weight: .semibold))
                                         .foregroundStyle(color)
-                                        .frame(width: 36, height: 36)
+                                        .frame(width: AdaptiveLayout.scaled(36), height: AdaptiveLayout.scaled(36))
                                         .contentShape(Rectangle())
                                 }
                                 .buttonStyle(.plain)
@@ -1114,22 +1121,24 @@ private struct RecurringThemeCard: View {
                             }
                         }
                     }
-                    .padding(.leading, 11)
-                    .padding(.trailing, 8)
-                    .padding(.vertical, compactRows ? 7 : 8)
+                    .padding(.leading, AdaptiveLayout.scaled(11))
+                    .padding(.trailing, AdaptiveLayout.scaled(8))
+                    .padding(.vertical, compactRows ? AdaptiveLayout.scaled(7) : AdaptiveLayout.scaled(8))
 
                     if index < items.count - 1 {
                         Divider()
                             .overlay(Color.primary.opacity(0.06))
-                            .padding(.leading, 11 + leadingColumnWidth + 12)
+                            .padding(.leading, AdaptiveLayout.scaled(11) + leadingColumnWidth + AdaptiveLayout.scaled(12))
                     }
                 }
             }
         }
-        .padding(.bottom, compactRows ? 3 : 0)
-        .background(Color.appCardBackground, in: RoundedRectangle(cornerRadius: 14))
+        // Safety margin below the last row, matching the breathing room the
+        // 'new category' line already has. iPhone keeps its tighter layout.
+        .padding(.bottom, AdaptiveLayout.isPad ? (compactRows ? 8 : 6) : (compactRows ? 3 : 0))
+        .background(Color.appCardBackground, in: RoundedRectangle(cornerRadius: AdaptiveLayout.scaled(14)))
         .overlay {
-            RoundedRectangle(cornerRadius: 14)
+            RoundedRectangle(cornerRadius: AdaptiveLayout.scaled(14))
                 .stroke(
                     Color.appThemeColor(
                         lightBlue: Color.appCardOutline,
@@ -1161,6 +1170,7 @@ private struct RecurringThemeCard: View {
                 changeColor: changeColor,
                 changeIcon: changeIcon
             )
+            .iPadComfortableControls(textFloor: .xLarge)
         }
     }
 
@@ -1170,8 +1180,8 @@ private struct RecurringThemeCard: View {
                 showingCategoryActions = true
             } label: {
                 Image(systemName: "chevron.up.chevron.down")
-                    .font(.system(size: 13, weight: .semibold))
-                    .frame(width: 36, height: 36)
+                    .font(.system(size: AdaptiveLayout.scaled(13), weight: .semibold))
+                    .frame(width: AdaptiveLayout.scaled(36), height: AdaptiveLayout.scaled(36))
                     .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
@@ -1183,13 +1193,16 @@ private struct RecurringThemeCard: View {
                 arrowEdge: .top
             ) {
                 categoryActionsPopover
+                    // Presented content does not reliably inherit the root's
+                    // iPad sizing environment, so re-apply it here.
+                    .iPadComfortableControls(textFloor: .xLarge)
                     .presentationCompactAdaptation(.popover)
             }
 
             Button(action: addItem) {
                 Image(systemName: "plus")
-                    .font(.system(size: 14, weight: .bold))
-                    .frame(width: 36, height: 36)
+                    .font(.system(size: AdaptiveLayout.scaled(14), weight: .bold))
+                    .frame(width: AdaptiveLayout.scaled(36), height: AdaptiveLayout.scaled(36))
                     .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
@@ -1197,7 +1210,7 @@ private struct RecurringThemeCard: View {
             .accessibilityLabel("Herhaling toevoegen aan \(category.title)")
             .overlay {
                 if highlightsAdd {
-                    RoundedRectangle(cornerRadius: 10)
+                    RoundedRectangle(cornerRadius: AdaptiveLayout.scaled(10))
                         .stroke(Color.brandHardBlue, lineWidth: 3)
                         .padding(-3)
                 }
@@ -1268,16 +1281,20 @@ private struct RecurringThemeCard: View {
                     Label("Categorie verwijderen", systemImage: "trash")
                         .foregroundStyle(.red)
                         .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(.leading, 20)
-                        .padding(.trailing, 14)
-                        .padding(.vertical, 11)
+                        .padding(.leading, AdaptiveLayout.scaled(20))
+                        .padding(.trailing, AdaptiveLayout.scaled(14))
+                        .padding(.vertical, AdaptiveLayout.scaled(11))
                 }
                 .buttonStyle(.plain)
                 .tint(.red)
             }
         }
-        .frame(width: 230)
-        .padding(.vertical, 5)
+        // Match the ×1.5 scale of the surrounding iPad content; popovers keep
+        // their own (smaller) default text style otherwise. `nil` leaves the
+        // iPhone appearance untouched.
+        .font(AdaptiveLayout.isPad ? Font.system(size: 23) : nil)
+        .frame(width: AdaptiveLayout.scaled(230))
+        .padding(.vertical, AdaptiveLayout.scaled(5))
     }
 
     private func categoryActionButton(
@@ -1290,9 +1307,9 @@ private struct RecurringThemeCard: View {
         } label: {
             Label(title, systemImage: systemImage)
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.leading, 20)
-                .padding(.trailing, 14)
-                .padding(.vertical, 11)
+                .padding(.leading, AdaptiveLayout.scaled(20))
+                .padding(.trailing, AdaptiveLayout.scaled(14))
+                .padding(.vertical, AdaptiveLayout.scaled(11))
         }
         .buttonStyle(.plain)
     }
@@ -1348,10 +1365,10 @@ private struct CategoryAppearancePicker: View {
                                         ZStack {
                                             Circle()
                                                 .fill(option.color)
-                                                .frame(width: 38, height: 38)
+                                                .frame(width: AdaptiveLayout.scaled(38), height: AdaptiveLayout.scaled(38))
                                             if selectedColorRawValue == option.rawValue {
                                                 Image(systemName: "checkmark")
-                                                    .font(.system(size: 15, weight: .bold))
+                                                    .font(.system(size: AdaptiveLayout.scaled(15), weight: .bold))
                                                     .foregroundStyle(.white)
                                             }
                                         }
@@ -1377,18 +1394,18 @@ private struct CategoryAppearancePicker: View {
                                     changeIcon(iconName)
                                 } label: {
                                     ZStack {
-                                        RoundedRectangle(cornerRadius: 10)
+                                        RoundedRectangle(cornerRadius: AdaptiveLayout.scaled(10))
                                             .fill(selectedIconName == iconName
                                                 ? selectedColor.opacity(0.2)
                                                 : Color(.tertiarySystemFill))
                                         Image(systemName: iconName)
-                                            .font(.system(size: 18, weight: .semibold))
+                                            .font(.system(size: AdaptiveLayout.scaled(18), weight: .semibold))
                                             .foregroundStyle(selectedIconName == iconName ? selectedColor : .secondary)
                                     }
-                                    .frame(height: 48)
+                                    .frame(height: AdaptiveLayout.scaled(48))
                                     .overlay {
                                         if selectedIconName == iconName {
-                                            RoundedRectangle(cornerRadius: 10)
+                                            RoundedRectangle(cornerRadius: AdaptiveLayout.scaled(10))
                                                 .stroke(selectedColor, lineWidth: 2)
                                         }
                                     }
@@ -1399,7 +1416,7 @@ private struct CategoryAppearancePicker: View {
                         }
                     }
                 }
-                .padding(20)
+                .padding(AdaptiveLayout.scaled(20))
             }
             .navigationTitle(categoryTitle)
             .navigationBarTitleDisplayMode(.inline)
@@ -1469,10 +1486,10 @@ private struct RecurringRow: View {
                 if showNextDate {
                     if let nextDate {
                         Text(AppCalendar.localizedDate(nextDate, template: "dMMM"))
-                            .font(.system(size: 10, weight: .semibold, design: .rounded))
+                            .font(.system(size: AdaptiveLayout.scaled(10), weight: .semibold, design: .rounded))
                             .monospacedDigit()
-                            .padding(.horizontal, 5)
-                            .padding(.vertical, 3)
+                            .padding(.horizontal, AdaptiveLayout.scaled(5))
+                            .padding(.vertical, AdaptiveLayout.scaled(3))
                             .background(backgroundColor, in: Capsule())
                             .foregroundStyle(color)
                             .lineLimit(1)
@@ -1491,14 +1508,14 @@ private struct RecurringRow: View {
                 } else {
                     Circle()
                         .fill(color)
-                        .frame(width: 9, height: 9)
+                        .frame(width: AdaptiveLayout.scaled(9), height: AdaptiveLayout.scaled(9))
                 }
             }
-            .frame(width: leadingColumnWidth, height: 18, alignment: .center)
+            .frame(width: leadingColumnWidth, height: AdaptiveLayout.scaled(18), alignment: .center)
 
             VStack(alignment: .leading, spacing: compactRows ? 2 : 3) {
                 Text(item.title)
-                    .font(.system(size: 16, weight: .medium))
+                    .font(.system(size: AdaptiveLayout.scaled(16), weight: .medium))
                     .foregroundStyle(.primary)
                     .lineLimit(2)
                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -1513,7 +1530,7 @@ private struct RecurringRow: View {
                             detailText
                         }
                     }
-                    .font(.system(size: 12))
+                    .font(.system(size: AdaptiveLayout.scaled(12)))
                     .foregroundStyle(.secondary)
                     .lineLimit(2)
                 }
@@ -1551,19 +1568,19 @@ private struct NewRecurringCategoryLine: View {
                 beginEditing()
             } label: {
                 ZStack {
-                    RoundedRectangle(cornerRadius: 10)
+                    RoundedRectangle(cornerRadius: AdaptiveLayout.scaled(10))
                         .fill(Color(.tertiarySystemFill))
                     Image(systemName: "plus")
-                        .font(.system(size: 14, weight: .semibold))
+                        .font(.system(size: AdaptiveLayout.scaled(14), weight: .semibold))
                         .foregroundStyle(.secondary)
                 }
-                .frame(width: 38, height: 38)
+                .frame(width: AdaptiveLayout.scaled(38), height: AdaptiveLayout.scaled(38))
             }
             .buttonStyle(.plain)
             .accessibilityLabel("Nieuwe categorie invoeren")
 
             TextField("Nieuwe categorie", text: $text, axis: .vertical)
-                .font(.system(size: 16, weight: .medium))
+                .font(.system(size: AdaptiveLayout.scaled(16), weight: .medium))
                 .textFieldStyle(.plain)
                 .focused($isTextFieldFocused)
                 .lineLimit(1...)
@@ -1578,20 +1595,20 @@ private struct NewRecurringCategoryLine: View {
 
             Button(action: finishEditing) {
                 Image(systemName: "plus")
-                    .font(.system(size: 13, weight: .semibold))
-                    .frame(width: 30, height: 30)
+                    .font(.system(size: AdaptiveLayout.scaled(13), weight: .semibold))
+                    .frame(width: AdaptiveLayout.scaled(30), height: AdaptiveLayout.scaled(30))
                     .background(Color(.tertiarySystemFill), in: Circle())
             }
             .buttonStyle(.plain)
             .foregroundStyle(.secondary)
             .opacity(text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? 0 : 1)
         }
-        .padding(.leading, 11)
-        .padding(.trailing, 14)
-        .padding(.vertical, 13)
-        .background(Color.appCardBackground, in: RoundedRectangle(cornerRadius: 14))
+        .padding(.leading, AdaptiveLayout.scaled(11))
+        .padding(.trailing, AdaptiveLayout.scaled(14))
+        .padding(.vertical, AdaptiveLayout.scaled(13))
+        .background(Color.appCardBackground, in: RoundedRectangle(cornerRadius: AdaptiveLayout.scaled(14)))
         .overlay {
-            RoundedRectangle(cornerRadius: 14)
+            RoundedRectangle(cornerRadius: AdaptiveLayout.scaled(14))
                 .stroke(
                     isOnboardingHighlighted
                         ? Color.brandHardBlue
@@ -1691,6 +1708,7 @@ private struct RecurringSettingsView: View {
             }
             .sheet(isPresented: $showingHolidayManager) {
                 HolidayManagerView()
+                    .iPadComfortableControls(textFloor: .xLarge)
             }
         }
     }
@@ -1757,8 +1775,8 @@ private struct RecurringCategorySettingsRow: View {
             } label: {
                 Circle()
                     .fill(selectedColor)
-                    .frame(width: 13, height: 13)
-                    .frame(width: 28, height: 30)
+                    .frame(width: AdaptiveLayout.scaled(13), height: AdaptiveLayout.scaled(13))
+                    .frame(width: AdaptiveLayout.scaled(28), height: AdaptiveLayout.scaled(30))
             }
             .tint(.primary)
             .buttonStyle(.plain)
@@ -1886,6 +1904,7 @@ private struct HolidayManagerView: View {
                     categories: categories,
                     initialCategoryID: RecurringCategoryStore.holidayID
                 )
+                .iPadComfortableControls(textFloor: .xLarge)
             }
         }
     }
@@ -2050,12 +2069,13 @@ private struct RecurringEditorView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var modelContext
     @Environment(\.locale) private var locale
+    @AppStorage(SettingsKeys.defaultColorCombinationEnabled)
+    private var lightBlueEnabled = true
     let item: RecurringItem?
     let categories: [RecurringCategory]
     let deleted: (RecurringItem) -> Void
     @State private var draft: RecurringDraft
     @State private var editingLinkNameIndex: Int?
-    @State private var datePickerResetID = UUID()
     @State private var showsTitleRequiredError = false
     @State private var titleRequiredErrorTask: Task<Void, Never>?
     @FocusState private var focusedField: FocusedField?
@@ -2090,6 +2110,7 @@ private struct RecurringEditorView: View {
             Form {
                 editorSections
             }
+            .appFormBackground(lightBlueEnabled: lightBlueEnabled)
             .font(.body)
             // Compact rows keep the controls centered without extra vertical
             // whitespace while the sheet is appearing.
@@ -2286,7 +2307,7 @@ private struct RecurringEditorView: View {
             .focused($focusedField, equals: .title)
             // A UITextField's intrinsic height can change when it becomes first
             // responder. Keep the Form row content at its final body-text size.
-            .frame(height: 22)
+            .frame(height: AdaptiveLayout.scaled(22))
             .simultaneousGesture(TapGesture().onEnded {
                 clearTitleRequiredError()
             })
@@ -2354,32 +2375,17 @@ private struct RecurringEditorView: View {
             : locale.localized("Extra notitie...")
     }
 
-    private var formattedStartDate: String {
-        AppCalendar.localizedDate(draft.startDate, template: "dMMMyyyy")
-    }
-
     private func compactClosingDatePicker(title: String) -> some View {
-        ZStack {
-            HStack {
-                Text(title)
-                Spacer()
-                Text(formattedStartDate)
-                Image(systemName: "chevron.up.chevron.down")
-                    .font(.system(size: 11, weight: .semibold))
-                    .foregroundStyle(.tertiary)
-            }
-            DatePicker(
-                title,
-                selection: $draft.startDate,
-                displayedComponents: .date
-            )
-            .labelsHidden()
-            .id(datePickerResetID)
-            .opacity(0.02)
-            .frame(maxWidth: .infinity, alignment: .trailing)
-            .onChange(of: draft.startDate) { _, _ in
-                datePickerResetID = UUID()
-            }
+        HStack {
+            Text(title)
+            Spacer()
+            // Keep the native compact control visible. It owns both the date
+            // text and chevron, so the whole displayed control opens the
+            // picker instead of leaving a separate, faint hit target behind.
+            DatePicker("", selection: $draft.startDate, displayedComponents: .date)
+                .labelsHidden()
+                .datePickerStyle(.compact)
+                .tint(.primary)
         }
         .font(.body)
     }
@@ -2427,8 +2433,11 @@ private struct RecurringEditorView: View {
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
         } else if draft.kind == .monthlyDay {
-            Stepper("Elke \(draft.monthlyDay)e van de maand", value: $draft.monthlyDay, in: 1...31)
-                .font(.body)
+            recurrenceStepper(
+                title: "Elke \(draft.monthlyDay)e van de maand",
+                value: $draft.monthlyDay,
+                range: 1...31
+            )
         } else if draft.kind == .monthlyOrdinalWeekday {
             Picker("Welke", selection: $draft.monthlyOrdinal) {
                 ForEach(1...5, id: \.self) { Text("\($0)e").tag($0) }
@@ -2443,8 +2452,11 @@ private struct RecurringEditorView: View {
             .font(.body)
             .tint(.primary)
         } else {
-            Stepper("Elke \(draft.intervalValue)", value: $draft.intervalValue, in: 1...99)
-                .font(.body)
+            recurrenceStepper(
+                title: "Elke \(draft.intervalValue)",
+                value: $draft.intervalValue,
+                range: 1...99
+            )
             Picker("Eenheid", selection: $draft.intervalUnit) {
                 Text("Dagen").tag(RecurrenceUnit.day)
                 Text("Weken").tag(RecurrenceUnit.week)
@@ -2459,6 +2471,50 @@ private struct RecurringEditorView: View {
                     .foregroundStyle(.secondary)
             }
         }
+    }
+
+    private func recurrenceStepper(
+        title: String,
+        value: Binding<Int>,
+        range: ClosedRange<Int>
+    ) -> some View {
+        HStack {
+            Text(title)
+            Spacer()
+            HStack(spacing: 2) {
+                Button {
+                    value.wrappedValue = max(range.lowerBound, value.wrappedValue - 1)
+                } label: {
+                    Image(systemName: "minus")
+                        .font(.system(size: AdaptiveLayout.scaled(10), weight: .semibold))
+                        .frame(width: AdaptiveLayout.scaled(28), height: AdaptiveLayout.scaled(28))
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.borderless)
+                .disabled(value.wrappedValue <= range.lowerBound)
+
+                Text("\(value.wrappedValue)")
+                    .font(.system(size: AdaptiveLayout.scaled(16), weight: .regular))
+                    .frame(minWidth: AdaptiveLayout.scaled(28), minHeight: AdaptiveLayout.scaled(28))
+
+                Button {
+                    value.wrappedValue = min(range.upperBound, value.wrappedValue + 1)
+                } label: {
+                    Image(systemName: "plus")
+                        .font(.system(size: AdaptiveLayout.scaled(10), weight: .semibold))
+                        .frame(width: AdaptiveLayout.scaled(28), height: AdaptiveLayout.scaled(28))
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.borderless)
+                .disabled(value.wrappedValue >= range.upperBound)
+            }
+            // Keep min, value and plus evenly spaced while aligning the
+            // complete control group with native picker chevrons.
+            .padding(.trailing, AdaptiveLayout.scaled(1))
+            .offset(x: 9)
+        }
+        .font(.body)
+        .foregroundStyle(.primary)
     }
 
     @ViewBuilder private var birthdayFields: some View {
@@ -2509,9 +2565,9 @@ private struct RecurringEditorView: View {
             ) { isEditing in
                 focusedField = isEditing ? .currentAge : nil
             }
-            .frame(width: 40, height: 24)
-            .padding(.horizontal, 9)
-            .background(Color(.tertiarySystemFill), in: RoundedRectangle(cornerRadius: 8))
+            .frame(width: AdaptiveLayout.scaled(40), height: AdaptiveLayout.scaled(24))
+            .padding(.horizontal, AdaptiveLayout.scaled(9))
+            .background(Color(.tertiarySystemFill), in: RoundedRectangle(cornerRadius: AdaptiveLayout.scaled(8)))
 
             CompactNumberField(
                 placeholder: "2000",
@@ -2524,9 +2580,9 @@ private struct RecurringEditorView: View {
             ) { isEditing in
                 focusedField = isEditing ? .birthdayYear : nil
             }
-            .frame(width: 54, height: 24)
-            .padding(.horizontal, 9)
-            .background(Color(.tertiarySystemFill), in: RoundedRectangle(cornerRadius: 8))
+            .frame(width: AdaptiveLayout.scaled(54), height: AdaptiveLayout.scaled(24))
+            .padding(.horizontal, AdaptiveLayout.scaled(9))
+            .background(Color(.tertiarySystemFill), in: RoundedRectangle(cornerRadius: AdaptiveLayout.scaled(8)))
         }
         .font(.body)
         .foregroundStyle(draft.shouldDimAgeYearFields ? .secondary : .primary)
@@ -2584,8 +2640,8 @@ private struct RecurringEditorView: View {
                     draft.reminderDaysText = String(draft.reminderDays)
                 } label: {
                     Image(systemName: "minus")
-                        .font(.system(size: 13, weight: .semibold))
-                        .frame(width: 26, height: 24)
+                        .font(.system(size: AdaptiveLayout.scaled(13), weight: .semibold))
+                        .frame(width: AdaptiveLayout.scaled(26), height: AdaptiveLayout.scaled(24))
                         .contentShape(Rectangle())
                 }
                 .buttonStyle(.borderless)
@@ -2601,9 +2657,9 @@ private struct RecurringEditorView: View {
                         focusedField = isEditing ? .reminderDays : nil
                     }
                 )
-                .frame(width: draft.reminderDaysFieldWidth, height: 24)
-                .padding(.horizontal, 9)
-                .background(Color(.tertiarySystemFill), in: RoundedRectangle(cornerRadius: 8))
+                .frame(width: draft.reminderDaysFieldWidth, height: AdaptiveLayout.scaled(24))
+                .padding(.horizontal, AdaptiveLayout.scaled(9))
+                .background(Color(.tertiarySystemFill), in: RoundedRectangle(cornerRadius: AdaptiveLayout.scaled(8)))
 
                 Button {
                     dismissKeyboard()
@@ -2611,8 +2667,8 @@ private struct RecurringEditorView: View {
                     draft.reminderDaysText = String(draft.reminderDays)
                 } label: {
                     Image(systemName: "plus")
-                        .font(.system(size: 13, weight: .semibold))
-                        .frame(width: 26, height: 24)
+                        .font(.system(size: AdaptiveLayout.scaled(13), weight: .semibold))
+                        .frame(width: AdaptiveLayout.scaled(26), height: AdaptiveLayout.scaled(24))
                         .contentShape(Rectangle())
                 }
                 .buttonStyle(.borderless)
@@ -2630,18 +2686,18 @@ private struct RecurringEditorView: View {
                 Text(notePlaceholder)
                     .font(.body)
                     .foregroundStyle(.secondary)
-                    .padding(.top, 8)
-                    .padding(.leading, 5)
+                    .padding(.top, AdaptiveLayout.scaled(8))
+                    .padding(.leading, AdaptiveLayout.scaled(5))
                     .allowsHitTesting(false)
             }
 
             TextEditor(text: $draft.notes)
                 .font(.body)
                 .focused($focusedField, equals: .notes)
-                .frame(minHeight: 92)
+                .frame(minHeight: AdaptiveLayout.scaled(92))
                 .scrollContentBackground(.hidden)
         }
-        .padding(.vertical, 2)
+        .padding(.vertical, AdaptiveLayout.scaled(2))
     }
 
     @ViewBuilder private var linkEditors: some View {
@@ -2677,7 +2733,7 @@ private struct RecurringEditorView: View {
                             Color.clear
                         }
                     }
-                    .frame(width: 22, height: 24)
+                    .frame(width: AdaptiveLayout.scaled(22), height: AdaptiveLayout.scaled(24))
                 }
                 .frame(maxWidth: .infinity)
 

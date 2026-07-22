@@ -191,38 +191,31 @@ struct RootTabView: View {
     }
 
     var body: some View {
-        TabView(selection: $selectedTab) {
-            AgendaView()
-                .tag(MainTab.agenda)
-                .tabItem {
-                    Image(systemName: "calendar")
-                        .accessibilityLabel(AppSection.agenda.title(for: appLocale))
+        Group {
+            if AdaptiveLayout.isPad {
+                // iPadOS promotes native tabs to a top/side presentation, so
+                // the app draws its own bottom bar. A plain container is used
+                // instead of a page-style TabView: the paging scroll view
+                // needed `.scrollDisabled(true)`, which cascades into every
+                // ScrollView inside the tabs and breaks text-field focus and
+                // the keyboard.
+                ZStack {
+                    switch selectedTab {
+                    case .agenda: AgendaView()
+                    case .todo: TodoView()
+                    case .recurring: RecurringView()
+                    case .history: HistoryView()
+                    }
                 }
-                .badge(showsRecurringCalendarHint ? Text("↓") : nil)
-
-            TodoView()
-                .tag(MainTab.todo)
-                .tabItem {
-                    Image(systemName: "checklist")
-                        .accessibilityLabel(AppSection.todo.title(for: appLocale))
+                .safeAreaInset(edge: .bottom, spacing: 0) {
+                    bottomNavigation
                 }
-
-            RecurringView()
-                .tag(MainTab.recurring)
-                .tabItem {
-                    Image(systemName: "repeat")
-                        .accessibilityLabel(AppSection.recurring.title(for: appLocale))
-                }
-
-            HistoryView()
-                .tag(MainTab.history)
-                .tabItem {
-                    Image(systemName: "clock.arrow.circlepath")
-                        .accessibilityLabel(AppSection.history.title(for: appLocale))
-                }
+            } else {
+                // Preserve the familiar native iPhone tab bar exactly as it
+                // was, including its standard compact proportions.
+                mainTabContent
+            }
         }
-        .adaptiveTabViewStyle()
-        .neverMinimizeTabBarWhenSupported()
         .tint(.brandHardBlue)
         .background(Color.appCanvasBackground.ignoresSafeArea())
         .environment(\.locale, appLocale)
@@ -244,9 +237,9 @@ struct RootTabView: View {
                     }
                 }
                 .id(quickCaptureDestinationID)
-                .frame(height: 250)
-                .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 18))
-                .clipShape(RoundedRectangle(cornerRadius: 18))
+                .frame(height: AdaptiveLayout.isPad ? 340 : 250)
+                .background(.regularMaterial, in: RoundedRectangle(cornerRadius: AdaptiveLayout.scaled(18)))
+                .clipShape(RoundedRectangle(cornerRadius: AdaptiveLayout.scaled(18)))
                 .shadow(color: .black.opacity(0.2), radius: 18, y: 8)
                 .padding(.horizontal, 8)
                 .padding(.top, 8)
@@ -318,6 +311,95 @@ struct RootTabView: View {
         }
     }
 
+    private var mainTabContent: some View {
+        TabView(selection: $selectedTab) {
+            AgendaView()
+                .tag(MainTab.agenda)
+                .tabItem {
+                    Image(systemName: "calendar")
+                        .accessibilityLabel(AppSection.agenda.title(for: appLocale))
+                }
+                .badge(showsRecurringCalendarHint ? Text("↓") : nil)
+
+            TodoView()
+                .tag(MainTab.todo)
+                .tabItem {
+                    Image(systemName: "checklist")
+                        .accessibilityLabel(AppSection.todo.title(for: appLocale))
+                }
+
+            RecurringView()
+                .tag(MainTab.recurring)
+                .tabItem {
+                    Image(systemName: "repeat")
+                        .accessibilityLabel(AppSection.recurring.title(for: appLocale))
+                }
+
+            HistoryView()
+                .tag(MainTab.history)
+                .tabItem {
+                    Image(systemName: "clock.arrow.circlepath")
+                        .accessibilityLabel(AppSection.history.title(for: appLocale))
+                }
+        }
+    }
+
+    private var bottomNavigation: some View {
+        HStack(spacing: 0) {
+            bottomTabButton(.agenda, title: AppSection.agenda.title(for: appLocale), icon: "calendar")
+            bottomTabButton(.todo, title: AppSection.todo.title(for: appLocale), icon: "checklist")
+            bottomTabButton(.recurring, title: AppSection.recurring.title(for: appLocale), icon: "repeat")
+            bottomTabButton(.history, title: AppSection.history.title(for: appLocale), icon: "clock.arrow.circlepath")
+        }
+        // Match the visual language of the native iPhone tab bar: one calm
+        // material surface with evenly spaced icon/label pairs. Constraining
+        // the row keeps the four items visually grouped on wide iPad screens
+        // instead of drifting hundreds of points apart.
+        .frame(maxWidth: 600)
+        .frame(maxWidth: .infinity)
+        .padding(.horizontal, 32)
+        .padding(.top, 6)
+        .padding(.bottom, 2)
+        .background(.bar)
+        .overlay(alignment: .top) {
+            Rectangle()
+                .fill(Color.primary.opacity(0.08))
+                .frame(height: 0.5)
+        }
+    }
+
+    private func bottomTabButton(
+        _ tab: MainTab,
+        title: String,
+        icon: String
+    ) -> some View {
+        Button {
+            selectedTab = tab
+        } label: {
+            // Mirror the native iOS tab bar, but icon-only: the section
+            // title is already shown at the top of the screen. Selection is
+            // expressed through the tint colour — no pill or circle behind
+            // the selected item.
+            ZStack(alignment: .topTrailing) {
+                Image(systemName: icon)
+                    .font(.system(size: 30, weight: .medium))
+
+                if tab == .recurring, showsRecurringCalendarHint {
+                    Circle()
+                        .fill(Color.brandHardBlue)
+                        .frame(width: 9, height: 9)
+                        .offset(x: 7, y: -4)
+                }
+            }
+            .foregroundStyle(selectedTab == tab ? Color.brandHardBlue : Color.secondary)
+            .frame(maxWidth: .infinity, minHeight: 58)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(title)
+        .accessibilityAddTraits(selectedTab == tab ? .isSelected : [])
+    }
+
     @State private var expiredHistoryCleanupTask: Task<Void, Never>?
 
     private func scheduleExpiredHistoryCleanup() {
@@ -387,26 +469,6 @@ struct RootTabView: View {
         }
     }
 
-}
-
-private extension View {
-    @ViewBuilder
-    func adaptiveTabViewStyle() -> some View {
-        if #available(iOS 18.0, *) {
-            tabViewStyle(.sidebarAdaptable)
-        } else {
-            self
-        }
-    }
-
-    @ViewBuilder
-    func neverMinimizeTabBarWhenSupported() -> some View {
-        if #available(iOS 26.0, *) {
-            tabBarMinimizeBehavior(.never)
-        } else {
-            self
-        }
-    }
 }
 
 private struct EndOfDayReminderPublisherView: View {

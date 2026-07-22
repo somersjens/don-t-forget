@@ -22,6 +22,7 @@ private struct MacTodoDestination: Codable, Identifiable {
 }
 
 struct MacCalendarView: View {
+    @Environment(\.locale) private var locale
     @Environment(\.modelContext) private var modelContext
     @Query(filter: #Predicate<RecurringItem> { !$0.isRemoved }) private var recurringItems: [RecurringItem]
     let entries: [DayEntry]
@@ -136,7 +137,7 @@ struct MacCalendarView: View {
                     iconSystemName: "checkmark.circle.fill",
                     iconColor: .brandHardBlue,
                     message: feedbackMessage,
-                    undoTitle: "Terughalen",
+                    undoTitle: locale.localized("Terughalen"),
                     action: undoLastAction,
                     preferredMessageLineLimit: 2
                 )
@@ -174,7 +175,7 @@ struct MacCalendarView: View {
         entry.completedAt = .now
         PersistenceSafety.save(modelContext)
         setLastAction(.completed(entry))
-        feedbackMessage = "‘\(entry.rawText)’\nverplaatst naar Afgerond"
+        feedbackMessage = locale.localizedFormat("feedback.movedToFinished", entry.rawText)
         scheduleFeedbackDismissal()
     }
 
@@ -292,7 +293,8 @@ struct MacCalendarView: View {
         }
         PersistenceSafety.save(modelContext)
         setLastAction(.moved(entry, previousDate: previousDate))
-        feedbackMessage = "‘\(entry.rawText)’\nverplaatst naar \(destination.formatted(date: .abbreviated, time: .omitted))"
+        let dateText = destination.formatted(.dateTime.day().month(.abbreviated).locale(locale))
+        feedbackMessage = locale.localizedFormat("feedback.movedTo", entry.rawText, dateText)
         scheduleFeedbackDismissal()
         movingEntry = nil
         if let itemID = entry.recurringItemIdentifier,
@@ -468,17 +470,28 @@ private struct MacCalendarDay: View {
 
             inputRow
         }
-        .padding(.horizontal, 6)
+        // Keep this as one day-level divider, like the iOS agenda. A divider
+        // in every individual row changes length when a text field gains focus.
+        .overlay(alignment: .leading) {
+            Rectangle()
+                .fill(Color.primary.opacity(0.23))
+                .frame(width: 1)
+                .padding(.leading, dayDividerLeading)
+                .padding(.vertical, 3)
+        }
+        // Pull the date column slightly toward the card edge while retaining
+        // the existing trailing space for the row actions.
+        .padding(.leading, 5)
+        .padding(.trailing, 6)
         .padding(.vertical, 2)
     }
 
     private var inputRow: some View {
         HStack(spacing: 8) {
             dayPrefix(dateLabel: entries.isEmpty ? day.dateLabel : "", weekday: day.weekdayLetter)
-            Rectangle()
-                .fill(Color.primary.opacity(0.23))
-                .frame(width: 1)
-                .frame(maxHeight: .infinity)
+            // The day divider is drawn as an overlay, but this reserves its
+            // width so the content retains the same inset on either side.
+            Color.clear.frame(width: 1)
 
             if newEntryDate == day.date {
                 TextField("Nieuw agenda-item", text: $newEntryText)
@@ -529,11 +542,11 @@ private struct MacCalendarDay: View {
             }
         }
         .padding(.horizontal, 4)
-        .frame(minHeight: 22)
+        .frame(height: 24)
     }
 
     private func dayPrefix(dateLabel: String, weekday: String) -> some View {
-        HStack(spacing: 5) {
+        HStack(spacing: 9) {
             Text(dateLabel)
                 .foregroundStyle(isToday && !dateLabel.isEmpty ? Color.brandHardBlue : Color.secondary)
                 .frame(width: 48, alignment: .trailing)
@@ -550,6 +563,11 @@ private struct MacCalendarDay: View {
 
     private var macWeekdayWidth: CGFloat {
         CGFloat(14 + max(0, AppCalendar.weekdayLabelLength - 1) * 8)
+    }
+
+    private var dayDividerLeading: CGFloat {
+        // Horizontal row inset + date + date/weekday gap + weekday + row gap.
+        4 + 48 + 9 + macWeekdayWidth + 8
     }
 
     private func addEntry(continueEditing: Bool) {
@@ -615,7 +633,7 @@ private struct MacCalendarEntryRow: View {
 
     var body: some View {
         HStack(spacing: 8) {
-            HStack(spacing: 5) {
+            HStack(spacing: 9) {
                 Text(dateLabel)
                     .foregroundStyle(isToday && !dateLabel.isEmpty ? Color.brandHardBlue : Color.secondary)
                     .frame(width: 48, alignment: .trailing)
@@ -634,10 +652,8 @@ private struct MacCalendarEntryRow: View {
             .font(.system(size: 13, weight: .medium))
             .offset(x: -4)
 
-            Rectangle()
-                .fill(Color.primary.opacity(0.23))
-                .frame(width: 1)
-                .frame(maxHeight: .infinity)
+            // Keep the content spacing after the overlaid day divider.
+            Color.clear.frame(width: 1)
 
             TextField("Agenda-item", text: $draftText)
                 .textFieldStyle(.plain)
@@ -684,7 +700,7 @@ private struct MacCalendarEntryRow: View {
             .buttonStyle(.plain)
         }
         .padding(.horizontal, 4)
-        .frame(minHeight: 22)
+        .frame(height: 24)
         .id(entry.id)
         .modifier(SearchMatchHighlight(
             isMatch: !searchText.isEmpty && entry.rawText.localizedCaseInsensitiveContains(searchText),

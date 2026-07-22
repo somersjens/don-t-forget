@@ -50,6 +50,7 @@ struct SmartLedgerApp: App {
                     WelcomeView()
                 }
             }
+            .iPadComfortableControls()
             .appThemeForeground()
         }
 #endif

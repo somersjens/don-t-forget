@@ -332,13 +332,13 @@ struct TodoView: View {
                             completeTodoTutorialAction(for: 3)
                         } label: {
                             Image(systemName: "arrow.uturn.backward")
-                                .font(.system(size: 20, weight: .semibold))
+                                .font(.system(size: AdaptiveLayout.scaled(20), weight: .semibold))
                                 .foregroundStyle(
                                     (undoManager?.canUndo ?? false)
                                         ? Color.brandHardBlue
                                         : Color.secondary
                                 )
-                                .frame(width: 44, height: 44)
+                                .frame(width: AdaptiveLayout.scaled(44), height: AdaptiveLayout.scaled(44))
                         }
                         .compatibleCircularGlassEffect()
                         .background(
@@ -373,9 +373,9 @@ struct TodoView: View {
                             }
                         } label: {
                             Image(systemName: (isKeyboardVisible || isSearchPresented) ? "checkmark" : "magnifyingglass")
-                                .font(.system(size: 20, weight: .semibold))
+                                .font(.system(size: AdaptiveLayout.scaled(20), weight: .semibold))
                                 .foregroundStyle(Color.brandHardBlue)
-                                .frame(width: 44, height: 44)
+                                .frame(width: AdaptiveLayout.scaled(44), height: AdaptiveLayout.scaled(44))
                         }
                         .compatibleCircularGlassEffect()
                         .background(
@@ -397,9 +397,12 @@ struct TodoView: View {
                         }
                     }
                 }
-                .padding(.leading, 22)
-                .padding(.trailing, 18)
-                .padding(.vertical, 6)
+                .padding(.leading, AdaptiveLayout.scaled(22))
+                .padding(.trailing, AdaptiveLayout.scaled(18))
+                .padding(.vertical, AdaptiveLayout.scaled(6))
+                // Give the sticky-header buttons breathing room below the
+                // iPad status bar instead of hugging the very top edge.
+                .padding(.top, AdaptiveLayout.isPad ? 10 : 0)
                 .adaptiveReadableWidth()
                 if isSearchPresented {
                     InlineMatchSearchBar(
@@ -417,27 +420,20 @@ struct TodoView: View {
                 Group {
                     if recentlyMovedToAgenda != nil {
                         moveToAgendaUndoBar
-                            .padding(.horizontal, 14)
+                            .padding(.horizontal, AdaptiveLayout.scaled(14))
                             .transition(.move(edge: .bottom).combined(with: .opacity))
                     } else if recentlyRemovedTodo != nil {
                         removalUndoBar
-                            .padding(.horizontal, 14)
+                            .padding(.horizontal, AdaptiveLayout.scaled(14))
+                            .transition(.move(edge: .bottom).combined(with: .opacity))
+                    } else if recentlyCompletedTodo != nil {
+                        completionUndoBar
+                            .padding(.horizontal, AdaptiveLayout.scaled(14))
                             .transition(.move(edge: .bottom).combined(with: .opacity))
                     }
                 }
                 .adaptiveReadableWidth()
-                .padding(.bottom, 4)
-            }
-            .overlay(alignment: .bottom) {
-                if recentlyCompletedTodo != nil {
-                    // Keep a completion popup from changing the scroll view's
-                    // safe-area layout while its completed row is removed.
-                    completionUndoBar
-                        .padding(.horizontal, 14)
-                        .padding(.bottom, 12)
-                        .adaptiveReadableWidth()
-                        .transition(.move(edge: .bottom).combined(with: .opacity))
-                }
+                .padding(.bottom, AdaptiveLayout.scaled(4))
             }
             .onAppear {
                 modelContext.undoManager = undoManager
@@ -482,7 +478,7 @@ struct TodoView: View {
                         replay: replayTodoTutorial,
                         close: { isHelpExpanded = false }
                     )
-                    .padding(.bottom, 2)
+                    .padding(.bottom, AdaptiveLayout.scaled(2))
                 }
 
                 ForEach(currentGroups) { group in
@@ -506,8 +502,8 @@ struct TodoView: View {
                     add: addGroup
                 )
             }
-            .padding(.horizontal, 14)
-            .padding(.vertical, 12)
+            .padding(.horizontal, AdaptiveLayout.scaled(14))
+            .padding(.vertical, AdaptiveLayout.scaled(12))
             .adaptiveReadableWidth()
         }
         .background(Color.appCanvasBackground)
@@ -1114,11 +1110,11 @@ private struct TodoTopTitle: View {
         Button(action: toggleHelp) {
             HStack(spacing: 6) {
                 Text(AppSection.todo.title(for: locale))
-                    .font(.system(size: 26, weight: .bold))
+                    .font(.system(size: AdaptiveLayout.scaled(26), weight: .bold))
 
                 if showsInfoHint {
                     Image(systemName: "info.circle.fill")
-                        .font(.system(size: 14, weight: .semibold))
+                        .font(.system(size: AdaptiveLayout.scaled(14), weight: .semibold))
                         .foregroundStyle(Color.brandHardBlue)
                 }
             }
@@ -1208,17 +1204,17 @@ private struct TodoHelpCard: View {
             VStack(alignment: .leading, spacing: 7) {
                 HStack(spacing: 7) {
                     Image(systemName: currentStep.icon)
-                        .font(.system(size: 13, weight: .semibold))
+                        .font(.system(size: AdaptiveLayout.scaled(13), weight: .semibold))
                         .foregroundStyle(Color.brandHardBlue)
-                        .frame(width: 16, height: 16)
+                        .frame(width: AdaptiveLayout.scaled(16), height: AdaptiveLayout.scaled(16))
 
                     Text(locale.localizedFormat("tutorial.step", step + 1, Self.stepCount))
-                    .font(.system(size: 12, weight: .bold))
+                    .font(.system(size: AdaptiveLayout.scaled(12), weight: .bold))
                     .foregroundStyle(Color.brandHardBlue)
                 }
 
                 Text(currentStep.text(for: locale))
-                    .font(.system(size: 16, weight: .semibold))
+                    .font(.system(size: AdaptiveLayout.scaled(16), weight: .semibold))
                     .fixedSize(horizontal: false, vertical: true)
             }
 
@@ -1307,18 +1303,20 @@ private struct TodoBucketCard: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            HStack(alignment: .top, spacing: 9) {
+            // Slightly wider icon-to-text gap on iPad so the whitespace stays
+            // in balance with the card's leading padding.
+            HStack(alignment: .top, spacing: AdaptiveLayout.isPad ? 16 : 9) {
                 Button {
                     showingAppearancePicker = true
                 } label: {
                     ZStack {
-                        RoundedRectangle(cornerRadius: 9)
+                        RoundedRectangle(cornerRadius: AdaptiveLayout.scaled(9))
                             .fill(group.backgroundColor)
                         Image(systemName: group.icon)
-                            .font(.system(size: 15, weight: .semibold))
+                            .font(.system(size: AdaptiveLayout.scaled(15), weight: .semibold))
                             .foregroundStyle(group.color)
                     }
-                    .frame(width: 36, height: 36)
+                    .frame(width: AdaptiveLayout.scaled(36), height: AdaptiveLayout.scaled(36))
                 }
                 .buttonStyle(.plain)
                 .accessibilityLabel("Kleur en icoon van \(group.title) aanpassen")
@@ -1329,27 +1327,27 @@ private struct TodoBucketCard: View {
                         value: group.title,
                         commit: rename
                     )
-                    .font(.system(size: 17, weight: .semibold))
+                    .font(.system(size: AdaptiveLayout.scaled(17), weight: .semibold))
                     .textFieldStyle(.plain)
 
                     Text(openCountText)
-                        .font(.system(size: 12, weight: .medium))
+                        .font(.system(size: AdaptiveLayout.scaled(12), weight: .medium))
                         .foregroundStyle(.secondary)
                 }
-                .frame(minHeight: 36, alignment: .center)
+                .frame(minHeight: AdaptiveLayout.scaled(36), alignment: .center)
                 .offset(y: -2)
 
                 Spacer()
 
                 actionToolbar
             }
-            .padding(.leading, 12)
-            .padding(.trailing, 8)
-            .padding(.vertical, 14)
+            .padding(.leading, AdaptiveLayout.scaled(12))
+            .padding(.trailing, AdaptiveLayout.scaled(8))
+            .padding(.vertical, AdaptiveLayout.scaled(14))
 
             Divider()
                 .overlay(Color.primary.opacity(0.07))
-                .padding(.leading, 62)
+                .padding(.leading, AdaptiveLayout.scaled(62))
 
             LazyVStack(alignment: .leading, spacing: 7) {
                 ForEach(todos) { todo in
@@ -1383,17 +1381,17 @@ private struct TodoBucketCard: View {
                 )
                 .id(TodoScrollTarget.newEntry(group.id))
             }
-            .padding(.leading, 12)
-            .padding(.trailing, 8)
-            .padding(.top, 10)
-            .padding(.bottom, 14)
+            .padding(.leading, AdaptiveLayout.scaled(12))
+            .padding(.trailing, AdaptiveLayout.scaled(8))
+            .padding(.top, AdaptiveLayout.scaled(10))
+            .padding(.bottom, AdaptiveLayout.scaled(14))
         }
         .background {
-            RoundedRectangle(cornerRadius: 14)
+            RoundedRectangle(cornerRadius: AdaptiveLayout.scaled(14))
                 .fill(Color.appCardBackground)
         }
         .overlay {
-            RoundedRectangle(cornerRadius: 14).stroke(Color.appCardOutline, lineWidth: 1)
+            RoundedRectangle(cornerRadius: AdaptiveLayout.scaled(14)).stroke(Color.appCardOutline, lineWidth: 1)
         }
         .sheet(isPresented: $showingAppearancePicker) {
             TodoGroupAppearancePicker(
@@ -1403,6 +1401,7 @@ private struct TodoBucketCard: View {
                 changeColor: changeColor,
                 changeIcon: changeIcon
             )
+            .iPadComfortableControls(textFloor: .xLarge)
         }
     }
 
@@ -1412,8 +1411,8 @@ private struct TodoBucketCard: View {
             showingCategoryActions = true
         } label: {
             Image(systemName: "chevron.up.chevron.down")
-                .font(.system(size: 13, weight: .semibold))
-                .frame(width: 36, height: 36)
+                .font(.system(size: AdaptiveLayout.scaled(13), weight: .semibold))
+                .frame(width: AdaptiveLayout.scaled(36), height: AdaptiveLayout.scaled(36))
                 .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
@@ -1421,7 +1420,7 @@ private struct TodoBucketCard: View {
         .accessibilityLabel("Volgorde van \(group.title) aanpassen")
         .overlay {
             if highlightsCategoryReorder {
-                RoundedRectangle(cornerRadius: 9)
+                RoundedRectangle(cornerRadius: AdaptiveLayout.scaled(9))
                     .stroke(Color.brandHardBlue, lineWidth: 3)
                     .padding(-3)
                     .allowsHitTesting(false)
@@ -1433,6 +1432,9 @@ private struct TodoBucketCard: View {
             arrowEdge: .top
         ) {
             categoryActionsPopover
+                // Presented content does not reliably inherit the root's iPad
+                // sizing environment, so re-apply it here.
+                .iPadComfortableControls(textFloor: .xLarge)
                 .presentationCompactAdaptation(.popover)
         }
     }
@@ -1474,16 +1476,20 @@ private struct TodoBucketCard: View {
                     Label("Categorie verwijderen", systemImage: "trash")
                         .foregroundStyle(.red)
                         .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(.leading, 20)
-                        .padding(.trailing, 14)
-                        .padding(.vertical, 11)
+                        .padding(.leading, AdaptiveLayout.scaled(20))
+                        .padding(.trailing, AdaptiveLayout.scaled(14))
+                        .padding(.vertical, AdaptiveLayout.scaled(11))
                 }
                 .buttonStyle(.plain)
                 .tint(.red)
             }
         }
-        .frame(width: 230)
-        .padding(.vertical, 5)
+        // Match the ×1.5 scale of the surrounding iPad content; popovers keep
+        // their own (smaller) default text style otherwise. `nil` leaves the
+        // iPhone appearance untouched.
+        .font(AdaptiveLayout.isPad ? Font.system(size: 23) : nil)
+        .frame(width: AdaptiveLayout.scaled(230))
+        .padding(.vertical, AdaptiveLayout.scaled(5))
     }
 
     private func categoryActionButton(
@@ -1496,9 +1502,9 @@ private struct TodoBucketCard: View {
         } label: {
             Label(title, systemImage: systemImage)
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.leading, 20)
-                .padding(.trailing, 14)
-                .padding(.vertical, 11)
+                .padding(.leading, AdaptiveLayout.scaled(20))
+                .padding(.trailing, AdaptiveLayout.scaled(14))
+                .padding(.vertical, AdaptiveLayout.scaled(11))
         }
         .buttonStyle(.plain)
     }
@@ -1559,10 +1565,10 @@ private struct TodoGroupAppearancePicker: View {
                                         ZStack {
                                             Circle()
                                                 .fill(option.color)
-                                                .frame(width: 38, height: 38)
+                                                .frame(width: AdaptiveLayout.scaled(38), height: AdaptiveLayout.scaled(38))
                                             if selectedColorRawValue == option.rawValue {
                                                 Image(systemName: "checkmark")
-                                                    .font(.system(size: 15, weight: .bold))
+                                                    .font(.system(size: AdaptiveLayout.scaled(15), weight: .bold))
                                                     .foregroundStyle(.white)
                                             }
                                         }
@@ -1588,18 +1594,18 @@ private struct TodoGroupAppearancePicker: View {
                                     changeIcon(iconName)
                                 } label: {
                                     ZStack {
-                                        RoundedRectangle(cornerRadius: 10)
+                                        RoundedRectangle(cornerRadius: AdaptiveLayout.scaled(10))
                                             .fill(selectedIconName == iconName
                                                 ? selectedColor.opacity(0.22)
                                                 : Color(.tertiarySystemFill))
                                         Image(systemName: iconName)
-                                            .font(.system(size: 18, weight: .semibold))
+                                            .font(.system(size: AdaptiveLayout.scaled(18), weight: .semibold))
                                             .foregroundStyle(selectedIconName == iconName ? selectedColor : .secondary)
                                     }
-                                    .frame(height: 48)
+                                    .frame(height: AdaptiveLayout.scaled(48))
                                     .overlay {
                                         if selectedIconName == iconName {
-                                            RoundedRectangle(cornerRadius: 10)
+                                            RoundedRectangle(cornerRadius: AdaptiveLayout.scaled(10))
                                                 .stroke(selectedColor, lineWidth: 2)
                                         }
                                     }
@@ -1610,7 +1616,7 @@ private struct TodoGroupAppearancePicker: View {
                         }
                     }
                 }
-                .padding(20)
+                .padding(AdaptiveLayout.scaled(20))
             }
             .navigationTitle(groupTitle)
             .navigationBarTitleDisplayMode(.inline)
@@ -1676,13 +1682,15 @@ private struct TodoLine: View {
     @State private var isOpenDaysFocused = false
 
     var body: some View {
-        HStack(alignment: .todoRowFirstLineCenter, spacing: 9) {
+        HStack(alignment: .todoRowFirstLineCenter, spacing: AdaptiveLayout.isPad ? 16 : 9) {
             moveMenu
 
             todoTextField
-                .font(.system(size: 16))
+                .font(.system(size: AdaptiveLayout.scaled(16)))
                 .alignmentGuide(.todoRowFirstLineCenter) { dimensions in
-                    dimensions[VerticalAlignment.top] + 10
+                    // Half the first line's height; follows the scaled font so
+                    // the age badge stays centred on the first text line.
+                    dimensions[VerticalAlignment.top] + AdaptiveLayout.scaled(10)
                 }
                 .textFieldStyle(.plain)
                 .lineLimit(1...)
@@ -1720,10 +1728,10 @@ private struct TodoLine: View {
                 }
             } label: {
                 Image(systemName: todo.isDone ? "checkmark.circle.fill" : "circle")
-                    .font(.system(size: 18))
+                    .font(.system(size: AdaptiveLayout.scaled(18)))
                     .symbolRenderingMode(.hierarchical)
                     .foregroundStyle(todo.isDone ? .secondary : .primary)
-                    .frame(width: 24, height: 24)
+                    .frame(width: AdaptiveLayout.scaled(24), height: AdaptiveLayout.scaled(24))
                     .contentShape(Rectangle().inset(by: -6))
             }
             // The header action is centered 40 pt from the readable edge. Move
@@ -1755,7 +1763,7 @@ private struct TodoLine: View {
                     )
                     .datePickerStyle(.graphical)
                     .labelsHidden()
-                    .padding(.horizontal, 16)
+                    .padding(.horizontal, AdaptiveLayout.scaled(16))
 
                     Spacer(minLength: 0)
                 }
@@ -1775,6 +1783,7 @@ private struct TodoLine: View {
                     }
                 }
             }
+            .iPadComfortableControls(textFloor: .xLarge)
             .presentationDetents([.medium])
         }
         .sheet(isPresented: $showOpenSinceEditor) {
@@ -1792,11 +1801,11 @@ private struct TodoLine: View {
                             text: $openDaysDraft,
                             shouldFocus: isOpenDaysFocused
                         )
-                        .frame(height: 76)
+                        .frame(height: AdaptiveLayout.scaled(76))
                         .accessibilityLabel(locale.localized("todo.openSince.days"))
                     }
-                    .padding(20)
-                    .frame(maxWidth: 340)
+                    .padding(AdaptiveLayout.scaled(20))
+                    .frame(maxWidth: AdaptiveLayout.scaled(340))
                 }
                 .navigationTitle(locale.localized("todo.openSince"))
                 .navigationBarTitleDisplayMode(.inline)
@@ -1817,7 +1826,8 @@ private struct TodoLine: View {
                 .toolbarBackground(Color.appCanvasBackground, for: .navigationBar)
                 .toolbarBackground(.visible, for: .navigationBar)
             }
-            .presentationDetents([.height(220)])
+            .iPadComfortableControls(textFloor: .xLarge)
+            .presentationDetents([.height(AdaptiveLayout.isPad ? 300 : 220)])
             .onAppear {
                 isOpenDaysFocused = true
                 // Retry after the sheet has completed its transition in case it
@@ -1847,8 +1857,8 @@ private struct TodoLine: View {
                 Text(title)
                     .font(.body.weight(.semibold))
                     .fixedSize(horizontal: true, vertical: false)
-                    .padding(.horizontal, 14)
-                    .padding(.vertical, 8)
+                    .padding(.horizontal, AdaptiveLayout.scaled(14))
+                    .padding(.vertical, AdaptiveLayout.scaled(8))
                     .background(.white, in: Capsule())
             }
             .buttonStyle(.plain)
@@ -2009,7 +2019,7 @@ private struct TodoLine: View {
                         .scaledToFit()
                         // Keep the layout slot as narrow as a standard menu icon,
                         // while the rendered value remains readable.
-                        .frame(width: 5, height: 5)
+                        .frame(width: AdaptiveLayout.scaled(5), height: AdaptiveLayout.scaled(5))
                         .scaleEffect(3.4, anchor: .leading)
                 }
             }
@@ -2026,16 +2036,16 @@ private struct TodoLine: View {
             .tint(.red)
         } label: {
             Text(ageBadgeText)
-                .font(.system(size: 10, weight: .semibold, design: .rounded))
+                .font(.system(size: AdaptiveLayout.scaled(10), weight: .semibold, design: .rounded))
                 .monospacedDigit()
-                .padding(.horizontal, 5)
-                .padding(.vertical, 3)
+                .padding(.horizontal, AdaptiveLayout.scaled(5))
+                .padding(.vertical, AdaptiveLayout.scaled(3))
                 .background(backgroundColor, in: Capsule())
                 .foregroundStyle(color)
-                .frame(width: 36, height: 24, alignment: .center)
+                .frame(width: AdaptiveLayout.scaled(36), height: AdaptiveLayout.scaled(24), alignment: .center)
                 .overlay {
                     if isOnboardingHighlighted {
-                        RoundedRectangle(cornerRadius: 7)
+                        RoundedRectangle(cornerRadius: AdaptiveLayout.scaled(7))
                             .stroke(Color.brandHardBlue, lineWidth: 3)
                             .padding(-3)
                             .allowsHitTesting(false)
@@ -2143,25 +2153,25 @@ private struct NewTodoLine: View {
     @FocusState private var isTextFieldFocused: Bool
 
     var body: some View {
-        HStack(alignment: .top, spacing: 9) {
+        HStack(alignment: .top, spacing: AdaptiveLayout.isPad ? 16 : 9) {
             Button {
                 beginEditing()
             } label: {
                 Image(systemName: "plus.circle")
-                    .font(.system(size: 15))
+                    .font(.system(size: AdaptiveLayout.scaled(15)))
                     .foregroundStyle(.secondary)
-                    .frame(width: 36, height: 24)
+                    .frame(width: AdaptiveLayout.scaled(36), height: AdaptiveLayout.scaled(24))
             }
             .buttonStyle(.plain)
             .accessibilityLabel("Nieuwe taak invoeren")
 
             TextField("typ iets", text: $text, axis: .vertical)
-                .font(.system(size: 16))
+                .font(.system(size: AdaptiveLayout.scaled(16)))
                 .textFieldStyle(.plain)
                 .focused($isTextFieldFocused)
                 .lineLimit(1...)
                 .fixedSize(horizontal: false, vertical: true)
-                .frame(height: text.isEmpty ? 24 : nil, alignment: .top)
+                .frame(height: text.isEmpty ? AdaptiveLayout.scaled(24) : nil, alignment: .top)
                 .foregroundStyle(.primary)
                 .submitLabel(.done)
                 .onChange(of: text) { _, newValue in
@@ -2203,14 +2213,14 @@ private struct NewTodoLine: View {
                 addTodo(continueEditing: true)
             } label: {
                 Image(systemName: "plus")
-                    .font(.system(size: 12, weight: .semibold))
-                    .frame(width: 24, height: 24)
+                    .font(.system(size: AdaptiveLayout.scaled(12), weight: .semibold))
+                    .frame(width: AdaptiveLayout.scaled(24), height: AdaptiveLayout.scaled(24))
             }
             .buttonStyle(.plain)
             .opacity(cleanText.count >= minimumCharacterCount ? 1 : 0)
             .overlay {
                 if highlightsPlus {
-                    RoundedRectangle(cornerRadius: 7)
+                    RoundedRectangle(cornerRadius: AdaptiveLayout.scaled(7))
                         .stroke(Color.brandHardBlue, lineWidth: 3)
                         .padding(-3)
                         .allowsHitTesting(false)
@@ -2220,7 +2230,7 @@ private struct NewTodoLine: View {
         }
         .overlay {
             if highlightsField {
-                RoundedRectangle(cornerRadius: 8)
+                RoundedRectangle(cornerRadius: AdaptiveLayout.scaled(8))
                     .stroke(Color.brandHardBlue, lineWidth: 3)
                     .padding(-4)
                     .allowsHitTesting(false)
@@ -2343,15 +2353,15 @@ private struct NewTodoGroupLine: View {
                 beginEditing()
             } label: {
                 Image(systemName: "plus.circle")
-                    .font(.system(size: 17))
+                    .font(.system(size: AdaptiveLayout.scaled(17)))
                     .foregroundStyle(.secondary)
-                    .frame(width: 24, height: 24)
+                    .frame(width: AdaptiveLayout.scaled(24), height: AdaptiveLayout.scaled(24))
             }
             .buttonStyle(.plain)
             .accessibilityLabel("Nieuwe categorie invoeren")
 
             TextField("Nieuwe groep", text: $text, axis: .vertical)
-                .font(.system(size: 16, weight: .medium))
+                .font(.system(size: AdaptiveLayout.scaled(16), weight: .medium))
                 .textFieldStyle(.plain)
                 .focused($isTextFieldFocused)
                 .lineLimit(1...)
@@ -2366,20 +2376,20 @@ private struct NewTodoGroupLine: View {
 
             Button(action: addAndDismissKeyboard) {
                 Image(systemName: "plus")
-                    .font(.system(size: 13, weight: .semibold))
-                    .frame(width: 30, height: 30)
-                    .background(Color(.tertiarySystemFill), in: RoundedRectangle(cornerRadius: 8))
+                    .font(.system(size: AdaptiveLayout.scaled(13), weight: .semibold))
+                    .frame(width: AdaptiveLayout.scaled(30), height: AdaptiveLayout.scaled(30))
+                    .background(Color(.tertiarySystemFill), in: RoundedRectangle(cornerRadius: AdaptiveLayout.scaled(8)))
             }
             .buttonStyle(.plain)
             .foregroundStyle(.secondary)
             .opacity(text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? 0 : 1)
         }
-        .padding(.leading, 18)
-        .padding(.trailing, 13)
-        .padding(.vertical, 12)
-        .background(Color.appCardBackground, in: RoundedRectangle(cornerRadius: 14))
+        .padding(.leading, AdaptiveLayout.scaled(18))
+        .padding(.trailing, AdaptiveLayout.scaled(13))
+        .padding(.vertical, AdaptiveLayout.scaled(12))
+        .background(Color.appCardBackground, in: RoundedRectangle(cornerRadius: AdaptiveLayout.scaled(14)))
         .overlay {
-            RoundedRectangle(cornerRadius: 14).stroke(Color.appCardOutline, lineWidth: 1)
+            RoundedRectangle(cornerRadius: AdaptiveLayout.scaled(14)).stroke(Color.appCardOutline, lineWidth: 1)
         }
     }
 

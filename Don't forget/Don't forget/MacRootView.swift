@@ -950,19 +950,25 @@ private struct MacHistoryBoard: View {
                 Text("\(item.category) · \(item.completedAt.formatted(date: .omitted, time: .shortened))").font(.caption).foregroundStyle(.secondary)
             }
             Spacer()
-            Button { restore(item) } label: { Label("Terugzetten", systemImage: "arrow.uturn.backward").labelStyle(.iconOnly) }
+            Button { restore(item) } label: {
+                Image(systemName: "arrow.uturn.backward")
+                    .frame(width: 32, height: 32)
+                    .background(item.color.opacity(0.14), in: Circle())
+                    .overlay { Circle().stroke(item.color.opacity(0.2)) }
+                    .contentShape(Circle())
+            }
                 .buttonStyle(.plain)
                 .foregroundStyle(item.color)
-                .frame(width: 32, height: 32)
-                .background(item.color.opacity(0.14), in: Circle())
-                .overlay { Circle().stroke(item.color.opacity(0.2)) }
                 .help(locale.localizedFormat("Terugzetten naar %@", item.filter.title(for: locale)))
-            Button { beginDeletion(item) } label: { Label("Definitief verwijderen", systemImage: "trash").labelStyle(.iconOnly) }
+            Button { beginDeletion(item) } label: {
+                Image(systemName: "trash")
+                    .frame(width: 32, height: 32)
+                    .background(Color.red.opacity(0.12), in: Circle())
+                    .overlay { Circle().stroke(Color.red.opacity(0.18)) }
+                    .contentShape(Circle())
+            }
                 .buttonStyle(.plain)
                 .foregroundStyle(Color.red)
-                .frame(width: 32, height: 32)
-                .background(Color.red.opacity(0.12), in: Circle())
-                .overlay { Circle().stroke(Color.red.opacity(0.18)) }
                 .help("Definitief verwijderen")
         }.padding(.horizontal, 14).padding(.vertical, 10)
             .id(item.id)
@@ -1017,11 +1023,11 @@ private struct MacHistoryBoard: View {
     }
     private func undoBar(_ item: MacHistoryItem) -> some View {
         HStack { Label("‘\(item.title)’ teruggezet", systemImage: "arrow.uturn.backward.circle.fill").lineLimit(1); Spacer(); Button("Ongedaan maken") { undoRestore(item) }.buttonStyle(.borderedProminent) }
-            .padding(10).background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12)).padding(.horizontal, 18).padding(.bottom, 8)
+            .padding(10).background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12)).padding(.horizontal, 18).padding(.bottom, 70)
     }
     private func deletionUndoBar(_ item: MacHistoryItem) -> some View {
         HStack { Label("‘\(item.title)’ verwijderd", systemImage: "trash.fill").lineLimit(1); Spacer(); Button("Terughalen") { undoDeletion() }.buttonStyle(.borderedProminent) }
-            .padding(10).background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12)).padding(.horizontal, 18).padding(.bottom, 8)
+            .padding(10).background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12)).padding(.horizontal, 18).padding(.bottom, 70)
     }
 }
 
@@ -1082,6 +1088,7 @@ private struct MacTodoBoard: View {
     @State private var agendaDate = AppCalendar.startOfDay(.now)
     @State private var openSinceTodo: TodoItem?
     @State private var openDaysDraft = 0
+    @State private var appearanceGroupID: String?
     @FocusState private var focusedNewTodoGroupID: String?
     @FocusState private var isOpenDaysFocused: Bool
 
@@ -1137,13 +1144,15 @@ private struct MacTodoBoard: View {
                     Label(feedbackText(feedback), systemImage: feedbackIcon(feedback))
                         .lineLimit(1)
                     Spacer()
-                    Button("Ongedaan maken") { undoFeedback() }
+                    Button(locale.localized("Ongedaan maken")) { undoFeedback() }
                         .buttonStyle(.borderedProminent)
                 }
                 .padding(10)
                 .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
                 .padding(.horizontal, 18)
-                .padding(.bottom, 8)
+                // The section tabs float over the bottom edge on macOS.
+                // Match the calendar's clearance so this bar stays above them.
+                .padding(.bottom, 70)
             }
         }
         .onAppear(perform: repairUnknownGroups)
@@ -1202,7 +1211,9 @@ private struct MacTodoBoard: View {
         let items = todos.filter { $0.bucketRawValue == group.id }
         return VStack(spacing: 0) {
             HStack(spacing: 10) {
-                ZStack {
+                Button {
+                    appearanceGroupID = group.id
+                } label: {
                     ZStack {
                         RoundedRectangle(cornerRadius: 8)
                             .fill(group.backgroundColor)
@@ -1210,20 +1221,23 @@ private struct MacTodoBoard: View {
                             .foregroundStyle(group.color)
                     }
                     .frame(width: 32, height: 32)
-
-                    Menu {
-                        groupAppearanceMenu(group)
-                    } label: {
-                        Color.clear
-                            .frame(width: 32, height: 32)
-                            .contentShape(Rectangle())
-                    }
-                    .menuStyle(.borderlessButton)
-                    .menuIndicator(.hidden)
-                    .tint(group.color)
+                    .contentShape(RoundedRectangle(cornerRadius: 8))
                 }
+                .buttonStyle(.plain)
                 .frame(width: 32, height: 32)
                 .help("Icoon en kleur wijzigen")
+                .popover(
+                    isPresented: Binding(
+                        get: { appearanceGroupID == group.id },
+                        set: { if !$0 { appearanceGroupID = nil } }
+                    ),
+                    arrowEdge: .bottom
+                ) {
+                    VStack(alignment: .leading, spacing: 8) {
+                        groupAppearanceMenu(group)
+                    }
+                    .padding(10)
+                }
                 VStack(alignment: .leading, spacing: 1) {
                     TextField("Groepsnaam", text: titleBinding(for: group.id))
                         .textFieldStyle(.plain)
@@ -1333,11 +1347,11 @@ private struct MacTodoBoard: View {
                     .font(.system(size: 12, weight: .medium))
                     .foregroundStyle(group.color)
                     .frame(width: 26, height: 24)
+                    .contentShape(Rectangle())
             }
             .menuStyle(.borderlessButton)
             .menuIndicator(.hidden)
             .tint(group.color)
-            .fixedSize()
             .help("Verplaatsen of verwijderen")
 
             Button { complete(todo) } label: {
@@ -1345,6 +1359,7 @@ private struct MacTodoBoard: View {
                     .font(.title3)
                     .foregroundStyle(group.color)
                     .frame(width: 26, height: 24)
+                    .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
             .padding(.trailing, 2)
@@ -1713,6 +1728,7 @@ private struct MacRecurringBoard: View {
     @State private var showsTitleValidation = false
     @State private var titleValidationTask: Task<Void, Never>?
     @State private var showingHolidayManager = false
+    @State private var appearanceCategoryID: String?
     @State private var cachedDisplayItems: [String: [MacRecurringDisplayItem]] = [:]
     @State private var hasCachedDisplayItems = false
 
@@ -1771,21 +1787,21 @@ private struct MacRecurringBoard: View {
                     Color.black.opacity(0.16).ignoresSafeArea()
                     VStack(spacing: 0) {
                         HStack {
-                            Text(isCreatingItem ? "Nieuwe herhaling" : "Wijzig herhaling").font(.title2.bold())
+                            Text(locale.localized(isCreatingItem ? "Nieuwe herhaling" : "Wijzig herhaling")).font(.title2.bold())
                             Spacer()
                             if !isCreatingItem {
-                                Button("Verwijder", systemImage: "trash", role: .destructive) {
+                                Button(locale.localized("Verwijder"), systemImage: "trash", role: .destructive) {
                                     removeFromEditor(creatingItem)
                                 }
                                 .buttonStyle(.borderedProminent)
                                 .tint(.red)
                             }
                             if isCreatingItem {
-                                Button("Annuleer") { cancelCreatingItem() }
+                                Button(locale.localized("Annuleer")) { cancelCreatingItem() }
                                     .buttonStyle(.bordered)
                                     .tint(.secondary)
                             }
-                            Button("Gereed") { finishCreatingItem() }.buttonStyle(.borderedProminent)
+                            Button(locale.localized("Gereed")) { finishCreatingItem() }.buttonStyle(.borderedProminent)
                         }
                         .padding(.horizontal, 20).padding(.vertical, 14)
                         MacRecurringEditor(
@@ -1818,7 +1834,7 @@ private struct MacRecurringBoard: View {
                     )
                         .lineLimit(1)
                     Spacer()
-                    Button("Ongedaan maken") { undoRemoval() }.buttonStyle(.borderedProminent)
+                    Button(locale.localized("Ongedaan maken")) { undoRemoval() }.buttonStyle(.borderedProminent)
                 }
                 .padding(10).background(.regularMaterial, in: RoundedRectangle(cornerRadius: 8))
                 .padding(.horizontal, 18).padding(.bottom, 78)
@@ -1850,7 +1866,9 @@ private struct MacRecurringBoard: View {
         let categoryItems = displayItems.map(\.item)
         return VStack(spacing: 0) {
             HStack(spacing: 10) {
-                ZStack {
+                Button {
+                    appearanceCategoryID = category.id
+                } label: {
                     ZStack {
                         RoundedRectangle(cornerRadius: 8)
                             .fill(category.backgroundColor)
@@ -1858,20 +1876,23 @@ private struct MacRecurringBoard: View {
                             .foregroundStyle(category.color)
                     }
                     .frame(width: 32, height: 32)
-
-                    Menu {
-                        categoryAppearanceMenu(category)
-                    } label: {
-                        Color.clear
-                            .frame(width: 32, height: 32)
-                            .contentShape(Rectangle())
-                    }
-                    .menuStyle(.borderlessButton)
-                    .menuIndicator(.hidden)
-                    .tint(category.color)
+                    .contentShape(RoundedRectangle(cornerRadius: 8))
                 }
+                .buttonStyle(.plain)
                 .frame(width: 32, height: 32)
                 .help("Icoon en kleur wijzigen")
+                .popover(
+                    isPresented: Binding(
+                        get: { appearanceCategoryID == category.id },
+                        set: { if !$0 { appearanceCategoryID = nil } }
+                    ),
+                    arrowEdge: .bottom
+                ) {
+                    VStack(alignment: .leading, spacing: 8) {
+                        categoryAppearanceMenu(category)
+                    }
+                    .padding(10)
+                }
                 VStack(alignment: .leading, spacing: 1) {
                     if category.isFixed {
                         Text(category.title).font(.headline)
@@ -1921,16 +1942,16 @@ private struct MacRecurringBoard: View {
             HStack(spacing: 10) {
                 if showNextDate {
                     Text(dateBadgeText(displayItem.nextDate))
-                        .font(.system(size: 9, weight: .semibold, design: .rounded))
+                        .font(.system(size: 7.2, weight: .semibold, design: .rounded))
                         .monospacedDigit()
                         .lineLimit(1)
                         .fixedSize(horizontal: true, vertical: false)
                         .foregroundStyle(category.color)
                         .padding(.horizontal, 3).padding(.vertical, 3)
                         .background(category.backgroundColor, in: Capsule())
-                        .frame(width: 32, alignment: .center)
+                        .frame(width: 29, alignment: .center)
                 } else {
-                    Circle().fill(category.color).frame(width: 7, height: 7).frame(width: 32)
+                    Circle().fill(category.color).frame(width: 7, height: 7).frame(width: 29)
                 }
                 VStack(alignment: .leading, spacing: 3) {
                     Text(item.title.isEmpty ? "Nieuwe herhaling" : item.title).fontWeight(.medium).lineLimit(1)
@@ -2082,7 +2103,7 @@ private struct MacRecurringBoard: View {
         hasCachedDisplayItems = true
     }
     private func dateBadgeText(_ date: Date) -> String {
-        AppCalendar.localizedDate(date, template: "ddMMM")
+        AppCalendar.localizedDate(date, template: "dMMM")
     }
     private func categorySubtitle(_ category: MacRecurringCategory, items: [RecurringItem]) -> String {
         if category.id == MacRecurringCategoryStore.birthdayID {
@@ -2180,6 +2201,8 @@ private struct MacRecurringBoard: View {
             }
             modelContext.insert(item)
             item.frequencyText = RecurrenceEngine.description(for: item)
+            let scheduleItems = items.filter { $0.id != item.id } + [item]
+            RecurringScheduler.syncTwoYears(items: scheduleItems, in: modelContext)
             save()
         } else if !isCreatingItem {
             save()
@@ -2514,6 +2537,7 @@ private struct MacHolidayManagerView: View {
 }
 
 private struct MacRecurringEditor: View {
+    @Environment(\.locale) private var locale
     @Environment(\.modelContext) private var modelContext
     @AppStorage(SettingsKeys.recurringCategories) private var categoriesData = ""
     @Bindable var item: RecurringItem
@@ -2529,7 +2553,7 @@ private struct MacRecurringEditor: View {
     @State private var presentedOptionMenu: String?
 
     private let rowHeight: CGFloat = 38
-    private let optionFill = Color.primary.opacity(0.075)
+    private let optionFill = Color.white
 
     private var categories: [MacRecurringCategory] {
         MacRecurringCategoryStore.decode(categoriesData)
@@ -2600,13 +2624,13 @@ private struct MacRecurringEditor: View {
         } label: {
             HStack(spacing: 0) {
                 Spacer(minLength: 0)
-                Text(title)
+                Text(locale.localized(title))
                     .lineLimit(1)
                     .multilineTextAlignment(.trailing)
                     .foregroundStyle(.primary)
                 Image(systemName: "chevron.up.chevron.down")
-                    .font(.system(size: 8, weight: .semibold))
-                    .foregroundStyle(.secondary)
+                    .font(.system(size: 10, weight: .semibold))
+                    .foregroundStyle(.primary)
                     .padding(.leading, 6)
             }
             .padding(.horizontal, 9)
@@ -2629,7 +2653,7 @@ private struct MacRecurringEditor: View {
                         presentedOptionMenu = nil
                     } label: {
                         HStack(spacing: 8) {
-                            Text(option.title)
+                            Text(locale.localized(option.title))
                             Spacer(minLength: 12)
                             if selection.wrappedValue == option.value {
                                 Image(systemName: "checkmark")
@@ -2950,27 +2974,37 @@ private struct MacRecurringEditor: View {
         HStack {
             Text(title)
             Spacer()
-            HStack(spacing: 0) {
+            HStack(spacing: 2) {
                 Button { value.wrappedValue = max(range.lowerBound, value.wrappedValue - 1) } label: {
                     Image(systemName: "minus")
+                        .font(.system(size: 10, weight: .semibold))
                         .frame(width: 28, height: 28)
+                        .contentShape(Rectangle())
                 }
+                .buttonStyle(.plain)
                 .disabled(value.wrappedValue <= range.lowerBound)
 
                 Text("\(value.wrappedValue)")
-                    .font(.system(size: 13, weight: .medium, design: .rounded))
-                    .frame(minWidth: 26)
+                    // Use the same non-rounded text rendering as the other
+                    // option values; the rounded, heavier glyph looked darker
+                    // even though it used the same foreground color.
+                    .font(.system(size: 13, weight: .regular))
+                    .frame(minWidth: 28, minHeight: 28)
 
                 Button { value.wrappedValue = min(range.upperBound, value.wrappedValue + 1) } label: {
                     Image(systemName: "plus")
+                        .font(.system(size: 10, weight: .semibold))
                         .frame(width: 28, height: 28)
+                        .contentShape(Rectangle())
                 }
+                .buttonStyle(.plain)
                 .disabled(value.wrappedValue >= range.upperBound)
             }
-            .font(.system(size: 12, weight: .semibold))
-            .buttonStyle(.plain)
+            .font(.system(size: 10, weight: .semibold))
             .foregroundStyle(.primary)
             .background(optionFill, in: RoundedRectangle(cornerRadius: 7))
+            // Match the right inset used by the chevrons in the pickers.
+            .padding(.trailing, 1)
         }
         .recurringEditorRow(height: rowHeight, showsSeparator: showsSeparator)
     }
@@ -3008,6 +3042,10 @@ private struct MacRecurringEditor: View {
                     Image(systemName: "calendar")
                         .foregroundStyle(.secondary)
                     Text(dateText(selection.wrappedValue))
+                    Image(systemName: "chevron.up.chevron.down")
+                        .font(.system(size: 10, weight: .semibold))
+                        .foregroundStyle(.primary)
+                        .padding(.leading, 6)
                 }
                 .padding(.horizontal, 9)
                 .frame(minHeight: 27)
