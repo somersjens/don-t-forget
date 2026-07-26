@@ -142,6 +142,7 @@ struct QuickCaptureSnippetIntent: SnippetIntent {
 }
 
 private struct QuickCaptureSnippetView: View {
+    @Environment(\.locale) private var locale
     @State private var text = ""
     @State private var destinationID: String
     @State private var agendaDate = AppCalendar.startOfDay(.now)
@@ -174,18 +175,18 @@ private struct QuickCaptureSnippetView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
             HStack {
-                Label("Snel toevoegen", systemImage: "text.badge.plus")
+                Label(locale.localized("Snel toevoegen"), systemImage: "text.badge.plus")
                     .font(.headline)
                 Spacer()
                 if speechRecorder.isRecording {
-                    Text("Luistert…")
+                    Text(locale.localized("Luistert…"))
                         .font(.caption)
                         .foregroundStyle(.red)
                 }
             }
 
             HStack(spacing: 10) {
-                TextField("Wat wil je niet vergeten?", text: $text)
+                TextField(locale.localized("Wat wil je niet vergeten?"), text: $text)
                     .textFieldStyle(.roundedBorder)
 
                 Button {
@@ -214,7 +215,7 @@ private struct QuickCaptureSnippetView: View {
                         destinationID = Self.agendaDestinationID
                         agendaDate = AppCalendar.startOfDay(.now)
                     } label: {
-                        Label("Kalender", systemImage: "calendar")
+                        Label(locale.localized("Kalender"), systemImage: "calendar")
                     }
                 } label: {
                     snippetSelectionLabel(
@@ -245,7 +246,7 @@ private struct QuickCaptureSnippetView: View {
                 destinationID: destinationID,
                 agendaDate: agendaDate
             )) {
-                Label("Voeg toe", systemImage: "plus.circle.fill")
+                Label(locale.localized("Voeg toe"), systemImage: "plus.circle.fill")
                     .frame(maxWidth: .infinity)
             }
             .buttonStyle(.borderedProminent)
@@ -357,6 +358,7 @@ struct DontForgetShortcuts: AppShortcutsProvider {
 struct QuickTodoCaptureView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var modelContext
+    @Environment(\.locale) private var locale
 
     let groups: [TodoGroup]
     let focusesKeyboardImmediately: Bool
@@ -409,7 +411,7 @@ struct QuickTodoCaptureView: View {
         NavigationStack {
             VStack(alignment: .leading, spacing: 18) {
                 HStack(spacing: 10) {
-                    TextField("Wat wil je niet vergeten?", text: $text)
+                    TextField(locale.localized("Wat wil je niet vergeten?"), text: $text)
                         .font(.system(size: AdaptiveLayout.scaled(18)))
                         .focused($isTextFieldFocused)
                         .submitLabel(.done)
@@ -427,7 +429,7 @@ struct QuickTodoCaptureView: View {
                             .foregroundStyle(speechRecorder.isRecording ? .red : .secondary)
                     }
                     .buttonStyle(.plain)
-                    .accessibilityLabel(speechRecorder.isRecording ? "Spraakopname stoppen" : "Spraakopname starten")
+                    .accessibilityLabel(locale.localized(speechRecorder.isRecording ? "Spraakopname stoppen" : "Spraakopname starten"))
                 }
                 .padding(AdaptiveLayout.scaled(14))
                 .background(Color(.secondarySystemBackground), in: RoundedRectangle(cornerRadius: AdaptiveLayout.scaled(14)))
@@ -455,7 +457,7 @@ struct QuickTodoCaptureView: View {
                         )
                     }
                     .menuOrder(.fixed)
-                    .accessibilityLabel("Categorie in Taken kiezen")
+                    .accessibilityLabel(locale.localized("Categorie in Taken kiezen"))
 
                     Button {
                         isTextFieldFocused = false
@@ -475,7 +477,7 @@ struct QuickTodoCaptureView: View {
                         )
                     }
                     .buttonStyle(.plain)
-                    .accessibilityLabel("Datum in agenda kiezen")
+                    .accessibilityLabel(locale.localized("Datum in agenda kiezen"))
                     .popover(isPresented: $isShowingDatePicker) {
                         DatePicker(
                             "Kies een datum",
@@ -494,15 +496,15 @@ struct QuickTodoCaptureView: View {
                 Spacer(minLength: 0)
             }
             .padding(AdaptiveLayout.scaled(18))
-            .navigationTitle("Snel toevoegen")
+            .navigationTitle(locale.localized("Snel toevoegen"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Annuleer", action: close)
+                    Button(locale.localized("Annuleer"), action: close)
                 }
 
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Voeg toe", action: save)
+                    Button(locale.localized("Voeg toe"), action: save)
                         .disabled(cleanText.isEmpty)
                 }
             }

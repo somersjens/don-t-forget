@@ -1,0 +1,152 @@
+{
+  "source": "/Users/jenssomers/Desktop/Don't forget/Don't forget/Don't forget/HistoryView.swift",
+  "tables": {
+    "Localizable": [
+      {
+        "comment": "",
+        "key": "Instellingen",
+        "location": {
+          "startingColumn": 45,
+          "startingLine": 466
+        }
+      },
+      {
+        "comment": "",
+        "key": "%@%@",
+        "location": {
+          "startingColumn": 21,
+          "startingLine": 1135
+        }
+      },
+      {
+        "comment": "",
+        "key": "%@%@",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 1119
+        }
+      },
+      {
+        "comment": "",
+        "key": "Demodata verwijderen",
+        "location": {
+          "startingColumn": 60,
+          "startingLine": 1199
+        }
+      },
+      {
+        "comment": "",
+        "key": "Demodata activeren",
+        "location": {
+          "startingColumn": 85,
+          "startingLine": 1199
+        }
+      },
+      {
+        "comment": "",
+        "key": "%lld afgerond",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 1211
+        }
+      },
+      {
+        "comment": "",
+        "key": "%lld in afgelopen 7 dagen",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 1213
+        }
+      },
+      {
+        "comment": "",
+        "key": "Grafieken inklappen",
+        "location": {
+          "startingColumn": 42,
+          "startingLine": 1267
+        }
+      },
+      {
+        "comment": "",
+        "key": "Grafieken uitklappen",
+        "location": {
+          "startingColumn": 66,
+          "startingLine": 1267
+        }
+      },
+      {
+        "comment": "",
+        "key": "Periode",
+        "location": {
+          "startingColumn": 31,
+          "startingLine": 1317
+        }
+      },
+      {
+        "comment": "",
+        "key": "Afgerond",
+        "location": {
+          "startingColumn": 31,
+          "startingLine": 1318
+        }
+      },
+      {
+        "comment": "",
+        "key": "%lld",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 1330
+        }
+      },
+      {
+        "comment": "",
+        "key": "%@, %lld items",
+        "location": {
+          "startingColumn": 29,
+          "startingLine": 1520
+        }
+      },
+      {
+        "comment": "",
+        "key": "Acties voor %@",
+        "location": {
+          "startingColumn": 33,
+          "startingLine": 1700
+        }
+      },
+      {
+        "comment": "",
+        "key": "Definitief verwijderen",
+        "location": {
+          "startingColumn": 37,
+          "startingLine": 1738
+        }
+      },
+      {
+        "comment": "",
+        "key": "·",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 1719
+        }
+      },
+      {
+        "comment": "",
+        "key": "Terugzetten",
+        "location": {
+          "startingColumn": 20,
+          "startingLine": 1778
+        }
+      },
+      {
+        "comment": "",
+        "key": "Definitief verwijderen",
+        "location": {
+          "startingColumn": 20,
+          "startingLine": 1779
+        }
+      }
+    ]
+  },
+  "version": 1
+}

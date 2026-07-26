@@ -1,0 +1,408 @@
+{
+  "source": "/Users/jenssomers/Desktop/Don't forget/Don't forget/Don't forget/SettingsView.swift",
+  "tables": {
+    "Localizable": [
+      {
+        "comment": "",
+        "key": "Instellingen",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 524
+        }
+      },
+      {
+        "comment": "",
+        "key": "Actieknop configureren",
+        "location": {
+          "startingColumn": 34,
+          "startingLine": 142
+        }
+      },
+      {
+        "comment": "",
+        "key": "Lockscreen-widget configureren",
+        "location": {
+          "startingColumn": 31,
+          "startingLine": 152
+        }
+      },
+      {
+        "comment": "",
+        "key": "Beginscherm-widget configureren",
+        "location": {
+          "startingColumn": 31,
+          "startingLine": 159
+        }
+      },
+      {
+        "comment": "",
+        "key": "Week begint op",
+        "location": {
+          "startingColumn": 28,
+          "startingLine": 184
+        }
+      },
+      {
+        "comment": "",
+        "key": "Weeknummering",
+        "location": {
+          "startingColumn": 28,
+          "startingLine": 201
+        }
+      },
+      {
+        "comment": "",
+        "key": "",
+        "location": {
+          "startingColumn": 29,
+          "startingLine": 261
+        }
+      },
+      {
+        "comment": "",
+        "key": "Verwijderde items tonen",
+        "location": {
+          "startingColumn": 28,
+          "startingLine": 356
+        }
+      },
+      {
+        "comment": "",
+        "key": "Synchroniseer met iPhone Kalender",
+        "location": {
+          "startingColumn": 28,
+          "startingLine": 359
+        }
+      },
+      {
+        "comment": "",
+        "key": "Kalender synchroniseren…",
+        "location": {
+          "startingColumn": 38,
+          "startingLine": 427
+        }
+      },
+      {
+        "comment": "",
+        "key": "Synchroniseer nu",
+        "location": {
+          "startingColumn": 35,
+          "startingLine": 442
+        }
+      },
+      {
+        "comment": "",
+        "key": "Gereed",
+        "location": {
+          "startingColumn": 28,
+          "startingLine": 538
+        }
+      },
+      {
+        "comment": "",
+        "key": "OK",
+        "location": {
+          "startingColumn": 24,
+          "startingLine": 571
+        }
+      },
+      {
+        "comment": "",
+        "key": "OK",
+        "location": {
+          "startingColumn": 24,
+          "startingLine": 579
+        }
+      },
+      {
+        "comment": "",
+        "key": "OK",
+        "location": {
+          "startingColumn": 24,
+          "startingLine": 590
+        }
+      },
+      {
+        "comment": "",
+        "key": "OK",
+        "location": {
+          "startingColumn": 24,
+          "startingLine": 601
+        }
+      },
+      {
+        "comment": "",
+        "key": "OK",
+        "location": {
+          "startingColumn": 24,
+          "startingLine": 636
+        }
+      },
+      {
+        "comment": "",
+        "key": "OK",
+        "location": {
+          "startingColumn": 24,
+          "startingLine": 658
+        }
+      },
+      {
+        "comment": "",
+        "key": "Lockscreen-widget",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 1305
+        }
+      },
+      {
+        "comment": "",
+        "key": "Aantal weergeven",
+        "location": {
+          "startingColumn": 21,
+          "startingLine": 1189
+        }
+      },
+      {
+        "comment": "",
+        "key": "Voorbeeld",
+        "location": {
+          "startingColumn": 21,
+          "startingLine": 1199
+        }
+      },
+      {
+        "comment": "",
+        "key": "Weergave",
+        "location": {
+          "startingColumn": 21,
+          "startingLine": 1212
+        }
+      },
+      {
+        "comment": "",
+        "key": "Tekst",
+        "location": {
+          "startingColumn": 21,
+          "startingLine": 1236
+        }
+      },
+      {
+        "comment": "",
+        "key": "Aantal",
+        "location": {
+          "startingColumn": 24,
+          "startingLine": 1190
+        }
+      },
+      {
+        "comment": "",
+        "key": "%lld",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 1192
+        }
+      },
+      {
+        "comment": "",
+        "key": "Woorden afsnijden",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 1238
+        }
+      },
+      {
+        "comment": "",
+        "key": "Voorvoegsel",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 1269
+        }
+      },
+      {
+        "comment": "",
+        "key": "d",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 1604
+        }
+      },
+      {
+        "comment": "",
+        "key": "%@, %@",
+        "location": {
+          "startingColumn": 29,
+          "startingLine": 1658
+        }
+      },
+      {
+        "comment": "",
+        "key": "%@, %@",
+        "location": {
+          "startingColumn": 18,
+          "startingLine": 1651
+        }
+      },
+      {
+        "comment": "",
+        "key": "Beginscherm-widget",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 1942
+        }
+      },
+      {
+        "comment": "",
+        "key": "Voorbeeld",
+        "location": {
+          "startingColumn": 21,
+          "startingLine": 1847
+        }
+      },
+      {
+        "comment": "",
+        "key": "Widgetformaat",
+        "location": {
+          "startingColumn": 24,
+          "startingLine": 1848
+        }
+      },
+      {
+        "comment": "",
+        "key": "Inhoud",
+        "location": {
+          "startingColumn": 24,
+          "startingLine": 1877
+        }
+      },
+      {
+        "comment": "",
+        "key": "Kalenderperiode",
+        "location": {
+          "startingColumn": 24,
+          "startingLine": 1887
+        }
+      },
+      {
+        "comment": "",
+        "key": "Datumweergave",
+        "location": {
+          "startingColumn": 24,
+          "startingLine": 1897
+        }
+      },
+      {
+        "comment": "",
+        "key": "Takenweergave",
+        "location": {
+          "startingColumn": 24,
+          "startingLine": 1908
+        }
+      },
+      {
+        "comment": "",
+        "key": "Lange tekst",
+        "location": {
+          "startingColumn": 24,
+          "startingLine": 1921
+        }
+      },
+      {
+        "comment": "",
+        "key": "Titel laten zien",
+        "location": {
+          "startingColumn": 24,
+          "startingLine": 1931
+        }
+      },
+      {
+        "comment": "",
+        "key": "Lichtblauwe widgetkleur",
+        "location": {
+          "startingColumn": 24,
+          "startingLine": 1933
+        }
+      },
+      {
+        "comment": "",
+        "key": "Slimme weergave",
+        "location": {
+          "startingColumn": 24,
+          "startingLine": 1935
+        }
+      },
+      {
+        "comment": "",
+        "key": "0 = vandaag, 1 = morgen",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 1898
+        }
+      },
+      {
+        "comment": "",
+        "key": "Bovenste taken",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 1909
+        }
+      },
+      {
+        "comment": "",
+        "key": "Bij slimme weergave worden Taken over de volledige breedte getoond als er geen kalenderitems zijn, en andersom. Zo wordt er minder snel tekst afgesneden.",
+        "location": {
+          "startingColumn": 22,
+          "startingLine": 1938
+        }
+      },
+      {
+        "comment": "",
+        "key": "Actieknop",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 2099
+        }
+      },
+      {
+        "comment": "",
+        "key": "Bij indrukken",
+        "location": {
+          "startingColumn": 21,
+          "startingLine": 2017
+        }
+      },
+      {
+        "comment": "",
+        "key": "Standaardbestemming",
+        "location": {
+          "startingColumn": 21,
+          "startingLine": 2041
+        }
+      },
+      {
+        "comment": "",
+        "key": "Spraakinvoer",
+        "location": {
+          "startingColumn": 25,
+          "startingLine": 2093
+        }
+      },
+      {
+        "comment": "",
+        "key": "Kalender vandaag",
+        "location": {
+          "startingColumn": 34,
+          "startingLine": 2073
+        }
+      },
+      {
+        "comment": "",
+        "key": "Direct spraak opnemen",
+        "location": {
+          "startingColumn": 28,
+          "startingLine": 2094
+        }
+      }
+    ]
+  },
+  "version": 1
+}

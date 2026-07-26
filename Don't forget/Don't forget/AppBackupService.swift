@@ -225,9 +225,9 @@ enum AppBackupError: LocalizedError {
 
     var errorDescription: String? {
         switch self {
-        case .emptyFile: "Het backupbestand is leeg."
-        case .unsupportedVersion(let version): "Backupversie \(version) wordt niet ondersteund."
-        case .invalidSettings: "De instellingen in de backup zijn beschadigd."
+        case .emptyFile: AppCalendar.locale.localized("Het backupbestand is leeg.")
+        case .unsupportedVersion(let version): AppCalendar.locale.localizedFormat("Backupversie %lld wordt niet ondersteund.", version)
+        case .invalidSettings: AppCalendar.locale.localized("De instellingen in de backup zijn beschadigd.")
         }
     }
 }

@@ -139,7 +139,7 @@ struct SettingsView: View {
                         ActionButtonCaptureSettingsView()
                     } label: {
                         Label {
-                            Text("Actieknop configureren")
+                            Text(locale.localized("Actieknop configureren"))
                         } icon: {
                             PulsingActionButtonIcon()
                         }
@@ -149,14 +149,14 @@ struct SettingsView: View {
                     NavigationLink {
                         ActionButtonSettingsView()
                     } label: {
-                        Label("Lockscreen-widget configureren", systemImage: "rectangle.on.rectangle")
+                        Label(locale.localized("Lockscreen-widget configureren"), systemImage: "rectangle.on.rectangle")
                     }
                     .settingsCardRow(.middle)
 
                     NavigationLink {
                         HomeWidgetSettingsView()
                     } label: {
-                        Label("Beginscherm-widget configureren", systemImage: "rectangle.split.2x1")
+                        Label(locale.localized("Beginscherm-widget configureren"), systemImage: "rectangle.split.2x1")
                     }
                     .settingsCardRow(.last)
 
@@ -165,7 +165,7 @@ struct SettingsView: View {
                 Section {
                     Picker(languagePickerTitle, selection: $language) {
                         ForEach(AppLanguage.allCases) { language in
-                            Text(language.title(for: locale)).tag(language.rawValue)
+                            Text(language.menuTitle(for: locale)).tag(language.rawValue)
                         }
                     }
                     .tint(Color.appPrimaryText)
@@ -181,7 +181,7 @@ struct SettingsView: View {
                     .tint(Color.appPrimaryText)
                     .settingsCardRow(.middle)
 
-                    Picker("Week begint op", selection: $weekStart) {
+                    Picker(locale.localized("Week begint op"), selection: $weekStart) {
                         ForEach(WeekStartOption.allCases) { option in
                             Text(option.title(for: locale)).tag(option.rawValue)
                         }
@@ -198,7 +198,7 @@ struct SettingsView: View {
                     .onAppear(perform: normalizeWeekdayLabelLength)
                     .settingsCardRow(.middle)
 
-                    Picker("Weeknummering", selection: $weekNumberRule) {
+                    Picker(locale.localized("Weeknummering"), selection: $weekNumberRule) {
                         ForEach(WeekNumberRule.allCases) { rule in
                             Text(rule.title(for: locale)).tag(rule.rawValue)
                         }
@@ -353,10 +353,10 @@ struct SettingsView: View {
                     .animation(.easeInOut(duration: 0.2), value: iCloudSyncEnabled)
                     .settingsCardRow(.first)
 
-                    Toggle("Verwijderde items tonen", isOn: $historyShowsDeletedItems)
+                    Toggle(locale.localized("Verwijderde items tonen"), isOn: $historyShowsDeletedItems)
                         .settingsCardRow(.middle)
 
-                    Toggle("Synchroniseer met iPhone Kalender", isOn: $calendarSyncEnabled)
+                    Toggle(locale.localized("Synchroniseer met iPhone Kalender"), isOn: $calendarSyncEnabled)
                         .disabled(isRequestingCalendarAccess)
                         .onChange(of: calendarSyncEnabled) { _, enabled in
                             guard enabled else { return }
@@ -439,7 +439,7 @@ struct SettingsView: View {
                         Button {
                             syncCalendarNow()
                         } label: {
-                            Label("Synchroniseer nu", systemImage: "arrow.triangle.2.circlepath")
+                            Label(locale.localized("Synchroniseer nu"), systemImage: "arrow.triangle.2.circlepath")
                         }
                         .disabled(isRequestingCalendarAccess)
                         .settingsCardRow(.last)
@@ -521,7 +521,7 @@ struct SettingsView: View {
                     await refreshICloudStatus()
                 }
             }
-            .navigationTitle("Instellingen")
+            .navigationTitle(locale.localized("Instellingen"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 if #available(iOS 26.0, *) {
@@ -535,7 +535,7 @@ struct SettingsView: View {
                     }
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Gereed") {
+                    Button(locale.localized("Gereed")) {
                         dismiss()
                     }
                 }
@@ -569,7 +569,7 @@ struct SettingsView: View {
                     set: { if !$0 { backupError = nil } }
                 )
             ) {
-                Button("OK", role: .cancel) {}
+                Button(locale.localized("OK"), role: .cancel) {}
             } message: {
                 Text(backupError ?? "")
             }
@@ -577,7 +577,7 @@ struct SettingsView: View {
                 locale.localized("Heropen de app"),
                 isPresented: $isShowingStorageRestartNotice
             ) {
-                Button("OK", role: .cancel) {}
+                Button(locale.localized("OK"), role: .cancel) {}
             } message: {
                 Text(locale.localized("De wijziging wordt actief nadat je de app volledig hebt afgesloten en opnieuw hebt geopend."))
             }
@@ -588,7 +588,7 @@ struct SettingsView: View {
                     set: { if !$0 { historyExportError = nil } }
                 )
             ) {
-                Button("OK", role: .cancel) {}
+                Button(locale.localized("OK"), role: .cancel) {}
             } message: {
                 Text(historyExportError ?? "")
             }
@@ -599,7 +599,7 @@ struct SettingsView: View {
                     set: { if !$0 { reminderError = nil } }
                 )
             ) {
-                Button("OK", role: .cancel) {}
+                Button(locale.localized("OK"), role: .cancel) {}
             } message: {
                 Text(reminderError ?? "")
             }
@@ -634,7 +634,7 @@ struct SettingsView: View {
                     set: { if !$0 { historyDeletionError = nil } }
                 )
             ) {
-                Button("OK", role: .cancel) {}
+                Button(locale.localized("OK"), role: .cancel) {}
             } message: {
                 Text(historyDeletionError ?? "")
             }
@@ -656,7 +656,7 @@ struct SettingsView: View {
                     set: { if !$0 { appResetError = nil } }
                 )
             ) {
-                Button("OK", role: .cancel) {}
+                Button(locale.localized("OK"), role: .cancel) {}
             } message: {
                 Text(appResetError ?? "")
             }
@@ -1187,8 +1187,8 @@ private struct ActionButtonSettingsView: View {
                     .settingsCardRow(.single)
             }
 
-            Section("Aantal weergeven") {
-                Picker("Aantal", selection: $itemCount) {
+            Section(locale.localized("Aantal weergeven")) {
+                Picker(locale.localized("Aantal"), selection: $itemCount) {
                     ForEach([3, 4, 5], id: \.self) { count in
                         Text("\(count)").tag(count)
                     }
@@ -1197,7 +1197,7 @@ private struct ActionButtonSettingsView: View {
                 .settingsCardRow(.single)
             }
 
-            Section("Voorbeeld") {
+            Section(locale.localized("Voorbeeld")) {
                 LockScreenWidgetSettingsPreview(
                     content: selectedContent,
                     datePrefix: selectedDatePrefix,
@@ -1210,7 +1210,7 @@ private struct ActionButtonSettingsView: View {
                 .settingsCardRow(.single)
             }
 
-            Section("Weergave") {
+            Section(locale.localized("Weergave")) {
                 let options = ActionButtonContentOption.allCases
                 ForEach(options.indices, id: \.self) { index in
                     let option = options[index]
@@ -1234,9 +1234,9 @@ private struct ActionButtonSettingsView: View {
                 }
             }
 
-            Section("Tekst") {
+            Section(locale.localized("Tekst")) {
                 HStack {
-                    Text("Woorden afsnijden")
+                    Text(locale.localized("Woorden afsnijden"))
                         .foregroundStyle(Color.appPrimaryText)
 
                     Spacer()
@@ -1267,7 +1267,7 @@ private struct ActionButtonSettingsView: View {
 
                 if selectedContent == .todayAndTomorrow {
                     HStack {
-                        Text("Voorvoegsel")
+                        Text(locale.localized("Voorvoegsel"))
                             .foregroundStyle(Color.appPrimaryText)
 
                         Spacer()
@@ -1303,7 +1303,7 @@ private struct ActionButtonSettingsView: View {
                 }
             }
         }
-        .navigationTitle("Lockscreen-widget")
+        .navigationTitle(locale.localized("Lockscreen-widget"))
         .navigationBarTitleDisplayMode(.inline)
         .onAppear {
             if ActionButtonContentOption(rawValue: content) == nil {
@@ -1649,14 +1649,14 @@ private struct HomeWidgetPreviewHeader: View {
                     }
             }
 
-            Text("\(dateTitle), \(weekTitle)")
+            Text(locale.localizedFormat("%@, %@", dateTitle, weekTitle))
                 .font(.system(size: 17, weight: .bold, design: .rounded))
                 .lineLimit(1)
                 .minimumScaleFactor(0.72)
         }
         .foregroundStyle(brandBlue)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
-        .accessibilityLabel("\(dateTitle), \(weekTitle)")
+        .accessibilityLabel(locale.localizedFormat("%@, %@", dateTitle, weekTitle))
     }
 
     private var dateTitle: String {
@@ -1845,8 +1845,8 @@ private struct HomeWidgetSettingsView: View {
 
     var body: some View {
         Form {
-            Section("Voorbeeld") {
-                Picker("Widgetformaat", selection: $previewFamily) {
+            Section(locale.localized("Voorbeeld")) {
+                Picker(locale.localized("Widgetformaat"), selection: $previewFamily) {
                     ForEach(HomeWidgetPreviewFamily.allCases) { family in
                         Text(family.title(for: locale)).tag(family)
                     }
@@ -1875,7 +1875,7 @@ private struct HomeWidgetSettingsView: View {
             }
 
             Section {
-                Picker("Inhoud", selection: $content) {
+                Picker(locale.localized("Inhoud"), selection: $content) {
                     ForEach(HomeWidgetContentOption.allCases) { option in
                         Text(option.title(for: locale))
                             .foregroundStyle(Color.appPrimaryText)
@@ -1885,7 +1885,7 @@ private struct HomeWidgetSettingsView: View {
                 .tint(Color.appPrimaryText)
                 .settingsCardRow(.first)
 
-                Picker("Kalenderperiode", selection: $calendarRange) {
+                Picker(locale.localized("Kalenderperiode"), selection: $calendarRange) {
                     ForEach(HomeWidgetCalendarRangeOption.allCases) { option in
                         Text(option.title(for: locale))
                             .foregroundStyle(Color.appPrimaryText)
@@ -1895,8 +1895,8 @@ private struct HomeWidgetSettingsView: View {
                 .tint(Color.appPrimaryText)
                 .settingsCardRow(.middle)
 
-                Picker("Datumweergave", selection: $datePrefix) {
-                    Text("0 = vandaag, 1 = morgen")
+                Picker(locale.localized("Datumweergave"), selection: $datePrefix) {
+                    Text(locale.localized("0 = vandaag, 1 = morgen"))
                         .foregroundStyle(Color.appPrimaryText)
                         .tag(ActionButtonDatePrefixOption.dayCount.rawValue)
                     Text(datePrefixTitle)
@@ -1906,8 +1906,8 @@ private struct HomeWidgetSettingsView: View {
                 .tint(Color.appPrimaryText)
                 .settingsCardRow(.middle)
 
-                Picker("Takenweergave", selection: $todoCategoryID) {
-                    Text("Bovenste taken")
+                Picker(locale.localized("Takenweergave"), selection: $todoCategoryID) {
+                    Text(locale.localized("Bovenste taken"))
                         .foregroundStyle(Color.appPrimaryText)
                         .tag("")
                     ForEach(todoGroups) { group in
@@ -1919,7 +1919,7 @@ private struct HomeWidgetSettingsView: View {
                 .tint(Color.appPrimaryText)
                 .settingsCardRow(.middle)
 
-                Picker("Lange tekst", selection: $textFlow) {
+                Picker(locale.localized("Lange tekst"), selection: $textFlow) {
                     ForEach([HomeWidgetTextFlowOption.wrap, .truncate]) { option in
                         Text(option.title(for: locale))
                             .foregroundStyle(Color.appPrimaryText)
@@ -1929,18 +1929,18 @@ private struct HomeWidgetSettingsView: View {
                 .tint(Color.appPrimaryText)
                 .settingsCardRow(.middle)
 
-                Toggle("Titel laten zien", isOn: $showsTitle)
+                Toggle(locale.localized("Titel laten zien"), isOn: $showsTitle)
                     .settingsCardRow(.middle)
-                Toggle("Lichtblauwe widgetkleur", isOn: usesLightBlueBackground)
+                Toggle(locale.localized("Lichtblauwe widgetkleur"), isOn: usesLightBlueBackground)
                     .settingsCardRow(.middle)
-                Toggle("Slimme weergave", isOn: $showsOtherWhenEmpty)
+                Toggle(locale.localized("Slimme weergave"), isOn: $showsOtherWhenEmpty)
                     .settingsCardRow(.last)
             } footer: {
-                Text("Bij slimme weergave worden Taken over de volledige breedte getoond als er geen kalenderitems zijn, en andersom. Zo wordt er minder snel tekst afgesneden.")
+                Text(locale.localized("Bij slimme weergave worden Taken over de volledige breedte getoond als er geen kalenderitems zijn, en andersom. Zo wordt er minder snel tekst afgesneden."))
 
             }
         }
-        .navigationTitle("Beginscherm-widget")
+        .navigationTitle(locale.localized("Beginscherm-widget"))
         .navigationBarTitleDisplayMode(.inline)
     }
 }
@@ -2015,7 +2015,7 @@ private struct ActionButtonCaptureSettingsView: View {
                     .settingsCardRow(.last)
             }
 
-            Section("Bij indrukken") {
+            Section(locale.localized("Bij indrukken")) {
                 let options = ActionButtonLaunchMode.allCases
                 ForEach(options.indices, id: \.self) { index in
                     let option = options[index]
@@ -2039,7 +2039,7 @@ private struct ActionButtonCaptureSettingsView: View {
                 }
             }
 
-            Section("Standaardbestemming") {
+            Section(locale.localized("Standaardbestemming")) {
                 ForEach(groups.indices, id: \.self) { index in
                     let group = groups[index]
                     Button {
@@ -2071,7 +2071,7 @@ private struct ActionButtonCaptureSettingsView: View {
                 } label: {
                     HStack {
                         Label {
-                            Text("Kalender vandaag")
+                            Text(locale.localized("Kalender vandaag"))
                         } icon: {
                             Image(systemName: "calendar")
                                 .foregroundStyle(Color.brandHardBlue)
@@ -2091,13 +2091,13 @@ private struct ActionButtonCaptureSettingsView: View {
             }
 
             if selectedLaunchMode == .fullApp {
-                Section("Spraakinvoer") {
-                    Toggle("Direct spraak opnemen", isOn: $startsVoiceRecording)
+                Section(locale.localized("Spraakinvoer")) {
+                    Toggle(locale.localized("Direct spraak opnemen"), isOn: $startsVoiceRecording)
                         .settingsCardRow(.single)
                 }
             }
         }
-        .navigationTitle("Actieknop")
+        .navigationTitle(locale.localized("Actieknop"))
         .navigationBarTitleDisplayMode(.inline)
         .task {
             _ = AppModelStore.load()

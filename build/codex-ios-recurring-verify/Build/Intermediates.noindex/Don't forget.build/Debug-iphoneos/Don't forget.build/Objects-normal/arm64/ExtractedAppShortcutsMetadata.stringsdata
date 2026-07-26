@@ -1,0 +1,19 @@
+{
+  "version" : 1,
+  "tables" : {
+    "AppShortcuts" : [
+      {
+        "location" : {
+          "startingColumn" : 0,
+          "startingLine" : 344
+        },
+        "key" : "Nieuwe taak in ${applicationName}",
+        "values" : [
+          "Nieuwe taak in ${applicationName}",
+          "Voeg een taak toe met ${applicationName}"
+        ]
+      }
+    ]
+  },
+  "source" : "\/Users\/jenssomers\/Desktop\/Don't forget\/Don't forget\/Don't forget\/QuickTodoCapture.swift"
+}

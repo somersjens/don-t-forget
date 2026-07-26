@@ -463,7 +463,7 @@ struct HistoryView: View {
                             visibleOnboardingStep == 5 ? Color.brandLightBlue : Color.clear,
                             in: Circle()
                         )
-                        .accessibilityLabel("Instellingen")
+                        .accessibilityLabel(locale.localized("Instellingen"))
                         .overlay {
                             if visibleOnboardingStep == 5 {
                                 Circle()
@@ -1200,7 +1200,7 @@ private struct HistorySummaryCard: View {
                 } onPressingChanged: { isPressing in
                     isPressingDemoActivation = !isDemoActive && isPressing
                 }
-                .accessibilityAction(named: isDemoActive ? "Demodata verwijderen" : "Demodata activeren") {
+                .accessibilityAction(named: locale.localized(isDemoActive ? "Demodata verwijderen" : "Demodata activeren")) {
                     if isDemoActive {
                         deactivateDemoData()
                     } else {
@@ -1212,9 +1212,9 @@ private struct HistorySummaryCard: View {
                     : locale.localized("Houd 3 seconden ingedrukt om demodata te activeren."))
 
                 VStack(alignment: .leading, spacing: 3) {
-                    Text("\(total) afgerond")
+                    Text(locale.localizedFormat("%lld afgerond", total))
                         .font(.system(size: AdaptiveLayout.scaled(17), weight: .semibold))
-                    Text("\(lastSevenDays) in afgelopen 7 dagen")
+                    Text(locale.localizedFormat("%lld in afgelopen 7 dagen", lastSevenDays))
                         .font(.system(size: AdaptiveLayout.scaled(12), weight: .medium))
                         .foregroundStyle(.secondary)
                 }
@@ -1268,7 +1268,7 @@ private struct HistorySummaryCard: View {
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-        .accessibilityLabel(isExpanded ? "Grafieken inklappen" : "Grafieken uitklappen")
+        .accessibilityLabel(locale.localized(isExpanded ? "Grafieken inklappen" : "Grafieken uitklappen"))
     }
 
     private func activateDemoAndExpand() {
@@ -1521,7 +1521,7 @@ private struct HistoryFilterChip: View {
         }
         .buttonStyle(.plain)
         .accessibilityIdentifier("history.filter.\(filter.rawValue)")
-        .accessibilityLabel("\(filter.title(for: locale)), \(itemCount) items")
+        .accessibilityLabel(locale.localizedFormat("%@, %lld items", filter.title(for: locale), itemCount))
         .accessibilityAddTraits(isSelected ? .isSelected : [])
     }
 
@@ -1704,7 +1704,7 @@ private struct HistoryItemRow: View {
                 .frame(width: AdaptiveLayout.scaled(42), height: AdaptiveLayout.scaled(42))
             }
             .buttonStyle(.plain)
-            .accessibilityLabel("Acties voor \(row.title)")
+            .accessibilityLabel(locale.localizedFormat("Acties voor %@", row.title))
             .overlay {
                 if highlightsSourceIcon {
                     RoundedRectangle(cornerRadius: AdaptiveLayout.scaled(14))
@@ -1723,7 +1723,7 @@ private struct HistoryItemRow: View {
 
                 HStack(spacing: 5) {
                     Text(row.categoryTitle)
-                    Text("·")
+                    Text(locale.localized("·"))
                     Text(row.completedAt.formatted(date: .omitted, time: .shortened))
                 }
                 .font(.system(size: AdaptiveLayout.scaled(11), weight: .medium))
@@ -1742,7 +1742,7 @@ private struct HistoryItemRow: View {
                 }
                 .buttonStyle(.plain)
                 .transition(.opacity.combined(with: .scale))
-                .accessibilityLabel("Definitief verwijderen")
+                .accessibilityLabel(locale.localized("Definitief verwijderen"))
                 .overlay {
                     if highlightsPermanentDelete {
                         Circle()
@@ -1782,8 +1782,8 @@ private struct HistoryItemRow: View {
             }
         }
         .contextMenu {
-            Button("Terugzetten", systemImage: "arrow.uturn.backward", action: restore)
-            Button("Definitief verwijderen", systemImage: "trash", role: .destructive, action: permanentlyDelete)
+            Button(locale.localized("Terugzetten"), systemImage: "arrow.uturn.backward", action: restore)
+            Button(locale.localized("Definitief verwijderen"), systemImage: "trash", role: .destructive, action: permanentlyDelete)
         }
     }
 

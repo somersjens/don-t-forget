@@ -433,7 +433,7 @@ struct RecurringView: View {
                             visibleTutorialStep == 4 ? Color.brandLightBlue : Color.clear,
                             in: Circle()
                         )
-                        .accessibilityLabel("Herhalingen beheren")
+                        .accessibilityLabel(locale.localized("Herhalingen beheren"))
                         .overlay {
                             if visibleTutorialStep == 4 {
                                 Circle()
@@ -939,6 +939,7 @@ private struct RecurringHelpCard: View {
 }
 
 private struct RecurringThemeCard: View {
+    @Environment(\.locale) private var locale
     let category: RecurringCategory
     let items: [RecurringItem]
     let leadingColumnWidth: CGFloat
@@ -995,7 +996,7 @@ private struct RecurringThemeCard: View {
                 }
                 .buttonStyle(.plain)
                 .frame(width: leadingColumnWidth)
-                .accessibilityLabel("Kleur en icoon van \(category.title) aanpassen")
+                .accessibilityLabel(locale.localizedFormat("Kleur en icoon van %@ aanpassen", category.title))
                 .overlay {
                     if highlightsAppearance {
                         RoundedRectangle(cornerRadius: AdaptiveLayout.scaled(11))
@@ -1052,11 +1053,11 @@ private struct RecurringThemeCard: View {
                             .font(.system(size: AdaptiveLayout.scaled(16), weight: .semibold))
                             .foregroundStyle(color)
                             .frame(width: leadingColumnWidth)
-                        Text(category.id == RecurringCategoryStore.holidayID
+                        Text(locale.localized(category.id == RecurringCategoryStore.holidayID
                             ? "Feestdagen kiezen"
                             : category.id == RecurringCategoryStore.birthdayID
                                 ? "Eerste verjaardag toevoegen"
-                                : "Eerste herhaling toevoegen")
+                                : "Eerste herhaling toevoegen"))
                             .font(.system(size: AdaptiveLayout.scaled(14), weight: .medium))
                             .foregroundStyle(.primary)
                         Spacer()
@@ -1117,7 +1118,7 @@ private struct RecurringThemeCard: View {
                                         .contentShape(Rectangle())
                                 }
                                 .buttonStyle(.plain)
-                                .accessibilityLabel("\(item.title) bewerken")
+                                .accessibilityLabel(locale.localizedFormat("%@ bewerken", item.title))
                             }
                         }
                     }
@@ -1157,7 +1158,7 @@ private struct RecurringThemeCard: View {
         )
         .contextMenu {
             if let manageHolidays {
-                Button("Feestdagen kiezen", systemImage: "calendar.badge.plus") {
+                Button(locale.localized("Feestdagen kiezen"), systemImage: "calendar.badge.plus") {
                     manageHolidays()
                 }
             }
@@ -1186,7 +1187,7 @@ private struct RecurringThemeCard: View {
             }
             .buttonStyle(.plain)
             .foregroundStyle(color)
-            .accessibilityLabel("Volgorde van \(category.title) aanpassen")
+            .accessibilityLabel(locale.localizedFormat("Volgorde van %@ aanpassen", category.title))
             .popover(
                 isPresented: $showingCategoryActions,
                 attachmentAnchor: .rect(.bounds),
@@ -1207,7 +1208,7 @@ private struct RecurringThemeCard: View {
             }
             .buttonStyle(.plain)
             .foregroundStyle(color)
-            .accessibilityLabel("Herhaling toevoegen aan \(category.title)")
+            .accessibilityLabel(locale.localizedFormat("Herhaling toevoegen aan %@", category.title))
             .overlay {
                 if highlightsAdd {
                     RoundedRectangle(cornerRadius: AdaptiveLayout.scaled(10))
@@ -1278,7 +1279,7 @@ private struct RecurringThemeCard: View {
                 Button(role: .destructive) {
                     performCategoryAction(delete)
                 } label: {
-                    Label("Categorie verwijderen", systemImage: "trash")
+                    Label(locale.localized("Categorie verwijderen"), systemImage: "trash")
                         .foregroundStyle(.red)
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .padding(.leading, AdaptiveLayout.scaled(20))
@@ -1298,14 +1299,14 @@ private struct RecurringThemeCard: View {
     }
 
     private func categoryActionButton(
-        _ title: LocalizedStringKey,
+        _ title: String,
         systemImage: String,
         action: @escaping () -> Void
     ) -> some View {
         Button {
             performCategoryAction(action)
         } label: {
-            Label(title, systemImage: systemImage)
+            Label(locale.localized(title), systemImage: systemImage)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(.leading, AdaptiveLayout.scaled(20))
                 .padding(.trailing, AdaptiveLayout.scaled(14))
@@ -1352,7 +1353,7 @@ private struct CategoryAppearancePicker: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 24) {
                     VStack(alignment: .leading, spacing: 12) {
-                        Text("Kleur")
+                        Text(locale.localized("Kleur"))
                             .font(.headline)
 
                         LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 4), spacing: 14) {
@@ -1384,7 +1385,7 @@ private struct CategoryAppearancePicker: View {
                     }
 
                     VStack(alignment: .leading, spacing: 12) {
-                        Text("Icoon")
+                        Text(locale.localized("Icoon"))
                             .font(.headline)
 
                         LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 5), spacing: 12) {
@@ -1422,7 +1423,7 @@ private struct CategoryAppearancePicker: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Gereed") { dismiss() }
+                    Button(locale.localized("Gereed")) { dismiss() }
                 }
             }
         }
@@ -1430,6 +1431,7 @@ private struct CategoryAppearancePicker: View {
 }
 
 private struct RecurringRow: View {
+    @Environment(\.locale) private var locale
     let item: RecurringItem
     let color: Color
     let backgroundColor: Color
@@ -1546,7 +1548,7 @@ private struct RecurringRow: View {
                     Text(birthdayTimingText)
                 }
                 if let days = item.reminderDaysBefore {
-                    Text("· reminder \(days)")
+                    Text(locale.localizedFormat("· reminder %lld", days))
                         .foregroundStyle(color.opacity(0.65))
                 }
             } else {
@@ -1557,6 +1559,7 @@ private struct RecurringRow: View {
 }
 
 private struct NewRecurringCategoryLine: View {
+    @Environment(\.locale) private var locale
     @Binding var text: String
     let add: () -> Void
     let isOnboardingHighlighted: Bool
@@ -1577,9 +1580,9 @@ private struct NewRecurringCategoryLine: View {
                 .frame(width: AdaptiveLayout.scaled(38), height: AdaptiveLayout.scaled(38))
             }
             .buttonStyle(.plain)
-            .accessibilityLabel("Nieuwe categorie invoeren")
+            .accessibilityLabel(locale.localized("Nieuwe categorie invoeren"))
 
-            TextField("Nieuwe categorie", text: $text, axis: .vertical)
+            TextField(locale.localized("Nieuwe categorie"), text: $text, axis: .vertical)
                 .font(.system(size: AdaptiveLayout.scaled(16), weight: .medium))
                 .textFieldStyle(.plain)
                 .focused($isTextFieldFocused)
@@ -1662,12 +1665,12 @@ private struct RecurringSettingsView: View {
     var body: some View {
         NavigationStack {
             Form {
-                Section("Overzicht") {
+                Section(locale.localized("Overzicht")) {
                     Button {
                         showingHolidayManager = true
                     } label: {
                         HStack {
-                            Text("Feestdagen")
+                            Text(locale.localized("Feestdagen"))
                             Spacer()
                             Text(selectedHolidayCountry.title(for: locale))
                                 .foregroundStyle(.secondary)
@@ -1678,9 +1681,9 @@ private struct RecurringSettingsView: View {
                     }
                     .foregroundStyle(.primary)
 
-                    Toggle("Toon volgende datum", isOn: $showNextDate)
-                    Toggle("Sorteer eerstvolgende bovenaan", isOn: $soonestFirst)
-                    Toggle("Toon feestdagen in overzicht", isOn: $showHolidays)
+                    Toggle(locale.localized("Toon volgende datum"), isOn: $showNextDate)
+                    Toggle(locale.localized("Sorteer eerstvolgende bovenaan"), isOn: $soonestFirst)
+                    Toggle(locale.localized("Toon feestdagen in overzicht"), isOn: $showHolidays)
                 }
 
                 Section {
@@ -1693,17 +1696,17 @@ private struct RecurringSettingsView: View {
                         .listRowInsets(EdgeInsets(top: 6, leading: 16, bottom: 6, trailing: 16))
                     }
                 } header: {
-                    Text("Compacte rijen")
+                    Text(locale.localized("Compacte rijen"))
                 } footer: {
-                    Text("Tik op de gekleurde stip om de kleur te wijzigen. Compacte categorieën tonen alleen de titel en eerstvolgende datum.")
+                    Text(locale.localized("Tik op de gekleurde stip om de kleur te wijzigen. Compacte categorieën tonen alleen de titel en eerstvolgende datum."))
                 }
             }
             .appFormBackground(lightBlueEnabled: defaultColorCombinationEnabled)
-            .navigationTitle("Recurring")
+            .navigationTitle(locale.localized("Recurring"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Gereed") { dismiss() }
+                    Button(locale.localized("Gereed")) { dismiss() }
                 }
             }
             .sheet(isPresented: $showingHolidayManager) {
@@ -1761,7 +1764,7 @@ private struct RecurringCategorySettingsRow: View {
     var body: some View {
         HStack(spacing: 10) {
             Menu {
-                Picker("Kleur", selection: $colorSelection) {
+                Picker(locale.localized("Kleur"), selection: $colorSelection) {
                     ForEach(RecurringThemeColorOption.allCases) { option in
                         Label {
                             Text(option.title(for: locale))
@@ -1780,15 +1783,15 @@ private struct RecurringCategorySettingsRow: View {
             }
             .tint(.primary)
             .buttonStyle(.plain)
-            .accessibilityLabel("Kleur voor \(title)")
+            .accessibilityLabel(locale.localizedFormat("Kleur voor %@", title))
 
             Text(title)
 
             Spacer()
 
-            Toggle("", isOn: $compactRows)
+            Toggle(locale.localized(""), isOn: $compactRows)
                 .labelsHidden()
-                .accessibilityLabel("Compacte rij voor \(title)")
+                .accessibilityLabel(locale.localizedFormat("Compacte rij voor %@", title))
         }
     }
 }
@@ -1828,20 +1831,20 @@ private struct HolidayManagerView: View {
         NavigationStack {
             Form {
                 Section {
-                    Picker("Standaardland", selection: countryBinding) {
+                    Picker(locale.localized("Standaardland"), selection: countryBinding) {
                         ForEach(HolidayCountry.allCases) { option in
                             Text(option.title(for: locale)).tag(option)
                         }
                     }
                     .tint(.primary)
-                    Toggle("Laat alleen lokale feestdagen zien", isOn: $onlyLocalHolidays)
+                    Toggle(locale.localized("Laat alleen lokale feestdagen zien"), isOn: $onlyLocalHolidays)
                         .tint(.brandHardBlue)
                 } footer: {
-                    Text("Je land is automatisch gekozen op basis van je regio. Zet de schakelaar uit om ook feestdagen en vieringen uit andere landen te zien.")
+                    Text(locale.localized("Je land is automatisch gekozen op basis van je regio. Zet de schakelaar uit om ook feestdagen en vieringen uit andere landen te zien."))
                 }
 
                 Section {
-                    Button(visibleSelectionCount == options.count ? "Deselecteer alles" : "Selecteer alles") {
+                    Button(locale.localized(visibleSelectionCount == options.count ? "Deselecteer alles" : "Selecteer alles")) {
                         let visibleIDs = Set(options.map(\.id))
                         if visibleSelectionCount == options.count {
                             selectedHolidayIDs.subtract(visibleIDs)
@@ -1864,27 +1867,27 @@ private struct HolidayManagerView: View {
                         .tint(.brandHardBlue)
                     }
                 } header: {
-                    Text("Selectie")
+                    Text(locale.localized("Selectie"))
                 } footer: {
-                    Text("Een landwissel vervangt deze selectie. Eigen feestdagen blijven bewaard. Data uit de islamitische kalender kunnen door lokale maanwaarneming één dag verschillen.")
+                    Text(locale.localized("Een landwissel vervangt deze selectie. Eigen feestdagen blijven bewaard. Data uit de islamitische kalender kunnen door lokale maanwaarneming één dag verschillen."))
                 }
 
                 Section {
-                    Button("Eigen feestdag toevoegen", systemImage: "plus") {
+                    Button(locale.localized("Eigen feestdag toevoegen"), systemImage: "plus") {
                         showingCustomHoliday = true
                     }
                 } footer: {
-                    Text("Eigen feestdagen kun je ook toevoegen met de plusknop bij de oranje categorie.")
+                    Text(locale.localized("Eigen feestdagen kun je ook toevoegen met de plusknop bij de oranje categorie."))
                 }
             }
-            .navigationTitle("Feestdagen")
+            .navigationTitle(locale.localized("Feestdagen"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Annuleer") { dismiss() }
+                    Button(locale.localized("Annuleer")) { dismiss() }
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Bewaar") { applySelection() }
+                    Button(locale.localized("Bewaar")) { applySelection() }
                 }
             }
             .onAppear(perform: loadSelection)
@@ -2121,10 +2124,10 @@ private struct RecurringEditorView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Annuleer") { dismiss() }
+                    Button(locale.localized("Annuleer")) { dismiss() }
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Bewaar") { save() }
+                    Button(locale.localized("Bewaar")) { save() }
                         .disabled(!draft.canSaveWithoutTitle)
                 }
             }
@@ -2249,7 +2252,7 @@ private struct RecurringEditorView: View {
             .font(.caption)
         }
 
-        Section("Notitie") {
+        Section(locale.localized("Notitie")) {
             noteEditor
         }
     }
@@ -2257,7 +2260,7 @@ private struct RecurringEditorView: View {
     private var whatSection: some View {
         Section {
             titleEditor
-            Picker("Categorie", selection: $draft.categoryID) {
+            Picker(locale.localized("Categorie"), selection: $draft.categoryID) {
                 ForEach(categories) { category in
                     Label(
                         category.title,
@@ -2278,7 +2281,7 @@ private struct RecurringEditorView: View {
                     deleted(item)
                     dismiss()
                 } label: {
-                    Label("Verwijder herhaling", systemImage: "trash")
+                    Label(locale.localized("Verwijder herhaling"), systemImage: "trash")
                         .foregroundStyle(.red)
                 }
             }
@@ -2345,7 +2348,7 @@ private struct RecurringEditorView: View {
     }
 
     private var recurrenceTypePicker: some View {
-        Picker("Type", selection: $draft.kind) {
+        Picker(locale.localized("Type"), selection: $draft.kind) {
             Text(locale.localized("Vaste regelmaat"))
                 .tag(RecurrenceKind.interval)
             Text(locale.localized("Maandelijks op datum"))
@@ -2382,7 +2385,7 @@ private struct RecurringEditorView: View {
             // Keep the native compact control visible. It owns both the date
             // text and chevron, so the whole displayed control opens the
             // picker instead of leaving a separate, faint hit target behind.
-            DatePicker("", selection: $draft.startDate, displayedComponents: .date)
+            DatePicker(locale.localized(""), selection: $draft.startDate, displayedComponents: .date)
                 .labelsHidden()
                 .datePickerStyle(.compact)
                 .tint(.primary)
@@ -2391,30 +2394,30 @@ private struct RecurringEditorView: View {
     }
 
     @ViewBuilder private var holidayFrequencyFields: some View {
-        Picker("Regel", selection: $draft.kind) {
-            Text("Feestdag op vaste dag").tag(RecurrenceKind.annualFixed)
-            Text("Weekdag van een maand").tag(RecurrenceKind.annualOrdinalWeekday)
+        Picker(locale.localized("Regel"), selection: $draft.kind) {
+            Text(locale.localized("Feestdag op vaste dag")).tag(RecurrenceKind.annualFixed)
+            Text(locale.localized("Weekdag van een maand")).tag(RecurrenceKind.annualOrdinalWeekday)
         }
         .tint(.primary)
 
         if draft.kind == .annualFixed {
             compactClosingDatePicker(title: "Datum")
         } else {
-            Picker("Maand", selection: $draft.annualMonth) {
+            Picker(locale.localized("Maand"), selection: $draft.annualMonth) {
                 ForEach(1...12, id: \.self) { month in
                     Text(AppCalendar.monthName(month)).tag(month)
                 }
             }
             .tint(.primary)
-            Picker("Welke", selection: $draft.monthlyOrdinal) {
-                Text("Eerste").tag(1)
-                Text("Tweede").tag(2)
-                Text("Derde").tag(3)
-                Text("Vierde").tag(4)
-                Text("Laatste").tag(5)
+            Picker(locale.localized("Welke"), selection: $draft.monthlyOrdinal) {
+                Text(locale.localized("Eerste")).tag(1)
+                Text(locale.localized("Tweede")).tag(2)
+                Text(locale.localized("Derde")).tag(3)
+                Text(locale.localized("Vierde")).tag(4)
+                Text(locale.localized("Laatste")).tag(5)
             }
             .tint(.primary)
-            Picker("Weekdag", selection: $draft.monthlyWeekday) {
+            Picker(locale.localized("Weekdag"), selection: $draft.monthlyWeekday) {
                 ForEach(1...7, id: \.self) { weekday in
                     Text(RecurrenceEngine.weekdayName(weekday).capitalized).tag(weekday)
                 }
@@ -2429,7 +2432,7 @@ private struct RecurringEditorView: View {
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
         } else if draft.kind == .quarterly {
-            Text("Wordt iedere drie maanden herhaald vanaf de eerstvolgende datum.")
+            Text(locale.localized("Wordt iedere drie maanden herhaald vanaf de eerstvolgende datum."))
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
         } else if draft.kind == .monthlyDay {
@@ -2439,12 +2442,12 @@ private struct RecurringEditorView: View {
                 range: 1...31
             )
         } else if draft.kind == .monthlyOrdinalWeekday {
-            Picker("Welke", selection: $draft.monthlyOrdinal) {
+            Picker(locale.localized("Welke"), selection: $draft.monthlyOrdinal) {
                 ForEach(1...5, id: \.self) { Text("\($0)e").tag($0) }
             }
             .font(.body)
             .tint(.primary)
-            Picker("Weekdag", selection: $draft.monthlyWeekday) {
+            Picker(locale.localized("Weekdag"), selection: $draft.monthlyWeekday) {
                 ForEach(1...7, id: \.self) { weekday in
                     Text(RecurrenceEngine.weekdayName(weekday).capitalized).tag(weekday)
                 }
@@ -2457,11 +2460,11 @@ private struct RecurringEditorView: View {
                 value: $draft.intervalValue,
                 range: 1...99
             )
-            Picker("Eenheid", selection: $draft.intervalUnit) {
-                Text("Dagen").tag(RecurrenceUnit.day)
-                Text("Weken").tag(RecurrenceUnit.week)
-                Text("Maanden").tag(RecurrenceUnit.month)
-                Text("Jaren").tag(RecurrenceUnit.year)
+            Picker(locale.localized("Eenheid"), selection: $draft.intervalUnit) {
+                Text(locale.localized("Dagen")).tag(RecurrenceUnit.day)
+                Text(locale.localized("Weken")).tag(RecurrenceUnit.week)
+                Text(locale.localized("Maanden")).tag(RecurrenceUnit.month)
+                Text(locale.localized("Jaren")).tag(RecurrenceUnit.year)
             }
             .font(.body)
             .tint(.primary)
@@ -2522,7 +2525,7 @@ private struct RecurringEditorView: View {
             Text(draft.dayMonthLabel)
             Spacer(minLength: 12)
 
-            Picker("Dag", selection: $draft.birthdayDay) {
+            Picker(locale.localized("Dag"), selection: $draft.birthdayDay) {
                 ForEach(1...draft.daysInBirthdayMonth, id: \.self) { day in
                     Text("\(day)").tag(day)
                 }
@@ -2532,7 +2535,7 @@ private struct RecurringEditorView: View {
             .controlSize(.small)
             .tint(.primary)
 
-            Picker("Maand", selection: $draft.birthdayMonth) {
+            Picker(locale.localized("Maand"), selection: $draft.birthdayMonth) {
                 ForEach(1...12, id: \.self) { month in
                     Text(AppCalendar.monthName(month)).tag(month)
                 }
@@ -2591,7 +2594,7 @@ private struct RecurringEditorView: View {
         HStack(spacing: 10) {
             Text(draft.ageYearUncertainLabel)
             Spacer()
-            Toggle("", isOn: birthdayYearUncertainBinding)
+            Toggle(locale.localized(""), isOn: birthdayYearUncertainBinding)
                 .labelsHidden()
                 .controlSize(.small)
             .fixedSize()
@@ -2608,18 +2611,18 @@ private struct RecurringEditorView: View {
         }
 
         if draft.isLeapDayBirthday {
-            Text("In niet-schrikkeljaren wordt de verjaardag op 28 februari getoond.")
+            Text(locale.localized("In niet-schrikkeljaren wordt de verjaardag op 28 februari getoond."))
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
         }
         HStack(spacing: 10) {
-            Text("Reminder vooraf")
+            Text(locale.localized("Reminder vooraf"))
                 .contentShape(Rectangle())
                 .onTapGesture { dismissKeyboard() }
             Spacer()
                 .contentShape(Rectangle())
                 .onTapGesture { dismissKeyboard() }
-            Toggle("", isOn: $draft.hasReminder)
+            Toggle(locale.localized(""), isOn: $draft.hasReminder)
                 .labelsHidden()
                 .controlSize(.small)
         }
@@ -2627,7 +2630,7 @@ private struct RecurringEditorView: View {
         .frame(height: RecurringDraft.birthdayRowHeight)
         if draft.hasReminder {
             HStack(spacing: 8) {
-                Text("Dagen vooraf")
+                Text(locale.localized("Dagen vooraf"))
                     .contentShape(Rectangle())
                     .onTapGesture { dismissKeyboard() }
                 Spacer()
@@ -2646,7 +2649,7 @@ private struct RecurringEditorView: View {
                 }
                 .buttonStyle(.borderless)
                 .disabled(draft.reminderDays <= 1)
-                .accessibilityLabel("Eén dag minder")
+                .accessibilityLabel(locale.localized("Eén dag minder"))
 
                 CompactNumberField(
                     placeholder: "7",
@@ -2673,7 +2676,7 @@ private struct RecurringEditorView: View {
                 }
                 .buttonStyle(.borderless)
                 .disabled(draft.reminderDays >= 365)
-                .accessibilityLabel("Eén dag meer")
+                .accessibilityLabel(locale.localized("Eén dag meer"))
             }
             .font(.body)
             .frame(height: RecurringDraft.birthdayRowHeight)

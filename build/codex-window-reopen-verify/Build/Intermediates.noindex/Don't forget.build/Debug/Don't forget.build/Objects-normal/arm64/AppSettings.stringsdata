@@ -1,0 +1,32 @@
+{
+  "source": "/Users/jenssomers/Desktop/Don't forget/Don't forget/Don't forget/AppSettings.swift",
+  "tables": {
+    "Localizable": [
+      {
+        "comment": "",
+        "key": "App is bezig",
+        "location": {
+          "startingColumn": 37,
+          "startingLine": 254
+        }
+      },
+      {
+        "comment": "",
+        "key": "0",
+        "location": {
+          "startingColumn": 44,
+          "startingLine": 1187
+        }
+      },
+      {
+        "comment": "",
+        "key": "%lld/%lld",
+        "location": {
+          "startingColumn": 50,
+          "startingLine": 1187
+        }
+      }
+    ]
+  },
+  "version": 1
+}

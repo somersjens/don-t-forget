@@ -688,7 +688,7 @@ struct AgendaView: View {
                             }
                             .compatibleAgendaGlassEffect()
                             .disabled(!(undoManager?.canUndo ?? false))
-                            .accessibilityLabel("Laatste wijziging terugdraaien")
+                            .accessibilityLabel(locale.localized("Laatste wijziging terugdraaien"))
                             .overlay(alignment: .topTrailing) {
                                 if appActivityState.isIndicatorVisible {
                                     AppActivitySpinner(controlSize: .mini)
@@ -697,7 +697,7 @@ struct AgendaView: View {
                                         .offset(x: 5, y: -5)
                                         .allowsHitTesting(false)
                                         .transition(.opacity)
-                                        .accessibilityLabel("App is bezig")
+                                        .accessibilityLabel(locale.localized("App is bezig"))
                                 }
                             }
                             .frame(width: AdaptiveLayout.scaled(44), height: AdaptiveLayout.scaled(44))
@@ -2531,6 +2531,7 @@ struct WeekCard: View {
 
 private struct AgendaWeatherAttributionLink: View {
     @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.locale) private var locale
     let attribution: AgendaWeatherAttribution
 
     var body: some View {
@@ -2546,7 +2547,7 @@ private struct AgendaWeatherAttributionLink: View {
             }
             .frame(width: AdaptiveLayout.scaled(82), height: AdaptiveLayout.scaled(13))
         }
-        .accessibilityLabel("Apple Weather, broninformatie")
+        .accessibilityLabel(locale.localized("Apple Weather, broninformatie"))
     }
 
     private var markURL: URL {
@@ -2751,6 +2752,7 @@ struct DayBlock: View {
 }
 
 struct AgendaEntryLine: View {
+    @Environment(\.locale) private var locale
     let dateLabel: String
     let weekdayLetter: String
 
@@ -2801,7 +2803,7 @@ struct AgendaEntryLine: View {
                 )
                     .contentShape(Rectangle())
                     .onTapGesture(perform: activateMoveHandle)
-                    .accessibilityLabel("Verplaatsopties")
+                    .accessibilityLabel(locale.localized("Verplaatsopties"))
 
                 entryContent
 
@@ -2863,7 +2865,7 @@ struct AgendaEntryLine: View {
             AgendaWeatherBadge(weather: weather)
                 .contentShape(Rectangle())
                 .onTapGesture(perform: toggleDone)
-                .accessibilityLabel("\(weather.temperature) graden, afvinken")
+                .accessibilityLabel(locale.localizedFormat("%lld graden, afvinken", weather.temperature))
                 .overlay {
                     if highlightsCompletion {
                         RoundedRectangle(cornerRadius: AdaptiveLayout.scaled(8))
@@ -2882,7 +2884,7 @@ struct AgendaEntryLine: View {
                 .padding(.top, AdaptiveLayout.scaled(1))
                 .contentShape(Circle())
                 .onTapGesture(perform: toggleDone)
-                .accessibilityLabel("Afvinken")
+                .accessibilityLabel(locale.localized("Afvinken"))
                 .overlay {
                     if highlightsCompletion {
                         Circle()
@@ -2903,7 +2905,7 @@ struct AgendaEntryLine: View {
                     .fixedSize(horizontal: false, vertical: true)
                     .contentShape(Rectangle())
                     .onTapGesture(perform: finishMove)
-                    .accessibilityLabel("Verplaatsmodus afsluiten")
+                    .accessibilityLabel(locale.localized("Verplaatsmodus afsluiten"))
             } else {
                 Text(editableText.isEmpty ? " " : editableText)
                     .fixedSize(horizontal: false, vertical: true)
@@ -2933,7 +2935,7 @@ struct AgendaEntryLine: View {
                                     .onTapGesture {
                                         beginEditing()
                                     }
-                                    .accessibilityLabel("Regel bewerken")
+                                    .accessibilityLabel(locale.localized("Regel bewerken"))
                             }
                         }
                     }
@@ -2955,7 +2957,7 @@ struct AgendaEntryLine: View {
                 moveSelectionToEndToken: moveSelectionToEndToken
             )
         } else {
-            TextField("", text: draftBinding, axis: .vertical)
+            TextField(locale.localized(""), text: draftBinding, axis: .vertical)
         }
     }
 
@@ -3123,13 +3125,14 @@ struct AgendaEntryLine: View {
 
 @available(iOS 18.0, *)
 private struct AgendaSelectionTextField: View {
+    @Environment(\.locale) private var locale
     @Binding var text: String
     let moveSelectionToEndToken: Int
 
     @State private var selection: TextSelection?
 
     var body: some View {
-        TextField("", text: $text, selection: $selection, axis: .vertical)
+        TextField(locale.localized(""), text: $text, selection: $selection, axis: .vertical)
             .onAppear(perform: moveSelectionToEnd)
             .onChange(of: moveSelectionToEndToken) { _, _ in
                 moveSelectionToEnd()
@@ -3142,6 +3145,7 @@ private struct AgendaSelectionTextField: View {
 }
 
 struct AgendaInputLine: View {
+    @Environment(\.locale) private var locale
     let dateLabel: String
     let weekdayLetter: String
     let date: Date
@@ -3189,7 +3193,7 @@ struct AgendaInputLine: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .overlay(alignment: .topLeading) {
                     ZStack(alignment: .leading) {
-                        TextField("", text: $text, axis: .vertical)
+                        TextField(locale.localized(""), text: $text, axis: .vertical)
                             // This multiline field expands with its text. Its own
                             // pan recognizer only competes with the agenda scroll.
                             .scrollDisabled(true)
@@ -3210,7 +3214,7 @@ struct AgendaInputLine: View {
                             Color.clear
                                 .contentShape(Rectangle())
                                 .onTapGesture(perform: finishMove)
-                                .accessibilityLabel("Verplaatsmodus afsluiten")
+                                .accessibilityLabel(locale.localized("Verplaatsmodus afsluiten"))
                         }
                     }
                 }
@@ -3336,6 +3340,7 @@ struct AgendaInputLine: View {
 }
 
 private struct AgendaWeatherBadge: View {
+    @Environment(\.locale) private var locale
     let weather: AgendaWeatherDay
 
     var body: some View {
@@ -3346,7 +3351,7 @@ private struct AgendaWeatherBadge: View {
         }
         .frame(width: AgendaLayout.weatherBadgeWidth, alignment: .trailing)
         .padding(.top, -1)
-        .accessibilityLabel("\(weather.temperature) graden")
+        .accessibilityLabel(locale.localizedFormat("%lld graden", weather.temperature))
     }
 
     private var temperatureText: some View {
@@ -3359,7 +3364,7 @@ private struct AgendaWeatherBadge: View {
                 .minimumScaleFactor(0.8)
                 .frame(width: AdaptiveLayout.scaled(19), alignment: .center)
 
-            Text("°")
+            Text(locale.localized("°"))
                 .font(.system(size: AdaptiveLayout.scaled(11), weight: .semibold, design: .rounded))
                 .foregroundStyle(Color.appPrimaryText)
                 .offset(x: 5, y: -1)
@@ -3419,6 +3424,7 @@ private struct AgendaWeatherBadge: View {
 }
 
 private struct AgendaMoveControls: View {
+    @Environment(\.locale) private var locale
     @Binding var date: Date
     let moveUp: () -> Void
     let moveDown: () -> Void
@@ -3467,7 +3473,7 @@ private struct AgendaMoveControls: View {
     private var movementControls: some View {
         HStack(spacing: 0) {
             Menu {
-                Section("Verplaats naar:") {
+                Section(locale.localized("Verplaats naar:")) {
                     ForEach(todoGroups) { group in
                         Button {
                             moveToTodo(group.id)
@@ -3485,7 +3491,7 @@ private struct AgendaMoveControls: View {
                 Divider()
 
                 Button(role: .destructive, action: remove) {
-                    Label("Verwijderen", systemImage: "trash")
+                    Label(locale.localized("Verwijderen"), systemImage: "trash")
                         .foregroundStyle(.red)
                 }
                 .tint(.red)
@@ -3499,11 +3505,11 @@ private struct AgendaMoveControls: View {
                     }
             }
             .contentShape(Rectangle().inset(by: -4))
-            .accessibilityLabel("Verplaatsopties")
+            .accessibilityLabel(locale.localized("Verplaatsopties"))
 
             Spacer(minLength: AgendaLayout.moveActionSpacing)
 
-            DatePicker("", selection: dateSelection, displayedComponents: .date)
+            DatePicker(locale.localized(""), selection: dateSelection, displayedComponents: .date)
                 .labelsHidden()
                 .datePickerStyle(.compact)
                 .fixedSize()
@@ -3526,7 +3532,7 @@ private struct AgendaMoveControls: View {
                     .contentShape(Rectangle().inset(by: -4))
             }
             .buttonStyle(.plain)
-            .accessibilityLabel("Een positie omhoog")
+            .accessibilityLabel(locale.localized("Een positie omhoog"))
 
             Spacer(minLength: AgendaLayout.moveActionSpacing)
 
@@ -3538,7 +3544,7 @@ private struct AgendaMoveControls: View {
                     .contentShape(Rectangle().inset(by: -4))
             }
             .buttonStyle(.plain)
-            .accessibilityLabel("Een positie omlaag")
+            .accessibilityLabel(locale.localized("Een positie omlaag"))
 
             Spacer(minLength: AgendaLayout.moveActionSpacing)
 
@@ -3556,7 +3562,7 @@ private struct AgendaMoveControls: View {
                 .contentShape(Rectangle().inset(by: -4))
         }
         .buttonStyle(.plain)
-        .accessibilityLabel("Klaar met verplaatsen")
+        .accessibilityLabel(locale.localized("Klaar met verplaatsen"))
         .overlay {
             if highlightsFinish {
                 Circle()

@@ -241,6 +241,7 @@ extension View {
 }
 
 struct AppActivityIndicator: View {
+    @Environment(\.locale) private var locale
     @State private var activityState = AppActivityState.shared
 
     var body: some View {
@@ -251,7 +252,7 @@ struct AppActivityIndicator: View {
                 .frame(width: AdaptiveLayout.scaled(44), height: AdaptiveLayout.scaled(44))
                 .background(.regularMaterial, in: Circle())
                 .shadow(color: .black.opacity(0.10), radius: 7, y: 2)
-                .accessibilityLabel("App is bezig")
+                .accessibilityLabel(locale.localized("App is bezig"))
                 .transition(.opacity)
         }
     }
@@ -905,14 +906,29 @@ struct AppLanguage: RawRepresentable, Hashable, Identifiable, CaseIterable {
 
     var id: String { rawValue }
 
+    /// Every language the app offers in the picker. Kept as an explicit list so
+    /// all languages appear even when only a few are actually translated in the
+    /// String Catalog: untranslated languages resolve to English at runtime via
+    /// `localizedCatalogKey`. Add real translations with the localization tool
+    /// (`tools/localization.py import-matrix`) — no code change needed here.
+    static let supportedCodes: [String] = [
+        "af", "sq", "am", "ar", "hy", "as", "az", "eu", "bn", "my",
+        "bs", "bg", "ca", "zh", "da", "de", "en", "et", "fo", "fi",
+        "fr", "gl", "ka", "el", "gu", "he", "hi", "hu", "ga", "is",
+        "id", "it", "ja", "kn", "kk", "km", "ko", "hr", "lo", "lv",
+        "lt", "mk", "ms", "ml", "mr", "mn", "nl", "ne", "no", "uk",
+        "or", "ug", "uz", "fa", "pl", "pt", "pa", "ro", "ru", "sr",
+        "si", "sk", "sl", "es", "sw", "ta", "te", "th", "bo", "cs",
+        "tr", "ur", "vi", "cy", "be", "zu", "sv",
+    ]
+
     static var allCases: [AppLanguage] {
-        let localizedLanguages = Bundle.main.localizations
-            .filter { $0 != "Base" }
+        let languages = supportedCodes
             .compactMap(AppLanguage.init(rawValue:))
             .sorted { lhs, rhs in
                 lhs.title(for: .current).localizedStandardCompare(rhs.title(for: .current)) == .orderedAscending
             }
-        return [system] + localizedLanguages.filter { $0 != system }
+        return [system] + languages.filter { $0 != system }
     }
 
     nonisolated init?(rawValue: String) {
@@ -935,6 +951,97 @@ struct AppLanguage: RawRepresentable, Hashable, Identifiable, CaseIterable {
 
     var locale: Locale {
         self == .system ? .current : Locale(identifier: rawValue)
+    }
+
+    /// Flag emoji shown next to the language in the picker. Falls back to a
+    /// white flag for any code without a dedicated entry.
+    var flag: String {
+        switch rawValue {
+        case "system": "🌐"
+        case "af": "🇿🇦"
+        case "sq": "🇦🇱"
+        case "am": "🇪🇹"
+        case "ar": "🇸🇦"
+        case "hy": "🇦🇲"
+        case "as": "🇮🇳"
+        case "az": "🇦🇿"
+        case "eu": "🇪🇸"
+        case "bn": "🇧🇩"
+        case "my": "🇲🇲"
+        case "bs": "🇧🇦"
+        case "bg": "🇧🇬"
+        case "ca": "🇪🇸"
+        case "zh": "🇨🇳"
+        case "da": "🇩🇰"
+        case "de": "🇩🇪"
+        case "en": "🇬🇧"
+        case "et": "🇪🇪"
+        case "fo": "🇫🇴"
+        case "fi": "🇫🇮"
+        case "fr": "🇫🇷"
+        case "gl": "🇪🇸"
+        case "ka": "🇬🇪"
+        case "el": "🇬🇷"
+        case "gu": "🇮🇳"
+        case "he": "🇮🇱"
+        case "hi": "🇮🇳"
+        case "hu": "🇭🇺"
+        case "ga": "🇮🇪"
+        case "is": "🇮🇸"
+        case "id": "🇮🇩"
+        case "it": "🇮🇹"
+        case "ja": "🇯🇵"
+        case "kn": "🇮🇳"
+        case "kk": "🇰🇿"
+        case "km": "🇰🇭"
+        case "ko": "🇰🇷"
+        case "hr": "🇭🇷"
+        case "lo": "🇱🇦"
+        case "lv": "🇱🇻"
+        case "lt": "🇱🇹"
+        case "mk": "🇲🇰"
+        case "ms": "🇲🇾"
+        case "ml": "🇮🇳"
+        case "mr": "🇮🇳"
+        case "mn": "🇲🇳"
+        case "nl": "🇳🇱"
+        case "ne": "🇳🇵"
+        case "no": "🇳🇴"
+        case "uk": "🇺🇦"
+        case "or": "🇮🇳"
+        case "ug": "🇨🇳"
+        case "uz": "🇺🇿"
+        case "fa": "🇮🇷"
+        case "pl": "🇵🇱"
+        case "pt": "🇵🇹"
+        case "pa": "🇮🇳"
+        case "ro": "🇷🇴"
+        case "ru": "🇷🇺"
+        case "sr": "🇷🇸"
+        case "si": "🇱🇰"
+        case "sk": "🇸🇰"
+        case "sl": "🇸🇮"
+        case "es": "🇪🇸"
+        case "sw": "🇰🇪"
+        case "ta": "🇮🇳"
+        case "te": "🇮🇳"
+        case "th": "🇹🇭"
+        case "bo": "🇨🇳"
+        case "cs": "🇨🇿"
+        case "tr": "🇹🇷"
+        case "ur": "🇵🇰"
+        case "vi": "🇻🇳"
+        case "cy": "🏴"
+        case "be": "🇧🇾"
+        case "zu": "🇿🇦"
+        case "sv": "🇸🇪"
+        default: "🏳️"
+        }
+    }
+
+    /// Flag + localized language name, used in the language picker.
+    func menuTitle(for displayLocale: Locale) -> String {
+        "\(flag)  \(title(for: displayLocale))"
     }
 
     static func resolved(from storedValue: String?) -> AppLanguage {

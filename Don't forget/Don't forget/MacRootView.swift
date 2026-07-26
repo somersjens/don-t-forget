@@ -147,11 +147,11 @@ struct MacRootView: View {
         .onReceive(NotificationCenter.default.publisher(for: .persistenceSaveFailed)) { note in
             persistenceError = note.userInfo?[PersistenceSafety.errorUserInfoKey] as? String
         }
-        .alert("Bewaren mislukt", isPresented: Binding(
+        .alert(locale.localized("Bewaren mislukt"), isPresented: Binding(
             get: { persistenceError != nil },
             set: { if !$0 { persistenceError = nil } }
         )) {
-            Button("OK", role: .cancel) {}
+            Button(locale.localized("OK"), role: .cancel) {}
         } message: {
             Text(persistenceError ?? "")
         }
@@ -186,7 +186,7 @@ struct MacRootView: View {
                         AppActivitySpinner(controlSize: .small)
                             .frame(width: 32, height: 32)
                             .background(.regularMaterial, in: Circle())
-                            .accessibilityLabel("App is bezig")
+                            .accessibilityLabel(locale.localized("App is bezig"))
                     } else {
                         Button(action: finishEditing) {
                             Image(systemName: "return")
@@ -198,7 +198,7 @@ struct MacRootView: View {
                         .buttonStyle(.plain)
                         .foregroundStyle(canReturn ? Color.brandHardBlue : Color.secondary.opacity(0.65))
                         .disabled(!canReturn)
-                        .help("Terug")
+                        .help(locale.localized("Terug"))
                     }
                 }
                 Spacer()
@@ -211,7 +211,7 @@ struct MacRootView: View {
                 }
                 .buttonStyle(.plain)
                 .foregroundStyle(Color.brandHardBlue)
-                .help(isSearchPresented ? "Zoeken sluiten" : "Zoeken")
+                .help(locale.localized(isSearchPresented ? "Zoeken sluiten" : "Zoeken"))
             }
         }
         .padding(.horizontal, 29)
@@ -879,8 +879,8 @@ private struct MacHistoryBoard: View {
                             in: RoundedRectangle(cornerRadius: 9)
                         )
                     VStack(alignment: .leading, spacing: 3) {
-                        Text("\(completedItems.count) afgerond").font(.headline)
-                        Text("\(recent) in afgelopen 7 dagen").font(.caption).foregroundStyle(.secondary)
+                        Text(locale.localizedFormat("%lld afgerond", completedItems.count)).font(.headline)
+                        Text(locale.localizedFormat("%lld in afgelopen 7 dagen", recent)).font(.caption).foregroundStyle(.secondary)
                     }
                     Spacer()
                     HStack(spacing: 12) {
@@ -920,13 +920,13 @@ private struct MacHistoryBoard: View {
                 Spacer()
                 if date == sections.first?.0 {
                     HStack(spacing: 3) {
-                        Text("Verwijderde items").font(.caption).foregroundStyle(.secondary)
+                        Text(locale.localized("Verwijderde items")).font(.caption).foregroundStyle(.secondary)
                         Button { showsDeletedItems.toggle() } label: {
                             Image(systemName: showsDeletedItems ? "checkmark.square.fill" : "square")
                                 .font(.system(size: 15, weight: .medium))
                                 .foregroundStyle(showsDeletedItems ? Color.brandHardBlue : Color.secondary)
                                 .frame(width: 28, height: 28)
-                        }.buttonStyle(.plain).help("Toon ook items die eerder zijn verwijderd")
+                        }.buttonStyle(.plain).help(locale.localized("Toon ook items die eerder zijn verwijderd"))
                     }
                     .padding(.trailing, 16)
                 }
@@ -947,7 +947,7 @@ private struct MacHistoryBoard: View {
             Image(systemName: item.icon).foregroundStyle(item.color).frame(width: 34, height: 34).background(item.color.opacity(0.14), in: RoundedRectangle(cornerRadius: 9))
             VStack(alignment: .leading, spacing: 3) {
                 Text(item.title).strikethrough(item.isRemoved).lineLimit(2)
-                Text("\(item.category) · \(item.completedAt.formatted(date: .omitted, time: .shortened))").font(.caption).foregroundStyle(.secondary)
+                Text(locale.localizedFormat("%@ · %@", item.category, item.completedAt.formatted(date: .omitted, time: .shortened))).font(.caption).foregroundStyle(.secondary)
             }
             Spacer()
             Button { restore(item) } label: {
@@ -969,7 +969,7 @@ private struct MacHistoryBoard: View {
             }
                 .buttonStyle(.plain)
                 .foregroundStyle(Color.red)
-                .help("Definitief verwijderen")
+                .help(locale.localized("Definitief verwijderen"))
         }.padding(.horizontal, 14).padding(.vertical, 10)
             .id(item.id)
             .modifier(SearchMatchHighlight(
@@ -983,9 +983,9 @@ private struct MacHistoryBoard: View {
     }
 
     @ViewBuilder private func actions(for item: MacHistoryItem) -> some View {
-        Button("Terugzetten", systemImage: "arrow.uturn.backward") { restore(item) }
+        Button(locale.localized("Terugzetten"), systemImage: "arrow.uturn.backward") { restore(item) }
         Divider()
-        Button("Definitief verwijderen", systemImage: "trash", role: .destructive) { beginDeletion(item) }
+        Button(locale.localized("Definitief verwijderen"), systemImage: "trash", role: .destructive) { beginDeletion(item) }
     }
     private func dayTitle(_ date: Date) -> String {
         if AppCalendar.calendar.isDateInToday(date) { return locale.localized("Vandaag") }
@@ -1022,11 +1022,11 @@ private struct MacHistoryBoard: View {
         items.count { (showsDeletedItems || !$0.isRemoved) && (filter == .all || $0.filter == filter) }
     }
     private func undoBar(_ item: MacHistoryItem) -> some View {
-        HStack { Label("‘\(item.title)’ teruggezet", systemImage: "arrow.uturn.backward.circle.fill").lineLimit(1); Spacer(); Button("Ongedaan maken") { undoRestore(item) }.buttonStyle(.borderedProminent) }
+        HStack { Label("‘\(item.title)’ teruggezet", systemImage: "arrow.uturn.backward.circle.fill").lineLimit(1); Spacer(); Button(locale.localized("Ongedaan maken")) { undoRestore(item) }.buttonStyle(.borderedProminent) }
             .padding(10).background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12)).padding(.horizontal, 18).padding(.bottom, 70)
     }
     private func deletionUndoBar(_ item: MacHistoryItem) -> some View {
-        HStack { Label("‘\(item.title)’ verwijderd", systemImage: "trash.fill").lineLimit(1); Spacer(); Button("Terughalen") { undoDeletion() }.buttonStyle(.borderedProminent) }
+        HStack { Label("‘\(item.title)’ verwijderd", systemImage: "trash.fill").lineLimit(1); Spacer(); Button(locale.localized("Terughalen")) { undoDeletion() }.buttonStyle(.borderedProminent) }
             .padding(10).background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12)).padding(.horizontal, 18).padding(.bottom, 70)
     }
 }
@@ -1178,7 +1178,7 @@ private struct MacTodoBoard: View {
                     .font(.title3.bold())
                 Text(locale.localized("todo.openSince.days"))
                     .font(.headline)
-                TextField("", value: $openDaysDraft, format: .number)
+                TextField(locale.localized(""), value: $openDaysDraft, format: .number)
                     .font(.system(size: 28, weight: .semibold, design: .rounded))
                     .multilineTextAlignment(.center)
                     .textFieldStyle(.roundedBorder)
@@ -1225,7 +1225,7 @@ private struct MacTodoBoard: View {
                 }
                 .buttonStyle(.plain)
                 .frame(width: 32, height: 32)
-                .help("Icoon en kleur wijzigen")
+                .help(locale.localized("Icoon en kleur wijzigen"))
                 .popover(
                     isPresented: Binding(
                         get: { appearanceGroupID == group.id },
@@ -1239,10 +1239,10 @@ private struct MacTodoBoard: View {
                     .padding(10)
                 }
                 VStack(alignment: .leading, spacing: 1) {
-                    TextField("Groepsnaam", text: titleBinding(for: group.id))
+                    TextField(locale.localized("Groepsnaam"), text: titleBinding(for: group.id))
                         .textFieldStyle(.plain)
                         .font(.headline)
-                    Text(items.count == 1 ? "1 open" : "\(items.count) open")
+                    Text(locale.localizedFormat("%lld open", items.count))
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
@@ -1272,8 +1272,8 @@ private struct MacTodoBoard: View {
                         .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
-                .help("Nieuwe taak invoeren")
-                TextField("Nieuwe taak", text: draftBinding(for: group.id))
+                .help(locale.localized("Nieuwe taak invoeren"))
+                TextField(locale.localized("Nieuwe taak"), text: draftBinding(for: group.id))
                     .textFieldStyle(.plain)
                     .focused($focusedNewTodoGroupID, equals: group.id)
                     .onSubmit { addTodo(to: group.id, continueEditing: false) }
@@ -1322,9 +1322,9 @@ private struct MacTodoBoard: View {
                 .tint(group.color)
             }
             .frame(width: 32, height: 24, alignment: .center)
-            .help("Hoe lang open; klik voor verplaatsen")
+            .help(locale.localized("Hoe lang open; klik voor verplaatsen"))
 
-            TextField("Taak", text: Binding(get: { todo.text }, set: { value in
+            TextField(locale.localized("Taak"), text: Binding(get: { todo.text }, set: { value in
                 todo.text = value.replacingOccurrences(of: "\n", with: "")
                 if todo.text.isEmpty {
                     if selection == todo.id { selection = nil }
@@ -1352,7 +1352,7 @@ private struct MacTodoBoard: View {
             .menuStyle(.borderlessButton)
             .menuIndicator(.hidden)
             .tint(group.color)
-            .help("Verplaatsen of verwijderen")
+            .help(locale.localized("Verplaatsen of verwijderen"))
 
             Button { complete(todo) } label: {
                 Image(systemName: "circle")
@@ -1363,7 +1363,7 @@ private struct MacTodoBoard: View {
             }
             .buttonStyle(.plain)
             .padding(.trailing, 2)
-            .help("Markeer als afgerond")
+            .help(locale.localized("Markeer als afgerond"))
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 2)
@@ -1421,19 +1421,19 @@ private struct MacTodoBoard: View {
             groupAppearanceMenu(group)
             Divider()
             if index >= 2 {
-                Button("Helemaal omhoog", systemImage: "chevron.up.2") { moveGroup(index, to: 0) }
+                Button(locale.localized("Helemaal omhoog"), systemImage: "chevron.up.2") { moveGroup(index, to: 0) }
             }
             if index >= 1 {
-                Button("Omhoog", systemImage: "arrow.up") { moveGroup(index, by: -1) }
+                Button(locale.localized("Omhoog"), systemImage: "arrow.up") { moveGroup(index, by: -1) }
             }
             if index < groups.count - 1 {
-                Button("Omlaag", systemImage: "arrow.down") { moveGroup(index, by: 1) }
+                Button(locale.localized("Omlaag"), systemImage: "arrow.down") { moveGroup(index, by: 1) }
             }
             if groups.count - 1 - index >= 2 {
-                Button("Helemaal omlaag", systemImage: "chevron.down.2") { moveGroup(index, to: groups.count - 1) }
+                Button(locale.localized("Helemaal omlaag"), systemImage: "chevron.down.2") { moveGroup(index, to: groups.count - 1) }
             }
             Divider()
-            Button("Verwijder groep", systemImage: "trash", role: .destructive) { deleteGroup(group.id) }
+            Button(locale.localized("Verwijder groep"), systemImage: "trash", role: .destructive) { deleteGroup(group.id) }
                 .disabled(!isEmpty || groups.count == 1)
         } label: {
             Image(systemName: "chevron.up.chevron.down")
@@ -1450,12 +1450,12 @@ private struct MacTodoBoard: View {
 
     @ViewBuilder
     private func groupAppearanceMenu(_ group: MacTodoGroup) -> some View {
-        Menu("Icoon") {
+        Menu(locale.localized("Icoon")) {
             ForEach(macTodoIcons, id: \.self) { icon in
                 Button { updateGroup(group.id) { $0.icon = icon } } label: { Label(icon, systemImage: icon) }
             }
         }
-        Menu("Kleur") {
+        Menu(locale.localized("Kleur")) {
             ForEach(RecurringThemeColorOption.allCases) { color in
                 Button { updateGroup(group.id) { $0.colorRawValue = color.rawValue } } label: {
                     Text(color.rawValue.capitalized)
@@ -1470,7 +1470,7 @@ private struct MacTodoBoard: View {
                 .font(.system(size: 15))
                 .foregroundStyle(.secondary)
                 .frame(width: 32)
-            TextField("Nieuwe groep", text: $newGroupTitle)
+            TextField(locale.localized("Nieuwe groep"), text: $newGroupTitle)
                 .textFieldStyle(.plain)
                 .onSubmit(addGroup)
         }
@@ -1593,7 +1593,8 @@ private struct MacTodoBoard: View {
     }
     private func openDuration(_ date: Date) -> String {
         let days = max(0, Calendar.current.dateComponents([.day], from: Calendar.current.startOfDay(for: date), to: Calendar.current.startOfDay(for: .now)).day ?? 0)
-        if days == 0 { return "Sinds vandaag open" }; if days == 1 { return "1 dag open" }; return "\(days) dagen open"
+        if days == 0 { return locale.localized("Sinds vandaag open") }
+        return locale.localizedFormat("%lld dagen open", days)
     }
     private func ageBadge(_ date: Date) -> String {
         let days = max(0, Calendar.current.dateComponents([.day], from: Calendar.current.startOfDay(for: date), to: Calendar.current.startOfDay(for: .now)).day ?? 0)
@@ -1639,13 +1640,14 @@ private struct MacTodoRow: View {
 }
 
 private struct MacRecurringRow: View {
+    @Environment(\.locale) private var locale
     let item: RecurringItem
     var body: some View {
         HStack(spacing: 10) {
             Image(systemName: "repeat").foregroundStyle(.orange)
             VStack(alignment: .leading, spacing: 2) {
                 Text(item.title.isEmpty ? "Nieuw terugkerend item" : item.title).lineLimit(2)
-                Text("Volgende: \(item.nextDate.formatted(date: .abbreviated, time: .omitted))")
+                Text(locale.localizedFormat("Volgende: %@", item.nextDate.formatted(date: .abbreviated, time: .omitted)))
                     .font(.caption).foregroundStyle(.secondary)
             }
         }.padding(.vertical, 3)
@@ -1880,7 +1882,7 @@ private struct MacRecurringBoard: View {
                 }
                 .buttonStyle(.plain)
                 .frame(width: 32, height: 32)
-                .help("Icoon en kleur wijzigen")
+                .help(locale.localized("Icoon en kleur wijzigen"))
                 .popover(
                     isPresented: Binding(
                         get: { appearanceCategoryID == category.id },
@@ -1897,7 +1899,7 @@ private struct MacRecurringBoard: View {
                     if category.isFixed {
                         Text(category.title).font(.headline)
                     } else {
-                        TextField("Groepsnaam", text: titleBinding(category.id)).textFieldStyle(.plain).font(.headline)
+                        TextField(locale.localized("Groepsnaam"), text: titleBinding(category.id)).textFieldStyle(.plain).font(.headline)
                     }
                     Text(categorySubtitle(category, items: categoryItems))
                         .font(.caption).foregroundStyle(.secondary)
@@ -1910,7 +1912,7 @@ private struct MacRecurringBoard: View {
                         else { createItem(in: category.id) }
                     } label: {
                         Image(systemName: "plus").fontWeight(.semibold).frame(width: 28, height: 28)
-                    }.help(category.id == MacRecurringCategoryStore.holidayID ? "Feestdagen kiezen" : "Herhaling toevoegen")
+                    }.help(locale.localized(category.id == MacRecurringCategoryStore.holidayID ? "Feestdagen kiezen" : "Herhaling toevoegen"))
                 }
                 .buttonStyle(.plain)
                 .foregroundStyle(category.color)
@@ -1981,22 +1983,22 @@ private struct MacRecurringBoard: View {
     private func categoryActionsMenu(_ category: MacRecurringCategory, index: Int, isEmpty: Bool) -> some View {
         Menu {
             if index >= 2 {
-                Button("Helemaal omhoog", systemImage: "chevron.up.2") { move(index, to: 0) }
+                Button(locale.localized("Helemaal omhoog"), systemImage: "chevron.up.2") { move(index, to: 0) }
             }
             if index >= 1 {
-                Button("Omhoog", systemImage: "arrow.up") { move(index, by: -1) }
+                Button(locale.localized("Omhoog"), systemImage: "arrow.up") { move(index, by: -1) }
             }
             if index < categories.count - 1 {
-                Button("Omlaag", systemImage: "arrow.down") { move(index, by: 1) }
+                Button(locale.localized("Omlaag"), systemImage: "arrow.down") { move(index, by: 1) }
             }
             if categories.count - 1 - index >= 2 {
-                Button("Helemaal omlaag", systemImage: "chevron.down.2") { move(index, to: categories.count - 1) }
+                Button(locale.localized("Helemaal omlaag"), systemImage: "chevron.down.2") { move(index, to: categories.count - 1) }
             }
             Divider()
             categoryAppearanceMenu(category)
             if !category.isFixed {
                 Divider()
-                Button("Verwijder groep", systemImage: "trash", role: .destructive) { delete(category.id) }
+                Button(locale.localized("Verwijder groep"), systemImage: "trash", role: .destructive) { delete(category.id) }
                     .disabled(!isEmpty || categories.count == 1)
             }
         } label: {
@@ -2008,17 +2010,17 @@ private struct MacRecurringBoard: View {
         .menuIndicator(.hidden)
         .tint(category.color)
         .foregroundStyle(category.color)
-        .help("Volgorde en uiterlijk")
+        .help(locale.localized("Volgorde en uiterlijk"))
     }
 
     @ViewBuilder
     private func categoryAppearanceMenu(_ category: MacRecurringCategory) -> some View {
-        Menu("Icoon") {
+        Menu(locale.localized("Icoon")) {
             ForEach(macRecurringIcons, id: \.self) { icon in
                 Button { update(category.id) { $0.iconName = icon } } label: { Label(icon, systemImage: icon) }
             }
         }
-        Menu("Kleur") {
+        Menu(locale.localized("Kleur")) {
             ForEach(RecurringThemeColorOption.allCases) { option in
                 Button { update(category.id) { $0.colorRawValue = option.rawValue } } label: { Text(option.rawValue.capitalized) }
             }
@@ -2035,7 +2037,7 @@ private struct MacRecurringBoard: View {
             }
             .buttonStyle(.plain).allowsHitTesting(false)
 
-            TextField("Nieuwe categorie", text: $newGroupTitle)
+            TextField(locale.localized("Nieuwe categorie"), text: $newGroupTitle)
                 .textFieldStyle(.plain).font(.headline)
                 .onSubmit(addGroup)
 
@@ -2161,7 +2163,7 @@ private struct MacRecurringBoard: View {
                 days
             )
         } else { timing = RecurrenceEngine.description(for: item) }
-        if let reminder = item.reminderDaysBefore { return "\(timing) · reminder \(reminder)" }
+        if let reminder = item.reminderDaysBefore { return "\(timing) " + locale.localizedFormat("· reminder %lld", reminder) }
         return timing
     }
     private func titleBinding(_ id: String) -> Binding<String> { Binding(get: { categories.first { $0.id == id }?.title ?? "" }, set: { value in update(id) { $0.title = value } }) }
@@ -2247,16 +2249,17 @@ private let macRecurringIcons = ["repeat", "calendar", "calendar.badge.clock", "
 
 private struct MacDayEntryEditor: View {
     @Environment(\.modelContext) private var modelContext
+    @Environment(\.locale) private var locale
     @Bindable var entry: DayEntry
 
     var body: some View {
         Form {
-            Section("Agenda-item") {
-                TextField("Omschrijving", text: $entry.rawText, axis: .vertical)
-                DatePicker("Datum", selection: $entry.date, displayedComponents: .date)
-                Toggle("Afgerond", isOn: $entry.isDone)
+            Section(locale.localized("Agenda-item")) {
+                TextField(locale.localized("Omschrijving"), text: $entry.rawText, axis: .vertical)
+                DatePicker(locale.localized("Datum"), selection: $entry.date, displayedComponents: .date)
+                Toggle(locale.localized("Afgerond"), isOn: $entry.isDone)
             }
-            Section("Details") {
+            Section(locale.localized("Details")) {
                 LabeledContent("Aangemaakt", value: entry.createdAt.formatted())
                 LabeledContent("Bron", value: entry.sourceRawValue)
             }
@@ -2272,20 +2275,21 @@ private struct MacDayEntryEditor: View {
 
 private struct MacTodoEditor: View {
     @Environment(\.modelContext) private var modelContext
+    @Environment(\.locale) private var locale
     @Bindable var todo: TodoItem
 
     var body: some View {
         Form {
-            Section("Taak") {
-                TextField("Omschrijving", text: $todo.text, axis: .vertical)
-                Picker("Lijst", selection: $todo.bucketRawValue) {
-                    Text("Vandaag").tag(TodoBucket.today.rawValue)
-                    Text("Binnenkort").tag(TodoBucket.shortTerm.rawValue)
-                    Text("Later").tag(TodoBucket.longTerm.rawValue)
+            Section(locale.localized("Taak")) {
+                TextField(locale.localized("Omschrijving"), text: $todo.text, axis: .vertical)
+                Picker(locale.localized("Lijst"), selection: $todo.bucketRawValue) {
+                    Text(locale.localized("Vandaag")).tag(TodoBucket.today.rawValue)
+                    Text(locale.localized("Binnenkort")).tag(TodoBucket.shortTerm.rawValue)
+                    Text(locale.localized("Later")).tag(TodoBucket.longTerm.rawValue)
                 }
-                Toggle("Afgerond", isOn: $todo.isDone)
+                Toggle(locale.localized("Afgerond"), isOn: $todo.isDone)
             }
-            Section("Details") {
+            Section(locale.localized("Details")) {
                 LabeledContent("Aangemaakt", value: todo.createdAt.formatted())
             }
         }
@@ -2316,11 +2320,11 @@ private struct MacHolidayManagerView: View {
     var body: some View {
         VStack(spacing: 0) {
             HStack {
-                Button("Annuleer") { dismiss() }
+                Button(locale.localized("Annuleer")) { dismiss() }
                 Spacer()
-                Text("Feestdagen").font(.headline)
+                Text(locale.localized("Feestdagen")).font(.headline)
                 Spacer()
-                Button("Bewaar") { applySelection() }.buttonStyle(.borderedProminent)
+                Button(locale.localized("Bewaar")) { applySelection() }.buttonStyle(.borderedProminent)
             }
             .padding(16)
 
@@ -2328,7 +2332,7 @@ private struct MacHolidayManagerView: View {
                 VStack(alignment: .leading, spacing: 24) {
                     holidayCard("Instellingen") {
                         HStack(spacing: 12) {
-                            Text("Standaardland")
+                            Text(locale.localized("Standaardland"))
                             Spacer(minLength: 12)
                             holidayOptionMenu(
                                 selection: $country,
@@ -2339,9 +2343,9 @@ private struct MacHolidayManagerView: View {
                         .recurringEditorRow(height: 38)
 
                         HStack(spacing: 12) {
-                            Text("Laat alleen lokale feestdagen zien")
+                            Text(locale.localized("Laat alleen lokale feestdagen zien"))
                             Spacer(minLength: 12)
-                            Toggle("", isOn: $onlyLocal)
+                            Toggle(locale.localized(""), isOn: $onlyLocal)
                                 .labelsHidden()
                                 .toggleStyle(.switch)
                                 .tint(.brandHardBlue)
@@ -2352,7 +2356,7 @@ private struct MacHolidayManagerView: View {
 
                     holidayCard("Selectie") {
                         HStack {
-                            Button(visibleSelectionCount == options.count ? "Alles deselecteren" : "Alles selecteren") {
+                            Button(locale.localized(visibleSelectionCount == options.count ? "Alles deselecteren" : "Alles selecteren")) {
                                 let ids = Set(options.map(\.id))
                                 if visibleSelectionCount == options.count { selectedIDs.subtract(ids) }
                                 else { selectedIDs.formUnion(ids) }
@@ -2375,7 +2379,7 @@ private struct MacHolidayManagerView: View {
                                         .foregroundStyle(.secondary)
                                 }
                                 Spacer(minLength: 12)
-                                Toggle("", isOn: selectionBinding(option.id))
+                                Toggle(locale.localized(""), isOn: selectionBinding(option.id))
                                     .labelsHidden()
                                     .toggleStyle(.switch)
                                     .tint(.brandHardBlue)
@@ -2386,13 +2390,13 @@ private struct MacHolidayManagerView: View {
                     }
 
                     holidayCard("") {
-                        Button("Eigen feestdag toevoegen", systemImage: "plus") {
+                        Button(locale.localized("Eigen feestdag toevoegen"), systemImage: "plus") {
                             beginCustomHoliday()
                         }
                         .buttonStyle(.plain)
                         .recurringEditorRow(height: 38, showsSeparator: false)
                     }
-                    Text("Maak een eigen feestdag met een vaste datum of een weekdag van de maand.")
+                    Text(locale.localized("Maak een eigen feestdag met een vaste datum of een weekdag van de maand."))
                         .font(.caption)
                         .foregroundStyle(.secondary)
                         .padding(.horizontal, 2)
@@ -2409,11 +2413,11 @@ private struct MacHolidayManagerView: View {
         .sheet(item: $customHoliday) { holiday in
             VStack(spacing: 0) {
                 HStack {
-                    Button("Annuleer") { customHoliday = nil }
+                    Button(locale.localized("Annuleer")) { customHoliday = nil }
                     Spacer()
-                    Text("Eigen feestdag").font(.headline)
+                    Text(locale.localized("Eigen feestdag")).font(.headline)
                     Spacer()
-                    Button("Bewaar") { saveCustomHoliday(holiday) }
+                    Button(locale.localized("Bewaar")) { saveCustomHoliday(holiday) }
                         .buttonStyle(.borderedProminent)
                         .disabled(holiday.title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                 }
@@ -2601,9 +2605,9 @@ private struct MacRecurringEditor: View {
         saveRecurrence()
     }
 
-    private func editorCard<Content: View>(_ title: LocalizedStringKey, @ViewBuilder content: () -> Content) -> some View {
+    private func editorCard<Content: View>(_ title: String, @ViewBuilder content: () -> Content) -> some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text(title).font(.headline).padding(.leading, 1)
+            Text(locale.localized(title)).font(.headline).padding(.leading, 1)
             VStack(spacing: 0) { content() }
                 .font(.body)
                 .padding(.horizontal, 14)
@@ -2712,7 +2716,7 @@ private struct MacRecurringEditor: View {
     }
 
     private var identityCard: some View {
-        editorCard(item.recurrenceKind == .birthday ? LocalizedStringKey("Wie") : LocalizedStringKey("Wat")) {
+        editorCard(item.recurrenceKind == .birthday ? "Wie" : "Wat") {
             TextField(
                 "",
                 text: $item.title,
@@ -2728,7 +2732,7 @@ private struct MacRecurringEditor: View {
                 .onChange(of: item.title) { _, _ in titleChanged() }
             .recurringEditorRow(height: rowHeight)
             HStack(spacing: 12) {
-                Text("Categorie")
+                Text(locale.localized("Categorie"))
                 Spacer(minLength: 12)
                 optionMenu(
                     selection: $item.themeRawValue,
@@ -2752,7 +2756,7 @@ private struct MacRecurringEditor: View {
     private func linkRow(_ index: Int, showsSeparator: Bool) -> some View {
         HStack(spacing: 12) {
             HStack(spacing: 6) {
-                TextField("", text: linkURLBinding(index), prompt: Text("Plak link"))
+                TextField(locale.localized(""), text: linkURLBinding(index), prompt: Text(locale.localized("Plak link")))
                     .textFieldStyle(.plain)
                     .focused($focusedLinkIndex, equals: index)
                     .onSubmit { focusedLinkIndex = nil }
@@ -2766,7 +2770,7 @@ private struct MacRecurringEditor: View {
                         }
                         .buttonStyle(.plain)
                         .foregroundStyle(.secondary)
-                        .accessibilityLabel("Link verwijderen")
+                        .accessibilityLabel(locale.localized("Link verwijderen"))
                     }
                 }
                 .frame(width: 22, height: 24)
@@ -2778,7 +2782,7 @@ private struct MacRecurringEditor: View {
 
             HStack(spacing: 6) {
                 if editingLinkNameIndex == index {
-                    TextField("", text: linkNameBinding(index), prompt: Text("Link \(index + 1)"))
+                    TextField(locale.localized(""), text: linkNameBinding(index), prompt: Text("Link \(index + 1)"))
                         .textFieldStyle(.plain)
                         .focused($focusedLinkNameIndex, equals: index)
                         .onSubmit { finishEditingLinkName(index) }
@@ -2801,7 +2805,7 @@ private struct MacRecurringEditor: View {
                             Image(systemName: "pencil")
                         }
                         .buttonStyle(.plain)
-                        .accessibilityLabel("Linknaam aanpassen")
+                        .accessibilityLabel(locale.localized("Linknaam aanpassen"))
                     }
                 }
                 .frame(width: 22, height: 24)
@@ -2822,7 +2826,7 @@ private struct MacRecurringEditor: View {
     @ViewBuilder private var frequencyFields: some View {
         if item.themeRawValue == MacRecurringCategoryStore.birthdayID {
             HStack {
-                Text("Dag/Maand")
+                Text(locale.localized("Dag/Maand"))
                 Spacer()
                 optionMenu(
                     selection: birthdayDayBinding,
@@ -2839,16 +2843,16 @@ private struct MacRecurringEditor: View {
             }
             .recurringEditorRow(height: rowHeight)
             HStack {
-                Text("Leeftijd/jaar")
+                Text(locale.localized("Leeftijd/jaar"))
                 Spacer()
                 optionField {
-                    TextField("", text: currentAgeBinding, prompt: Text("Leeftijd"))
+                    TextField(locale.localized(""), text: currentAgeBinding, prompt: Text(locale.localized("Leeftijd")))
                         .textFieldStyle(.plain)
                         .multilineTextAlignment(.trailing)
                 }
                 .frame(width: 72)
                 optionField {
-                    TextField("", text: birthdayYearBinding, prompt: Text("Jaar"))
+                    TextField(locale.localized(""), text: birthdayYearBinding, prompt: Text(locale.localized("Jaar")))
                         .textFieldStyle(.plain)
                         .multilineTextAlignment(.trailing)
                 }
@@ -2863,16 +2867,16 @@ private struct MacRecurringEditor: View {
             )
             if item.reminderDaysBefore != nil {
                 HStack(spacing: 12) {
-                    Text("Dagen vooraf")
+                    Text(locale.localized("Dagen vooraf"))
                     Spacer(minLength: 12)
-                    Stepper("\(item.reminderDaysBefore ?? 7) dagen", value: reminderDaysBinding, in: 1...365)
+                    Stepper(locale.localizedFormat("%lld dagen", item.reminderDaysBefore ?? 7), value: reminderDaysBinding, in: 1...365)
                         .fixedSize()
                 }
                 .recurringEditorRow(height: rowHeight, showsSeparator: false)
             }
         } else if item.themeRawValue == MacRecurringCategoryStore.holidayID {
             HStack(spacing: 12) {
-                Text("Regel")
+                Text(locale.localized("Regel"))
                 Spacer(minLength: 12)
                 optionMenu(
                     selection: $item.recurrenceKindRawValue,
@@ -2895,12 +2899,12 @@ private struct MacRecurringEditor: View {
         } else {
             compactDatePicker(
                 item.recurrenceKind == .yearly
-                    ? LocalizedStringKey("Startdatum")
-                    : LocalizedStringKey("Eerstvolgende datum"),
+                    ? "Startdatum"
+                    : "Eerstvolgende datum",
                 selection: $item.nextDate
             )
             HStack(spacing: 12) {
-                Text("Type")
+                Text(locale.localized("Type"))
                 Spacer(minLength: 12)
                 optionMenu(
                     selection: $item.recurrenceKindRawValue,
@@ -2920,7 +2924,7 @@ private struct MacRecurringEditor: View {
             switch item.recurrenceKind {
             case .monthlyDay:
                 compactStepper(
-                    "Elke \(item.monthlyDay)e van de maand",
+                    locale.localizedFormat("Elke %llde van de maand", item.monthlyDay),
                     value: $item.monthlyDay,
                     range: 1...31,
                     showsSeparator: false
@@ -2929,13 +2933,13 @@ private struct MacRecurringEditor: View {
                 ordinalPicker; weekdayPicker
             case .interval, .approximateInterval:
                 compactStepper(
-                    "Elke \(item.intervalValue)",
+                    locale.localizedFormat("Elke %lld", item.intervalValue),
                     value: $item.intervalValue,
                     range: 1...99,
                     showsSeparator: true
                 )
                 HStack(spacing: 12) {
-                    Text("Eenheid")
+                    Text(locale.localized("Eenheid"))
                     Spacer(minLength: 12)
                     optionMenu(
                         selection: $item.intervalUnitRawValue,
@@ -2954,25 +2958,25 @@ private struct MacRecurringEditor: View {
                     showsSeparator: item.recurrenceKind == .approximateInterval
                 )
                 if item.recurrenceKind == .approximateInterval {
-                    Text("De datum varieert voorspelbaar rond deze periode.").font(.caption).foregroundStyle(.secondary)
+                    Text(locale.localized("De datum varieert voorspelbaar rond deze periode.")).font(.caption).foregroundStyle(.secondary)
                 }
             case .quarterly:
-                Text("Wordt iedere drie maanden herhaald vanaf de eerstvolgende datum.").font(.caption).foregroundStyle(.secondary)
+                Text(locale.localized("Wordt iedere drie maanden herhaald vanaf de eerstvolgende datum.")).font(.caption).foregroundStyle(.secondary)
             case .yearly:
-                Text("Wordt ieder jaar herhaald op de datum hierboven.").font(.caption).foregroundStyle(.secondary)
+                Text(locale.localized("Wordt ieder jaar herhaald op de datum hierboven.")).font(.caption).foregroundStyle(.secondary)
             default: EmptyView()
             }
         }
     }
 
     private func compactStepper(
-        _ title: LocalizedStringKey,
+        _ title: String,
         value: Binding<Int>,
         range: ClosedRange<Int>,
         showsSeparator: Bool
     ) -> some View {
         HStack {
-            Text(title)
+            Text(locale.localized(title))
             Spacer()
             HStack(spacing: 2) {
                 Button { value.wrappedValue = max(range.lowerBound, value.wrappedValue - 1) } label: {
@@ -3010,12 +3014,12 @@ private struct MacRecurringEditor: View {
     }
 
     private func trailingToggle(
-        _ title: LocalizedStringKey,
+        _ title: String,
         isOn: Binding<Bool>,
         showsSeparator: Bool = true
     ) -> some View {
         HStack(spacing: 12) {
-            Text(title)
+            Text(locale.localized(title))
             Spacer(minLength: 12)
             Toggle("", isOn: isOn)
                 .labelsHidden()
@@ -3028,12 +3032,12 @@ private struct MacRecurringEditor: View {
     }
 
     private func compactDatePicker(
-        _ title: LocalizedStringKey,
+        _ title: String,
         selection: Binding<Date>,
         showsSeparator: Bool = true
     ) -> some View {
         HStack(spacing: 12) {
-            Text(title)
+            Text(locale.localized(title))
             Spacer(minLength: 12)
             Button {
                 showingDatePicker.toggle()
@@ -3053,7 +3057,7 @@ private struct MacRecurringEditor: View {
             }
             .buttonStyle(.plain)
             .popover(isPresented: $showingDatePicker) {
-                DatePicker("", selection: selection, displayedComponents: .date)
+                DatePicker(locale.localized(""), selection: selection, displayedComponents: .date)
                     .labelsHidden()
                     .datePickerStyle(.graphical)
                     .padding()
@@ -3064,7 +3068,7 @@ private struct MacRecurringEditor: View {
 
     private var monthPicker: some View {
         HStack(spacing: 12) {
-            Text("Maand")
+            Text(locale.localized("Maand"))
             Spacer(minLength: 12)
             optionMenu(
                 selection: $item.annualMonth,
@@ -3077,7 +3081,7 @@ private struct MacRecurringEditor: View {
     }
     private var ordinalPicker: some View {
         HStack(spacing: 12) {
-            Text("Welke")
+            Text(locale.localized("Welke"))
             Spacer(minLength: 12)
             optionMenu(
                 selection: $item.monthlyOrdinal,
@@ -3090,7 +3094,7 @@ private struct MacRecurringEditor: View {
     }
     private var weekdayPicker: some View {
         HStack(spacing: 12) {
-            Text("Weekdag")
+            Text(locale.localized("Weekdag"))
             Spacer(minLength: 12)
             optionMenu(
                 selection: $item.monthlyWeekday,
@@ -3239,7 +3243,7 @@ struct MacCloudSettingsView: View {
 
     var body: some View {
         Form {
-            Section("Agenda") {
+            Section(locale.localized("Agenda")) {
                 Picker(weekdayFormattingPickerTitle, selection: $weekdayLabelLength) {
                     ForEach(WeekdayLabelLengthOption.allCases) { option in
                         Text(option.title(for: locale)).tag(option.rawValue)
@@ -3248,14 +3252,14 @@ struct MacCloudSettingsView: View {
                 .onAppear(perform: normalizeWeekdayLabelLength)
             }
 
-            Section("Weergave") {
-                Picker("App Color", selection: $defaultColorCombinationEnabled) {
-                    Text("Light blue").tag(true)
-                    Text("Grey").tag(false)
+            Section(locale.localized("Weergave")) {
+                Picker(locale.localized("App Color"), selection: $defaultColorCombinationEnabled) {
+                    Text(locale.localized("Light blue")).tag(true)
+                    Text(locale.localized("Grey")).tag(false)
                 }
             }
 
-            Section("iCloud") {
+            Section(locale.localized("iCloud")) {
                 LabeledContent("Synchronisatie") {
                     HStack {
                         Image(systemName: status == .available ? "checkmark.icloud.fill" : "exclamationmark.icloud.fill")
@@ -3263,7 +3267,7 @@ struct MacCloudSettingsView: View {
                         Text(statusText)
                     }
                 }
-                Text("Deze Mac gebruikt dezelfde private iCloud-container als je iPhone en iPad. Wijzigingen worden automatisch op alle apparaten bijgewerkt.")
+                Text(locale.localized("Deze Mac gebruikt dezelfde private iCloud-container als je iPhone en iPad. Wijzigingen worden automatisch op alle apparaten bijgewerkt."))
                     .foregroundStyle(.secondary)
             }
         }

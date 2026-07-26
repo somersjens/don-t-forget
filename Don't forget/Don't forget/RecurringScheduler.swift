@@ -338,7 +338,7 @@ enum RecurringScheduler {
                     from: AppCalendar.startOfDay(item.nextDate),
                     to: AppCalendar.startOfDay(date)
                 ).year ?? 0)
-                occurrenceTitle = "\(item.title) · \(years) jaar"
+                occurrenceTitle = AppCalendar.locale.localizedFormat("%@ · %lld jaar", item.title, years)
             } else {
                 occurrenceTitle = item.title
             }

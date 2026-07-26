@@ -346,7 +346,7 @@ struct TodoView: View {
                             in: Circle()
                         )
                         .disabled(!(undoManager?.canUndo ?? false))
-                        .accessibilityLabel("Laatste wijziging terugdraaien")
+                        .accessibilityLabel(locale.localized("Laatste wijziging terugdraaien"))
                         .overlay {
                             if visibleOnboardingStep == 3 {
                                 Circle()
@@ -1262,6 +1262,7 @@ private struct TodoHelpCard: View {
 }
 
 private struct TodoBucketCard: View {
+    @Environment(\.locale) private var locale
     let group: TodoGroup
     let groups: [TodoGroup]
     let todos: [TodoItem]
@@ -1319,7 +1320,7 @@ private struct TodoBucketCard: View {
                     .frame(width: AdaptiveLayout.scaled(36), height: AdaptiveLayout.scaled(36))
                 }
                 .buttonStyle(.plain)
-                .accessibilityLabel("Kleur en icoon van \(group.title) aanpassen")
+                .accessibilityLabel(locale.localizedFormat("Kleur en icoon van %@ aanpassen", group.title))
 
                 VStack(alignment: .leading, spacing: 2) {
                     DeferredCommitTextField(
@@ -1417,7 +1418,7 @@ private struct TodoBucketCard: View {
         }
         .buttonStyle(.plain)
         .foregroundStyle(group.color)
-        .accessibilityLabel("Volgorde van \(group.title) aanpassen")
+        .accessibilityLabel(locale.localizedFormat("Volgorde van %@ aanpassen", group.title))
         .overlay {
             if highlightsCategoryReorder {
                 RoundedRectangle(cornerRadius: AdaptiveLayout.scaled(9))
@@ -1473,7 +1474,7 @@ private struct TodoBucketCard: View {
                 Button(role: .destructive) {
                     performCategoryAction(delete)
                 } label: {
-                    Label("Categorie verwijderen", systemImage: "trash")
+                    Label(locale.localized("Categorie verwijderen"), systemImage: "trash")
                         .foregroundStyle(.red)
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .padding(.leading, AdaptiveLayout.scaled(20))
@@ -1493,14 +1494,14 @@ private struct TodoBucketCard: View {
     }
 
     private func categoryActionButton(
-        _ title: LocalizedStringKey,
+        _ title: String,
         systemImage: String,
         action: @escaping () -> Void
     ) -> some View {
         Button {
             performCategoryAction(action)
         } label: {
-            Label(title, systemImage: systemImage)
+            Label(locale.localized(title), systemImage: systemImage)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(.leading, AdaptiveLayout.scaled(20))
                 .padding(.trailing, AdaptiveLayout.scaled(14))
@@ -1516,7 +1517,7 @@ private struct TodoBucketCard: View {
     }
 
     private var openCountText: String {
-        todos.count == 1 ? "1 open" : "\(todos.count) open"
+        locale.localizedFormat("%lld open", todos.count)
     }
 }
 
@@ -1552,7 +1553,7 @@ private struct TodoGroupAppearancePicker: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 24) {
                     VStack(alignment: .leading, spacing: 12) {
-                        Text("Kleur")
+                        Text(locale.localized("Kleur"))
                             .font(.headline)
 
                         LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 4), spacing: 14) {
@@ -1584,7 +1585,7 @@ private struct TodoGroupAppearancePicker: View {
                     }
 
                     VStack(alignment: .leading, spacing: 12) {
-                        Text("Icoon")
+                        Text(locale.localized("Icoon"))
                             .font(.headline)
 
                         LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 5), spacing: 12) {
@@ -1622,7 +1623,7 @@ private struct TodoGroupAppearancePicker: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Gereed") { dismiss() }
+                    Button(locale.localized("Gereed")) { dismiss() }
                 }
             }
         }
@@ -1882,7 +1883,7 @@ private struct TodoLine: View {
                         Color.clear
                             .contentShape(Rectangle())
                             .onTapGesture(perform: beginEditingAtEnd)
-                            .accessibilityLabel("Taak bewerken")
+                            .accessibilityLabel(locale.localized("Taak bewerken"))
                     }
                 }
             }
@@ -1895,7 +1896,7 @@ private struct TodoLine: View {
                 moveSelectionToEndToken: moveSelectionToEndToken
             )
         } else {
-            TextField("", text: draftBinding, axis: .vertical)
+            TextField(locale.localized(""), text: draftBinding, axis: .vertical)
         }
     }
 
@@ -2052,7 +2053,7 @@ private struct TodoLine: View {
                     }
                 }
         }
-        .accessibilityLabel("\(accessibleAgeText), taak verplaatsen")
+        .accessibilityLabel(locale.localizedFormat("%@, taak verplaatsen", accessibleAgeText))
         .simultaneousGesture(TapGesture().onEnded {
             dismissKeyboard()
         })
@@ -2134,6 +2135,7 @@ private struct TodoLine: View {
 }
 
 private struct NewTodoLine: View {
+    @Environment(\.locale) private var locale
     let groupID: String
     let highlightsField: Bool
     let highlightsPlus: Bool
@@ -2163,9 +2165,9 @@ private struct NewTodoLine: View {
                     .frame(width: AdaptiveLayout.scaled(36), height: AdaptiveLayout.scaled(24))
             }
             .buttonStyle(.plain)
-            .accessibilityLabel("Nieuwe taak invoeren")
+            .accessibilityLabel(locale.localized("Nieuwe taak invoeren"))
 
-            TextField("typ iets", text: $text, axis: .vertical)
+            TextField(locale.localized("typ iets"), text: $text, axis: .vertical)
                 .font(.system(size: AdaptiveLayout.scaled(16)))
                 .textFieldStyle(.plain)
                 .focused($isTextFieldFocused)
@@ -2324,13 +2326,14 @@ private struct NewTodoLine: View {
 
 @available(iOS 18.0, *)
 private struct TodoSelectionTextField: View {
+    @Environment(\.locale) private var locale
     @Binding var text: String
     let moveSelectionToEndToken: Int
 
     @State private var selection: TextSelection?
 
     var body: some View {
-        TextField("", text: $text, selection: $selection, axis: .vertical)
+        TextField(locale.localized(""), text: $text, selection: $selection, axis: .vertical)
             .onAppear(perform: moveSelectionToEnd)
             .onChange(of: moveSelectionToEndToken) { _, _ in
                 moveSelectionToEnd()
@@ -2343,6 +2346,7 @@ private struct TodoSelectionTextField: View {
 }
 
 private struct NewTodoGroupLine: View {
+    @Environment(\.locale) private var locale
     @Binding var text: String
     let add: () -> Void
     @FocusState private var isTextFieldFocused: Bool
@@ -2358,9 +2362,9 @@ private struct NewTodoGroupLine: View {
                     .frame(width: AdaptiveLayout.scaled(24), height: AdaptiveLayout.scaled(24))
             }
             .buttonStyle(.plain)
-            .accessibilityLabel("Nieuwe categorie invoeren")
+            .accessibilityLabel(locale.localized("Nieuwe categorie invoeren"))
 
-            TextField("Nieuwe groep", text: $text, axis: .vertical)
+            TextField(locale.localized("Nieuwe groep"), text: $text, axis: .vertical)
                 .font(.system(size: AdaptiveLayout.scaled(16), weight: .medium))
                 .textFieldStyle(.plain)
                 .focused($isTextFieldFocused)

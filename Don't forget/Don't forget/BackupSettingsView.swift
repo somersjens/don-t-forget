@@ -71,12 +71,12 @@ struct BackupSettingsView: View {
             ))
         }
         .alert(locale.localized("Backup"), isPresented: messageIsPresented) {
-            Button("OK", role: .cancel) {}
+            Button(locale.localized("OK"), role: .cancel) {}
         } message: {
             Text(message ?? "")
         }
         .alert(locale.localized("Backup mislukt"), isPresented: errorIsPresented) {
-            Button("OK", role: .cancel) {}
+            Button(locale.localized("OK"), role: .cancel) {}
         } message: {
             Text(errorMessage ?? "")
         }

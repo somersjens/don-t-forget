@@ -1,0 +1,192 @@
+{
+  "source": "/Users/jenssomers/Desktop/Don't forget/Don't forget/Don't forget/MacCalendarView.swift",
+  "tables": {
+    "Localizable": [
+      {
+        "comment": "",
+        "key": "Toekomstige items ook verplaatsen?",
+        "location": {
+          "startingColumn": 13,
+          "startingLine": 152
+        }
+      },
+      {
+        "comment": "",
+        "key": "Ook toekomstige items verplaatsen",
+        "location": {
+          "startingColumn": 20,
+          "startingLine": 159
+        }
+      },
+      {
+        "comment": "",
+        "key": "Alleen dit item",
+        "location": {
+          "startingColumn": 20,
+          "startingLine": 160
+        }
+      },
+      {
+        "comment": "",
+        "key": "Annuleer",
+        "location": {
+          "startingColumn": 20,
+          "startingLine": 161
+        }
+      },
+      {
+        "comment": "",
+        "key": "Wil je dezelfde datumverschuiving toepassen op alle volgende voorkomens van dit terugkerende item?",
+        "location": {
+          "startingColumn": 18,
+          "startingLine": 163
+        }
+      },
+      {
+        "comment": "",
+        "key": "Verplaats agenda-item",
+        "location": {
+          "startingColumn": 19,
+          "startingLine": 249
+        }
+      },
+      {
+        "comment": "",
+        "key": "Nieuwe datum",
+        "location": {
+          "startingColumn": 27,
+          "startingLine": 252
+        }
+      },
+      {
+        "comment": "",
+        "key": "Open kalender",
+        "location": {
+          "startingColumn": 24,
+          "startingLine": 256
+        }
+      },
+      {
+        "comment": "",
+        "key": "Nieuwe datum",
+        "location": {
+          "startingColumn": 32,
+          "startingLine": 261
+        }
+      },
+      {
+        "comment": "",
+        "key": "Annuleer",
+        "location": {
+          "startingColumn": 24,
+          "startingLine": 271
+        }
+      },
+      {
+        "comment": "",
+        "key": "Verplaats",
+        "location": {
+          "startingColumn": 24,
+          "startingLine": 272
+        }
+      },
+      {
+        "comment": "",
+        "key": "Nieuw agenda-item",
+        "location": {
+          "startingColumn": 27,
+          "startingLine": 484
+        }
+      },
+      {
+        "comment": "",
+        "key": "Voeg toe en ga door",
+        "location": {
+          "startingColumn": 24,
+          "startingLine": 498
+        }
+      },
+      {
+        "comment": "",
+        "key": "Voeg toe en maak nog een item",
+        "location": {
+          "startingColumn": 23,
+          "startingLine": 507
+        }
+      },
+      {
+        "comment": "",
+        "key": "Voeg item toe",
+        "location": {
+          "startingColumn": 35,
+          "startingLine": 518
+        }
+      },
+      {
+        "comment": "",
+        "key": "Agenda-item",
+        "location": {
+          "startingColumn": 23,
+          "startingLine": 642
+        }
+      },
+      {
+        "comment": "",
+        "key": "Verplaats item",
+        "location": {
+          "startingColumn": 23,
+          "startingLine": 632
+        }
+      },
+      {
+        "comment": "",
+        "key": "Verplaats naar andere datum",
+        "location": {
+          "startingColumn": 24,
+          "startingLine": 657
+        }
+      },
+      {
+        "comment": "",
+        "key": "Verwijder",
+        "location": {
+          "startingColumn": 24,
+          "startingLine": 664
+        }
+      },
+      {
+        "comment": "",
+        "key": "Verplaats naar %@",
+        "location": {
+          "startingColumn": 28,
+          "startingLine": 659
+        }
+      },
+      {
+        "comment": "",
+        "key": "Verplaats naar andere datum",
+        "location": {
+          "startingColumn": 20,
+          "startingLine": 695
+        }
+      },
+      {
+        "comment": "",
+        "key": "Verwijder",
+        "location": {
+          "startingColumn": 20,
+          "startingLine": 700
+        }
+      },
+      {
+        "comment": "",
+        "key": "Verplaats naar %@",
+        "location": {
+          "startingColumn": 24,
+          "startingLine": 697
+        }
+      }
+    ]
+  },
+  "version": 1
+}

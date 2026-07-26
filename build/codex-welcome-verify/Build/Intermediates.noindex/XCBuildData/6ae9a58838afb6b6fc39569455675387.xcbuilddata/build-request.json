@@ -1,0 +1,72 @@
+{
+  "buildCommand" : {
+    "command" : "build",
+    "skipDependencies" : false,
+    "style" : "buildOnly"
+  },
+  "configuredTargets" : [
+    {
+      "guid" : "4d0328ecffb91755b84fe55cce9a4ef3d5d17b259cb6b9ef4854e8c1279a1989"
+    }
+  ],
+  "containerPath" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/Don't forget.xcodeproj",
+  "continueBuildingAfterErrors" : false,
+  "dependencyScope" : "workspace",
+  "enableIndexBuildArena" : false,
+  "hideShellScriptEnvironment" : false,
+  "parameters" : {
+    "action" : "build",
+    "activeArchitecture" : "undefined_arch",
+    "activeRunDestination" : {
+      "disableOnlyActiveArch" : true,
+      "platform" : "iphoneos",
+      "sdk" : "iphoneos26.1",
+      "sdkVariant" : "iphoneos",
+      "supportedArchitectures" : [
+        "armv4t",
+        "armv5",
+        "armv6",
+        "armv7",
+        "armv7f",
+        "armv7s",
+        "armv7k",
+        "arm64",
+        "arm64e"
+      ],
+      "targetArchitecture" : "undefined_arch"
+    },
+    "arenaInfo" : {
+      "buildIntermediatesPath" : "/Users/jenssomers/Desktop/Don't forget/build/codex-welcome-verify/Build/Intermediates.noindex",
+      "buildProductsPath" : "/Users/jenssomers/Desktop/Don't forget/build/codex-welcome-verify/Build/Products",
+      "derivedDataPath" : "/Users/jenssomers/Desktop/Don't forget/build/codex-welcome-verify",
+      "indexDataStoreFolderPath" : "/Users/jenssomers/Desktop/Don't forget/build/codex-welcome-verify/Index.noindex/DataStore",
+      "indexEnableDataStore" : true,
+      "indexPCHPath" : "/Users/jenssomers/Desktop/Don't forget/build/codex-welcome-verify/Index.noindex/PrecompiledHeaders",
+      "pchPath" : "/Users/jenssomers/Desktop/Don't forget/build/codex-welcome-verify/Build/Intermediates.noindex/PrecompiledHeaders"
+    },
+    "configurationName" : "Debug",
+    "overrides" : {
+      "commandLine" : {
+        "table" : {
+          "CODE_SIGNING_ALLOWED" : "NO"
+        }
+      },
+      "synthesized" : {
+        "table" : {
+          "ACTION" : "build",
+          "CLANG_COVERAGE_MAPPING" : "YES",
+          "CLANG_PROFILE_DATA_DIRECTORY" : "/Users/jenssomers/Desktop/Don't forget/build/codex-welcome-verify/Build/ProfileData",
+          "ENABLE_PREVIEWS" : "NO",
+          "ENABLE_XOJIT_PREVIEWS" : "YES",
+          "ONLY_ACTIVE_ARCH" : "YES"
+        }
+      }
+    }
+  },
+  "schemeCommand" : "launch",
+  "showNonLoggedProgress" : true,
+  "useDryRun" : false,
+  "useImplicitDependencies" : true,
+  "useLegacyBuildLocations" : false,
+  "useParallelTargets" : true
+}

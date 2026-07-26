@@ -157,11 +157,11 @@ struct MacCalendarView: View {
             ),
             titleVisibility: .visible
         ) {
-            Button("Ook toekomstige items verplaatsen") { applyRecurringMoveOffer() }
-            Button("Alleen dit item") { recurringMoveOffer = nil }
-            Button("Annuleer", role: .cancel) { undoLastAction(); recurringMoveOffer = nil }
+            Button(locale.localized("Ook toekomstige items verplaatsen")) { applyRecurringMoveOffer() }
+            Button(locale.localized("Alleen dit item")) { recurringMoveOffer = nil }
+            Button(locale.localized("Annuleer"), role: .cancel) { undoLastAction(); recurringMoveOffer = nil }
         } message: {
-            Text("Wil je dezelfde datumverschuiving toepassen op alle volgende voorkomens van dit terugkerende item?")
+            Text(locale.localized("Wil je dezelfde datumverschuiving toepassen op alle volgende voorkomens van dit terugkerende item?"))
         }
         .onReceive(NotificationCenter.default.publisher(for: .macUndoAgendaAction)) { _ in
             undoLastAction()
@@ -247,19 +247,19 @@ struct MacCalendarView: View {
 
     private func moveSheet(_ entry: DayEntry) -> some View {
         VStack(alignment: .leading, spacing: 18) {
-            Label("Verplaats agenda-item", systemImage: "calendar.badge.clock").font(.title2.bold())
+            Label(locale.localized("Verplaats agenda-item"), systemImage: "calendar.badge.clock").font(.title2.bold())
             Text(entry.rawText.isEmpty ? "Agenda-item" : entry.rawText).foregroundStyle(.secondary)
             HStack(spacing: 8) {
-                TextField("Nieuwe datum", text: $moveDateText)
+                TextField(locale.localized("Nieuwe datum"), text: $moveDateText)
                     .textFieldStyle(.roundedBorder)
                     .onSubmit { commitTypedMove(entry) }
 
-                Button("Open kalender", systemImage: "calendar") {
+                Button(locale.localized("Open kalender"), systemImage: "calendar") {
                     isMoveCalendarPresented.toggle()
                 }
                 .labelStyle(.iconOnly)
                 .popover(isPresented: $isMoveCalendarPresented, arrowEdge: .bottom) {
-                    DatePicker("Nieuwe datum", selection: $moveDate, displayedComponents: .date)
+                    DatePicker(locale.localized("Nieuwe datum"), selection: $moveDate, displayedComponents: .date)
                         .datePickerStyle(.graphical)
                         .padding()
                         .onChange(of: moveDate) { _, date in
@@ -269,8 +269,8 @@ struct MacCalendarView: View {
             }
             HStack {
                 Spacer()
-                Button("Annuleer", role: .cancel) { movingEntry = nil }
-                Button("Verplaats") {
+                Button(locale.localized("Annuleer"), role: .cancel) { movingEntry = nil }
+                Button(locale.localized("Verplaats")) {
                     performMove(entry)
                 }
                 .keyboardShortcut(.defaultAction)
@@ -428,6 +428,7 @@ private struct MacWeekCard: View {
 
 private struct MacCalendarDay: View {
     @Environment(\.modelContext) private var modelContext
+    @Environment(\.locale) private var locale
     let day: DayInfo
     let showsAddPrompt: Bool
     let entries: [DayEntry]
@@ -494,7 +495,7 @@ private struct MacCalendarDay: View {
             Color.clear.frame(width: 1)
 
             if newEntryDate == day.date {
-                TextField("Nieuw agenda-item", text: $newEntryText)
+                TextField(locale.localized("Nieuw agenda-item"), text: $newEntryText)
                     .textFieldStyle(.plain)
                     .focused($newEntryFocused)
                     .onSubmit { addEntry(continueEditing: false) }
@@ -508,7 +509,7 @@ private struct MacCalendarDay: View {
                     }
                     .onExitCommand { cancelEntry() }
 
-                Button("Voeg toe en ga door", systemImage: "plus.circle.fill") {
+                Button(locale.localized("Voeg toe en ga door"), systemImage: "plus.circle.fill") {
                     addEntry(continueEditing: true)
                 }
                 .labelStyle(.iconOnly)
@@ -517,7 +518,7 @@ private struct MacCalendarDay: View {
                 .frame(width: 28, height: 24)
                 .contentShape(Rectangle())
                 .foregroundStyle(Color.brandHardBlue)
-                .help("Voeg toe en maak nog een item")
+                .help(locale.localized("Voeg toe en maak nog een item"))
             } else {
                 Button {
                     commitPendingEntryBeforeSwitchingDays()
@@ -528,7 +529,7 @@ private struct MacCalendarDay: View {
                 } label: {
                     Group {
                         if showsAddPrompt && !hasUsedAgendaInput {
-                            Label("Voeg item toe", systemImage: "plus")
+                            Label(locale.localized("Voeg item toe"), systemImage: "plus")
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
                         } else {
@@ -613,6 +614,7 @@ private struct MacCalendarDay: View {
 
 private struct MacCalendarEntryRow: View {
     @Environment(\.modelContext) private var modelContext
+    @Environment(\.locale) private var locale
     @Bindable var entry: DayEntry
     let searchText: String
     let currentMatchID: UUID?
@@ -647,7 +649,7 @@ private struct MacCalendarEntryRow: View {
                 .buttonStyle(.plain)
                 .foregroundStyle(.secondary)
                 .contentShape(Rectangle())
-                .help("Verplaats item")
+                .help(locale.localized("Verplaats item"))
             }
             .font(.system(size: 13, weight: .medium))
             .offset(x: -4)
@@ -655,7 +657,7 @@ private struct MacCalendarEntryRow: View {
             // Keep the content spacing after the overlaid day divider.
             Color.clear.frame(width: 1)
 
-            TextField("Agenda-item", text: $draftText)
+            TextField(locale.localized("Agenda-item"), text: $draftText)
                 .textFieldStyle(.plain)
                 .focused($isTextFocused)
                 .foregroundStyle(entryAccentColor)
@@ -670,14 +672,14 @@ private struct MacCalendarEntryRow: View {
                 .frame(maxWidth: .infinity)
 
             Menu {
-                Button("Verplaats naar andere datum", systemImage: "calendar.badge.clock", action: startMove)
+                Button(locale.localized("Verplaats naar andere datum"), systemImage: "calendar.badge.clock", action: startMove)
                 ForEach(todoGroups) { group in
                     Button("Verplaats naar \(group.title)", systemImage: group.icon) {
                         moveToTodo(group)
                     }
                 }
                 Divider()
-                Button("Verwijder", systemImage: "trash", role: .destructive, action: remove)
+                Button(locale.localized("Verwijder"), systemImage: "trash", role: .destructive, action: remove)
             } label: {
                 Image(systemName: "arrow.left.arrow.right")
                     .font(.system(size: 12, weight: .medium))
@@ -708,12 +710,12 @@ private struct MacCalendarEntryRow: View {
         ))
         .background(isSelected ? Color.accentColor.opacity(0.14) : .clear, in: RoundedRectangle(cornerRadius: 6))
         .contextMenu {
-            Button("Verplaats naar andere datum", systemImage: "calendar.badge.clock", action: startMove)
+            Button(locale.localized("Verplaats naar andere datum"), systemImage: "calendar.badge.clock", action: startMove)
             ForEach(todoGroups) { group in
                 Button("Verplaats naar \(group.title)", systemImage: group.icon) { moveToTodo(group) }
             }
             Divider()
-            Button("Verwijder", systemImage: "trash", role: .destructive, action: remove)
+            Button(locale.localized("Verwijder"), systemImage: "trash", role: .destructive, action: remove)
         }
         .onAppear {
             draftText = entry.rawText

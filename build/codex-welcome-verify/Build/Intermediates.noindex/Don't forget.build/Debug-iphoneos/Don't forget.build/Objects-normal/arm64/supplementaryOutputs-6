@@ -1,0 +1,23 @@
+{
+  "/Users/jenssomers/Desktop/Don't forget/Don't forget/Don't forget/ContentView.swift" : {
+    "const-values" : "/Users/jenssomers/Desktop/Don't forget/build/codex-welcome-verify/Build/Intermediates.noindex/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/ContentView.swiftconstvalues",
+    "dependencies" : "/Users/jenssomers/Desktop/Don't forget/build/codex-welcome-verify/Build/Intermediates.noindex/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/ContentView.d",
+    "diagnostics" : "/Users/jenssomers/Desktop/Don't forget/build/codex-welcome-verify/Build/Intermediates.noindex/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/ContentView.dia",
+    "object" : "/Users/jenssomers/Desktop/Don't forget/build/codex-welcome-verify/Build/Intermediates.noindex/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/ContentView.o",
+    "swift-dependencies" : "/Users/jenssomers/Desktop/Don't forget/build/codex-welcome-verify/Build/Intermediates.noindex/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/ContentView.swiftdeps"
+  },
+  "/Users/jenssomers/Desktop/Don't forget/Don't forget/Don't forget/DeferredCommitTextField.swift" : {
+    "const-values" : "/Users/jenssomers/Desktop/Don't forget/build/codex-welcome-verify/Build/Intermediates.noindex/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/DeferredCommitTextField.swiftconstvalues",
+    "dependencies" : "/Users/jenssomers/Desktop/Don't forget/build/codex-welcome-verify/Build/Intermediates.noindex/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/DeferredCommitTextField.d",
+    "diagnostics" : "/Users/jenssomers/Desktop/Don't forget/build/codex-welcome-verify/Build/Intermediates.noindex/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/DeferredCommitTextField.dia",
+    "object" : "/Users/jenssomers/Desktop/Don't forget/build/codex-welcome-verify/Build/Intermediates.noindex/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/DeferredCommitTextField.o",
+    "swift-dependencies" : "/Users/jenssomers/Desktop/Don't forget/build/codex-welcome-verify/Build/Intermediates.noindex/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/DeferredCommitTextField.swiftdeps"
+  },
+  "/Users/jenssomers/Desktop/Don't forget/Don't forget/Don't forget/DemoData.swift" : {
+    "const-values" : "/Users/jenssomers/Desktop/Don't forget/build/codex-welcome-verify/Build/Intermediates.noindex/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/DemoData.swiftconstvalues",
+    "dependencies" : "/Users/jenssomers/Desktop/Don't forget/build/codex-welcome-verify/Build/Intermediates.noindex/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/DemoData.d",
+    "diagnostics" : "/Users/jenssomers/Desktop/Don't forget/build/codex-welcome-verify/Build/Intermediates.noindex/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/DemoData.dia",
+    "object" : "/Users/jenssomers/Desktop/Don't forget/build/codex-welcome-verify/Build/Intermediates.noindex/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/DemoData.o",
+    "swift-dependencies" : "/Users/jenssomers/Desktop/Don't forget/build/codex-welcome-verify/Build/Intermediates.noindex/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/DemoData.swiftdeps"
+  }
+}

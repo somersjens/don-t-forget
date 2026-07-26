@@ -1,0 +1,1184 @@
+{
+  "source": "/Users/jenssomers/Desktop/Don't forget/Don't forget/Don't forget/MacRootView.swift",
+  "tables": {
+    "Localizable": [
+      {
+        "comment": "",
+        "key": "Bewaren mislukt",
+        "location": {
+          "startingColumn": 16,
+          "startingLine": 150
+        }
+      },
+      {
+        "comment": "",
+        "key": "OK",
+        "location": {
+          "startingColumn": 20,
+          "startingLine": 154
+        }
+      },
+      {
+        "comment": "",
+        "key": "Zoeken sluiten",
+        "location": {
+          "startingColumn": 43,
+          "startingLine": 214
+        }
+      },
+      {
+        "comment": "",
+        "key": "Zoeken",
+        "location": {
+          "startingColumn": 62,
+          "startingLine": 214
+        }
+      },
+      {
+        "comment": "",
+        "key": "App is bezig",
+        "location": {
+          "startingColumn": 49,
+          "startingLine": 189
+        }
+      },
+      {
+        "comment": "",
+        "key": "Terug",
+        "location": {
+          "startingColumn": 31,
+          "startingLine": 201
+        }
+      },
+      {
+        "comment": "",
+        "key": "Periode",
+        "location": {
+          "startingColumn": 31,
+          "startingLine": 659
+        }
+      },
+      {
+        "comment": "",
+        "key": "Afgerond",
+        "location": {
+          "startingColumn": 31,
+          "startingLine": 660
+        }
+      },
+      {
+        "comment": "",
+        "key": "%lld",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 672
+        }
+      },
+      {
+        "comment": "",
+        "key": "Nog niets afgerond",
+        "location": {
+          "startingColumn": 66,
+          "startingLine": 780
+        }
+      },
+      {
+        "comment": "",
+        "key": "%lld afgerond",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 882
+        }
+      },
+      {
+        "comment": "",
+        "key": "%lld in afgelopen 7 dagen",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 883
+        }
+      },
+      {
+        "comment": "",
+        "key": "Verwijderde items",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 923
+        }
+      },
+      {
+        "comment": "",
+        "key": "Toon ook items die eerder zijn verwijderd",
+        "location": {
+          "startingColumn": 52,
+          "startingLine": 929
+        }
+      },
+      {
+        "comment": "",
+        "key": "%@ — %@",
+        "location": {
+          "startingColumn": 19,
+          "startingLine": 975
+        }
+      },
+      {
+        "comment": "",
+        "key": "Definitief verwijderen",
+        "location": {
+          "startingColumn": 23,
+          "startingLine": 966
+        }
+      },
+      {
+        "comment": "",
+        "key": "%@ · %@",
+        "location": {
+          "startingColumn": 22,
+          "startingLine": 950
+        }
+      },
+      {
+        "comment": "",
+        "key": "Terugzetten",
+        "location": {
+          "startingColumn": 53,
+          "startingLine": 953
+        }
+      },
+      {
+        "comment": "",
+        "key": "Definitief verwijderen",
+        "location": {
+          "startingColumn": 59,
+          "startingLine": 960
+        }
+      },
+      {
+        "comment": "",
+        "key": "Terugzetten",
+        "location": {
+          "startingColumn": 16,
+          "startingLine": 980
+        }
+      },
+      {
+        "comment": "",
+        "key": "Definitief verwijderen",
+        "location": {
+          "startingColumn": 16,
+          "startingLine": 982
+        }
+      },
+      {
+        "comment": "",
+        "key": "‘%@’ teruggezet",
+        "location": {
+          "startingColumn": 24,
+          "startingLine": 1019
+        }
+      },
+      {
+        "comment": "",
+        "key": "Ongedaan maken",
+        "location": {
+          "startingColumn": 138,
+          "startingLine": 1019
+        }
+      },
+      {
+        "comment": "",
+        "key": "‘%@’ verwijderd",
+        "location": {
+          "startingColumn": 24,
+          "startingLine": 1023
+        }
+      },
+      {
+        "comment": "",
+        "key": "Terughalen",
+        "location": {
+          "startingColumn": 116,
+          "startingLine": 1023
+        }
+      },
+      {
+        "comment": "",
+        "key": "Ongedaan maken",
+        "location": {
+          "startingColumn": 28,
+          "startingLine": 1140
+        }
+      },
+      {
+        "comment": "",
+        "key": "",
+        "location": {
+          "startingColumn": 27,
+          "startingLine": 1172
+        }
+      },
+      {
+        "comment": "",
+        "key": "Icoon en kleur wijzigen",
+        "location": {
+          "startingColumn": 23,
+          "startingLine": 1226
+        }
+      },
+      {
+        "comment": "",
+        "key": "Icoon",
+        "location": {
+          "startingColumn": 14,
+          "startingLine": 1432
+        }
+      },
+      {
+        "comment": "",
+        "key": "Kleur",
+        "location": {
+          "startingColumn": 14,
+          "startingLine": 1437
+        }
+      },
+      {
+        "comment": "",
+        "key": "Groepsnaam",
+        "location": {
+          "startingColumn": 31,
+          "startingLine": 1228
+        }
+      },
+      {
+        "comment": "",
+        "key": "1 open",
+        "location": {
+          "startingColumn": 45,
+          "startingLine": 1231
+        }
+      },
+      {
+        "comment": "",
+        "key": "%lld open",
+        "location": {
+          "startingColumn": 56,
+          "startingLine": 1231
+        }
+      },
+      {
+        "comment": "",
+        "key": "Nieuwe taak invoeren",
+        "location": {
+          "startingColumn": 23,
+          "startingLine": 1261
+        }
+      },
+      {
+        "comment": "",
+        "key": "Nieuwe taak",
+        "location": {
+          "startingColumn": 27,
+          "startingLine": 1262
+        }
+      },
+      {
+        "comment": "",
+        "key": "Hoe lang open; klik voor verplaatsen",
+        "location": {
+          "startingColumn": 19,
+          "startingLine": 1305
+        }
+      },
+      {
+        "comment": "",
+        "key": "Taak",
+        "location": {
+          "startingColumn": 23,
+          "startingLine": 1307
+        }
+      },
+      {
+        "comment": "",
+        "key": "Verplaatsen of verwijderen",
+        "location": {
+          "startingColumn": 19,
+          "startingLine": 1335
+        }
+      },
+      {
+        "comment": "",
+        "key": "Markeer als afgerond",
+        "location": {
+          "startingColumn": 19,
+          "startingLine": 1345
+        }
+      },
+      {
+        "comment": "",
+        "key": "Helemaal omhoog",
+        "location": {
+          "startingColumn": 24,
+          "startingLine": 1403
+        }
+      },
+      {
+        "comment": "",
+        "key": "Omhoog",
+        "location": {
+          "startingColumn": 24,
+          "startingLine": 1406
+        }
+      },
+      {
+        "comment": "",
+        "key": "Omlaag",
+        "location": {
+          "startingColumn": 24,
+          "startingLine": 1409
+        }
+      },
+      {
+        "comment": "",
+        "key": "Helemaal omlaag",
+        "location": {
+          "startingColumn": 24,
+          "startingLine": 1412
+        }
+      },
+      {
+        "comment": "",
+        "key": "Verwijder groep",
+        "location": {
+          "startingColumn": 20,
+          "startingLine": 1415
+        }
+      },
+      {
+        "comment": "",
+        "key": "Nieuwe groep",
+        "location": {
+          "startingColumn": 23,
+          "startingLine": 1452
+        }
+      },
+      {
+        "comment": "",
+        "key": "Volgende: %@",
+        "location": {
+          "startingColumn": 22,
+          "startingLine": 1627
+        }
+      },
+      {
+        "comment": "",
+        "key": "Nieuwe herhaling",
+        "location": {
+          "startingColumn": 51,
+          "startingLine": 1768
+        }
+      },
+      {
+        "comment": "",
+        "key": "Wijzig herhaling",
+        "location": {
+          "startingColumn": 72,
+          "startingLine": 1768
+        }
+      },
+      {
+        "comment": "",
+        "key": "Verwijder",
+        "location": {
+          "startingColumn": 40,
+          "startingLine": 1771
+        }
+      },
+      {
+        "comment": "",
+        "key": "Annuleer",
+        "location": {
+          "startingColumn": 40,
+          "startingLine": 1778
+        }
+      },
+      {
+        "comment": "",
+        "key": "Gereed",
+        "location": {
+          "startingColumn": 36,
+          "startingLine": 1782
+        }
+      },
+      {
+        "comment": "",
+        "key": "Ongedaan maken",
+        "location": {
+          "startingColumn": 28,
+          "startingLine": 1815
+        }
+      },
+      {
+        "comment": "",
+        "key": "Icoon en kleur wijzigen",
+        "location": {
+          "startingColumn": 23,
+          "startingLine": 1868
+        }
+      },
+      {
+        "comment": "",
+        "key": "Icoon",
+        "location": {
+          "startingColumn": 14,
+          "startingLine": 1989
+        }
+      },
+      {
+        "comment": "",
+        "key": "Kleur",
+        "location": {
+          "startingColumn": 14,
+          "startingLine": 1994
+        }
+      },
+      {
+        "comment": "",
+        "key": "Groepsnaam",
+        "location": {
+          "startingColumn": 35,
+          "startingLine": 1873
+        }
+      },
+      {
+        "comment": "",
+        "key": "Feestdagen kiezen",
+        "location": {
+          "startingColumn": 81,
+          "startingLine": 1886
+        }
+      },
+      {
+        "comment": "",
+        "key": "Herhaling toevoegen",
+        "location": {
+          "startingColumn": 103,
+          "startingLine": 1886
+        }
+      },
+      {
+        "comment": "",
+        "key": "Volgorde en uiterlijk",
+        "location": {
+          "startingColumn": 15,
+          "startingLine": 1984
+        }
+      },
+      {
+        "comment": "",
+        "key": "Helemaal omhoog",
+        "location": {
+          "startingColumn": 24,
+          "startingLine": 1957
+        }
+      },
+      {
+        "comment": "",
+        "key": "Omhoog",
+        "location": {
+          "startingColumn": 24,
+          "startingLine": 1960
+        }
+      },
+      {
+        "comment": "",
+        "key": "Omlaag",
+        "location": {
+          "startingColumn": 24,
+          "startingLine": 1963
+        }
+      },
+      {
+        "comment": "",
+        "key": "Helemaal omlaag",
+        "location": {
+          "startingColumn": 24,
+          "startingLine": 1966
+        }
+      },
+      {
+        "comment": "",
+        "key": "Verwijder groep",
+        "location": {
+          "startingColumn": 24,
+          "startingLine": 1972
+        }
+      },
+      {
+        "comment": "",
+        "key": "Nieuwe categorie",
+        "location": {
+          "startingColumn": 23,
+          "startingLine": 2011
+        }
+      },
+      {
+        "comment": "",
+        "key": "Agenda-item",
+        "location": {
+          "startingColumn": 21,
+          "startingLine": 2225
+        }
+      },
+      {
+        "comment": "",
+        "key": "Details",
+        "location": {
+          "startingColumn": 21,
+          "startingLine": 2230
+        }
+      },
+      {
+        "comment": "",
+        "key": "Omschrijving",
+        "location": {
+          "startingColumn": 27,
+          "startingLine": 2226
+        }
+      },
+      {
+        "comment": "",
+        "key": "Datum",
+        "location": {
+          "startingColumn": 28,
+          "startingLine": 2227
+        }
+      },
+      {
+        "comment": "",
+        "key": "Afgerond",
+        "location": {
+          "startingColumn": 24,
+          "startingLine": 2228
+        }
+      },
+      {
+        "comment": "",
+        "key": "Aangemaakt",
+        "location": {
+          "startingColumn": 32,
+          "startingLine": 2231
+        }
+      },
+      {
+        "comment": "",
+        "key": "Bron",
+        "location": {
+          "startingColumn": 32,
+          "startingLine": 2232
+        }
+      },
+      {
+        "comment": "",
+        "key": "Taak",
+        "location": {
+          "startingColumn": 21,
+          "startingLine": 2250
+        }
+      },
+      {
+        "comment": "",
+        "key": "Details",
+        "location": {
+          "startingColumn": 21,
+          "startingLine": 2259
+        }
+      },
+      {
+        "comment": "",
+        "key": "Omschrijving",
+        "location": {
+          "startingColumn": 27,
+          "startingLine": 2251
+        }
+      },
+      {
+        "comment": "",
+        "key": "Lijst",
+        "location": {
+          "startingColumn": 24,
+          "startingLine": 2252
+        }
+      },
+      {
+        "comment": "",
+        "key": "Afgerond",
+        "location": {
+          "startingColumn": 24,
+          "startingLine": 2257
+        }
+      },
+      {
+        "comment": "",
+        "key": "Vandaag",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 2253
+        }
+      },
+      {
+        "comment": "",
+        "key": "Binnenkort",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 2254
+        }
+      },
+      {
+        "comment": "",
+        "key": "Later",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 2255
+        }
+      },
+      {
+        "comment": "",
+        "key": "Aangemaakt",
+        "location": {
+          "startingColumn": 32,
+          "startingLine": 2260
+        }
+      },
+      {
+        "comment": "",
+        "key": "Feestdagen",
+        "location": {
+          "startingColumn": 22,
+          "startingLine": 2292
+        }
+      },
+      {
+        "comment": "",
+        "key": "Annuleer",
+        "location": {
+          "startingColumn": 24,
+          "startingLine": 2290
+        }
+      },
+      {
+        "comment": "",
+        "key": "Bewaar",
+        "location": {
+          "startingColumn": 24,
+          "startingLine": 2294
+        }
+      },
+      {
+        "comment": "",
+        "key": "Maak een eigen feestdag met een vaste datum of een weekdag van de maand.",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 2366
+        }
+      },
+      {
+        "comment": "",
+        "key": "Standaardland",
+        "location": {
+          "startingColumn": 34,
+          "startingLine": 2302
+        }
+      },
+      {
+        "comment": "",
+        "key": "Laat alleen lokale feestdagen zien",
+        "location": {
+          "startingColumn": 34,
+          "startingLine": 2313
+        }
+      },
+      {
+        "comment": "",
+        "key": "",
+        "location": {
+          "startingColumn": 36,
+          "startingLine": 2315
+        }
+      },
+      {
+        "comment": "",
+        "key": "%lld/%lld",
+        "location": {
+          "startingColumn": 34,
+          "startingLine": 2335
+        }
+      },
+      {
+        "comment": "",
+        "key": "Alles deselecteren",
+        "location": {
+          "startingColumn": 77,
+          "startingLine": 2326
+        }
+      },
+      {
+        "comment": "",
+        "key": "Alles selecteren",
+        "location": {
+          "startingColumn": 100,
+          "startingLine": 2326
+        }
+      },
+      {
+        "comment": "",
+        "key": "",
+        "location": {
+          "startingColumn": 40,
+          "startingLine": 2349
+        }
+      },
+      {
+        "comment": "",
+        "key": "Eigen feestdag toevoegen",
+        "location": {
+          "startingColumn": 32,
+          "startingLine": 2360
+        }
+      },
+      {
+        "comment": "",
+        "key": "Eigen feestdag",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 2385
+        }
+      },
+      {
+        "comment": "",
+        "key": "Annuleer",
+        "location": {
+          "startingColumn": 28,
+          "startingLine": 2383
+        }
+      },
+      {
+        "comment": "",
+        "key": "Bewaar",
+        "location": {
+          "startingColumn": 28,
+          "startingLine": 2387
+        }
+      },
+      {
+        "comment": "",
+        "key": "Frequentie",
+        "location": {
+          "startingColumn": 28,
+          "startingLine": 2551
+        }
+      },
+      {
+        "comment": "",
+        "key": "Wie",
+        "location": {
+          "startingColumn": 74,
+          "startingLine": 2685
+        }
+      },
+      {
+        "comment": "",
+        "key": "Wat",
+        "location": {
+          "startingColumn": 102,
+          "startingLine": 2685
+        }
+      },
+      {
+        "comment": "",
+        "key": "De datum varieert voorspelbaar rond deze periode.",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 2927
+        }
+      },
+      {
+        "comment": "",
+        "key": "Wordt iedere drie maanden herhaald vanaf de eerstvolgende datum.",
+        "location": {
+          "startingColumn": 22,
+          "startingLine": 2930
+        }
+      },
+      {
+        "comment": "",
+        "key": "Wordt ieder jaar herhaald op de datum hierboven.",
+        "location": {
+          "startingColumn": 22,
+          "startingLine": 2932
+        }
+      },
+      {
+        "comment": "",
+        "key": "Leeftijd/jaar onzeker",
+        "location": {
+          "startingColumn": 28,
+          "startingLine": 2828
+        }
+      },
+      {
+        "comment": "",
+        "key": "Reminder vooraf",
+        "location": {
+          "startingColumn": 17,
+          "startingLine": 2830
+        }
+      },
+      {
+        "comment": "",
+        "key": "Datum",
+        "location": {
+          "startingColumn": 35,
+          "startingLine": 2859
+        }
+      },
+      {
+        "comment": "",
+        "key": "Startdatum",
+        "location": {
+          "startingColumn": 42,
+          "startingLine": 2868
+        }
+      },
+      {
+        "comment": "",
+        "key": "Eerstvolgende datum",
+        "location": {
+          "startingColumn": 42,
+          "startingLine": 2869
+        }
+      },
+      {
+        "comment": "",
+        "key": "Elke %llde van de maand",
+        "location": {
+          "startingColumn": 21,
+          "startingLine": 2893
+        }
+      },
+      {
+        "comment": "",
+        "key": "Elke %lld",
+        "location": {
+          "startingColumn": 21,
+          "startingLine": 2902
+        }
+      },
+      {
+        "comment": "",
+        "key": "Links",
+        "location": {
+          "startingColumn": 20,
+          "startingLine": 2715
+        }
+      },
+      {
+        "comment": "",
+        "key": "Notitie",
+        "location": {
+          "startingColumn": 20,
+          "startingLine": 2787
+        }
+      },
+      {
+        "comment": "",
+        "key": "",
+        "location": {
+          "startingColumn": 17,
+          "startingLine": 2687
+        }
+      },
+      {
+        "comment": "",
+        "key": "Verplicht veld",
+        "location": {
+          "startingColumn": 23,
+          "startingLine": 2690
+        }
+      },
+      {
+        "comment": "",
+        "key": "Naam",
+        "location": {
+          "startingColumn": 59,
+          "startingLine": 2691
+        }
+      },
+      {
+        "comment": "",
+        "key": "Titel",
+        "location": {
+          "startingColumn": 68,
+          "startingLine": 2691
+        }
+      },
+      {
+        "comment": "",
+        "key": "Categorie",
+        "location": {
+          "startingColumn": 22,
+          "startingLine": 2701
+        }
+      },
+      {
+        "comment": "",
+        "key": "Plak link",
+        "location": {
+          "startingColumn": 73,
+          "startingLine": 2725
+        }
+      },
+      {
+        "comment": "",
+        "key": "",
+        "location": {
+          "startingColumn": 27,
+          "startingLine": 2725
+        }
+      },
+      {
+        "comment": "",
+        "key": "Link verwijderen",
+        "location": {
+          "startingColumn": 45,
+          "startingLine": 2739
+        }
+      },
+      {
+        "comment": "",
+        "key": "Link %lld",
+        "location": {
+          "startingColumn": 78,
+          "startingLine": 2751
+        }
+      },
+      {
+        "comment": "",
+        "key": "",
+        "location": {
+          "startingColumn": 31,
+          "startingLine": 2751
+        }
+      },
+      {
+        "comment": "",
+        "key": "Linknaam aanpassen",
+        "location": {
+          "startingColumn": 45,
+          "startingLine": 2774
+        }
+      },
+      {
+        "comment": "",
+        "key": "Dag/Maand",
+        "location": {
+          "startingColumn": 22,
+          "startingLine": 2795
+        }
+      },
+      {
+        "comment": "",
+        "key": "Leeftijd/jaar",
+        "location": {
+          "startingColumn": 22,
+          "startingLine": 2812
+        }
+      },
+      {
+        "comment": "",
+        "key": "Leeftijd",
+        "location": {
+          "startingColumn": 73,
+          "startingLine": 2815
+        }
+      },
+      {
+        "comment": "",
+        "key": "",
+        "location": {
+          "startingColumn": 31,
+          "startingLine": 2815
+        }
+      },
+      {
+        "comment": "",
+        "key": "Jaar",
+        "location": {
+          "startingColumn": 75,
+          "startingLine": 2821
+        }
+      },
+      {
+        "comment": "",
+        "key": "",
+        "location": {
+          "startingColumn": 31,
+          "startingLine": 2821
+        }
+      },
+      {
+        "comment": "",
+        "key": "Dagen vooraf",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 2836
+        }
+      },
+      {
+        "comment": "",
+        "key": "%lld dagen",
+        "location": {
+          "startingColumn": 29,
+          "startingLine": 2838
+        }
+      },
+      {
+        "comment": "",
+        "key": "Regel",
+        "location": {
+          "startingColumn": 22,
+          "startingLine": 2845
+        }
+      },
+      {
+        "comment": "",
+        "key": "Type",
+        "location": {
+          "startingColumn": 22,
+          "startingLine": 2873
+        }
+      },
+      {
+        "comment": "",
+        "key": "Eenheid",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 2908
+        }
+      },
+      {
+        "comment": "",
+        "key": "%lld",
+        "location": {
+          "startingColumn": 22,
+          "startingLine": 2954
+        }
+      },
+      {
+        "comment": "",
+        "key": "",
+        "location": {
+          "startingColumn": 20,
+          "startingLine": 2980
+        }
+      },
+      {
+        "comment": "",
+        "key": "",
+        "location": {
+          "startingColumn": 28,
+          "startingLine": 3012
+        }
+      },
+      {
+        "comment": "",
+        "key": "Maand",
+        "location": {
+          "startingColumn": 18,
+          "startingLine": 3023
+        }
+      },
+      {
+        "comment": "",
+        "key": "Welke",
+        "location": {
+          "startingColumn": 18,
+          "startingLine": 3036
+        }
+      },
+      {
+        "comment": "",
+        "key": "Weekdag",
+        "location": {
+          "startingColumn": 18,
+          "startingLine": 3049
+        }
+      },
+      {
+        "comment": "",
+        "key": "Agenda",
+        "location": {
+          "startingColumn": 21,
+          "startingLine": 3198
+        }
+      },
+      {
+        "comment": "",
+        "key": "Weergave",
+        "location": {
+          "startingColumn": 21,
+          "startingLine": 3207
+        }
+      },
+      {
+        "comment": "",
+        "key": "iCloud",
+        "location": {
+          "startingColumn": 21,
+          "startingLine": 3214
+        }
+      },
+      {
+        "comment": "",
+        "key": "App Color",
+        "location": {
+          "startingColumn": 24,
+          "startingLine": 3208
+        }
+      },
+      {
+        "comment": "",
+        "key": "Light blue",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 3209
+        }
+      },
+      {
+        "comment": "",
+        "key": "Grey",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 3210
+        }
+      },
+      {
+        "comment": "",
+        "key": "Deze Mac gebruikt dezelfde private iCloud-container als je iPhone en iPad. Wijzigingen worden automatisch op alle apparaten bijgewerkt.",
+        "location": {
+          "startingColumn": 22,
+          "startingLine": 3222
+        }
+      },
+      {
+        "comment": "",
+        "key": "Synchronisatie",
+        "location": {
+          "startingColumn": 32,
+          "startingLine": 3215
+        }
+      }
+    ]
+  },
+  "version": 1
+}

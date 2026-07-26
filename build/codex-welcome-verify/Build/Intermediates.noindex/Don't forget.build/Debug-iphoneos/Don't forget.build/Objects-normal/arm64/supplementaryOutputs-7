@@ -1,0 +1,23 @@
+{
+  "/Users/jenssomers/Desktop/Don't forget/Don't forget/Don't forget/Don_t_forgetApp.swift" : {
+    "const-values" : "/Users/jenssomers/Desktop/Don't forget/build/codex-welcome-verify/Build/Intermediates.noindex/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/Don_t_forgetApp.swiftconstvalues",
+    "dependencies" : "/Users/jenssomers/Desktop/Don't forget/build/codex-welcome-verify/Build/Intermediates.noindex/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/Don_t_forgetApp.d",
+    "diagnostics" : "/Users/jenssomers/Desktop/Don't forget/build/codex-welcome-verify/Build/Intermediates.noindex/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/Don_t_forgetApp.dia",
+    "object" : "/Users/jenssomers/Desktop/Don't forget/build/codex-welcome-verify/Build/Intermediates.noindex/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/Don_t_forgetApp.o",
+    "swift-dependencies" : "/Users/jenssomers/Desktop/Don't forget/build/codex-welcome-verify/Build/Intermediates.noindex/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/Don_t_forgetApp.swiftdeps"
+  },
+  "/Users/jenssomers/Desktop/Don't forget/Don't forget/Don't forget/EndOfDayReminderService.swift" : {
+    "const-values" : "/Users/jenssomers/Desktop/Don't forget/build/codex-welcome-verify/Build/Intermediates.noindex/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/EndOfDayReminderService.swiftconstvalues",
+    "dependencies" : "/Users/jenssomers/Desktop/Don't forget/build/codex-welcome-verify/Build/Intermediates.noindex/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/EndOfDayReminderService.d",
+    "diagnostics" : "/Users/jenssomers/Desktop/Don't forget/build/codex-welcome-verify/Build/Intermediates.noindex/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/EndOfDayReminderService.dia",
+    "object" : "/Users/jenssomers/Desktop/Don't forget/build/codex-welcome-verify/Build/Intermediates.noindex/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/EndOfDayReminderService.o",
+    "swift-dependencies" : "/Users/jenssomers/Desktop/Don't forget/build/codex-welcome-verify/Build/Intermediates.noindex/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/EndOfDayReminderService.swiftdeps"
+  },
+  "/Users/jenssomers/Desktop/Don't forget/Don't forget/Don't forget/HistoryCleanupService.swift" : {
+    "const-values" : "/Users/jenssomers/Desktop/Don't forget/build/codex-welcome-verify/Build/Intermediates.noindex/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/HistoryCleanupService.swiftconstvalues",
+    "dependencies" : "/Users/jenssomers/Desktop/Don't forget/build/codex-welcome-verify/Build/Intermediates.noindex/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/HistoryCleanupService.d",
+    "diagnostics" : "/Users/jenssomers/Desktop/Don't forget/build/codex-welcome-verify/Build/Intermediates.noindex/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/HistoryCleanupService.dia",
+    "object" : "/Users/jenssomers/Desktop/Don't forget/build/codex-welcome-verify/Build/Intermediates.noindex/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/HistoryCleanupService.o",
+    "swift-dependencies" : "/Users/jenssomers/Desktop/Don't forget/build/codex-welcome-verify/Build/Intermediates.noindex/Don't forget.build/Debug-iphoneos/Don't forget.build/Objects-normal/arm64/HistoryCleanupService.swiftdeps"
+  }
+}

@@ -685,7 +685,7 @@ private struct UpcomingCalendarWidgetView: View {
                 itemRow(item, accessory: true)
             }
             if visibleItems.isEmpty {
-                Text("widget.noUpcomingItems")
+                Text(localized("widget.noUpcomingItems"))
                     .font(.caption)
             }
         }

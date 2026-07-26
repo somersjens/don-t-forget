@@ -1,0 +1,137 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>logFormatVersion</key>
+	<integer>11</integer>
+	<key>logs</key>
+	<dict>
+		<key>0E6368B7-4C84-4A67-A780-E0439E277A54</key>
+		<dict>
+			<key>className</key>
+			<string>IDECommandLineBuildLog</string>
+			<key>documentTypeString</key>
+			<string>&lt;nil&gt;</string>
+			<key>domainType</key>
+			<string>Xcode.IDEActivityLogDomainType.BuildLog</string>
+			<key>fileName</key>
+			<string>0E6368B7-4C84-4A67-A780-E0439E277A54.xcactivitylog</string>
+			<key>hasPrimaryLog</key>
+			<true/>
+			<key>primaryObservable</key>
+			<dict>
+				<key>highLevelStatus</key>
+				<string>S</string>
+				<key>totalNumberOfAnalyzerIssues</key>
+				<integer>0</integer>
+				<key>totalNumberOfErrors</key>
+				<integer>0</integer>
+				<key>totalNumberOfTestFailures</key>
+				<integer>0</integer>
+				<key>totalNumberOfWarnings</key>
+				<integer>0</integer>
+			</dict>
+			<key>schemeIdentifier-containerName</key>
+			<string>Don't forget project</string>
+			<key>schemeIdentifier-schemeName</key>
+			<string>Don't forget</string>
+			<key>schemeIdentifier-sharedScheme</key>
+			<integer>1</integer>
+			<key>signature</key>
+			<string>Testing project Don't forget with scheme Don't forget</string>
+			<key>timeStartedRecording</key>
+			<real>806348336.34705901</real>
+			<key>timeStoppedRecording</key>
+			<real>806348337.57857704</real>
+			<key>title</key>
+			<string>Testing project Don't forget with scheme Don't forget</string>
+			<key>uniqueIdentifier</key>
+			<string>0E6368B7-4C84-4A67-A780-E0439E277A54</string>
+		</dict>
+		<key>0FF1868C-E89F-4C3E-97DB-4CF7545BE0E2</key>
+		<dict>
+			<key>className</key>
+			<string>IDECommandLineBuildLog</string>
+			<key>documentTypeString</key>
+			<string>&lt;nil&gt;</string>
+			<key>domainType</key>
+			<string>Xcode.IDEActivityLogDomainType.BuildLog</string>
+			<key>fileName</key>
+			<string>0FF1868C-E89F-4C3E-97DB-4CF7545BE0E2.xcactivitylog</string>
+			<key>hasPrimaryLog</key>
+			<true/>
+			<key>primaryObservable</key>
+			<dict>
+				<key>highLevelStatus</key>
+				<string>E</string>
+				<key>totalNumberOfAnalyzerIssues</key>
+				<integer>0</integer>
+				<key>totalNumberOfErrors</key>
+				<integer>2</integer>
+				<key>totalNumberOfTestFailures</key>
+				<integer>0</integer>
+				<key>totalNumberOfWarnings</key>
+				<integer>0</integer>
+			</dict>
+			<key>schemeIdentifier-containerName</key>
+			<string>Don't forget project</string>
+			<key>schemeIdentifier-schemeName</key>
+			<string>Don't forget</string>
+			<key>schemeIdentifier-sharedScheme</key>
+			<integer>1</integer>
+			<key>signature</key>
+			<string>Testing project Don't forget with scheme Don't forget</string>
+			<key>timeStartedRecording</key>
+			<real>806348310.09842896</real>
+			<key>timeStoppedRecording</key>
+			<real>806348324.845806</real>
+			<key>title</key>
+			<string>Testing project Don't forget with scheme Don't forget</string>
+			<key>uniqueIdentifier</key>
+			<string>0FF1868C-E89F-4C3E-97DB-4CF7545BE0E2</string>
+		</dict>
+		<key>61F1CBDE-B47D-48BD-BEB4-B1AFEB8A1BB7</key>
+		<dict>
+			<key>className</key>
+			<string>IDECommandLineBuildLog</string>
+			<key>documentTypeString</key>
+			<string>&lt;nil&gt;</string>
+			<key>domainType</key>
+			<string>Xcode.IDEActivityLogDomainType.BuildLog</string>
+			<key>fileName</key>
+			<string>61F1CBDE-B47D-48BD-BEB4-B1AFEB8A1BB7.xcactivitylog</string>
+			<key>hasPrimaryLog</key>
+			<true/>
+			<key>primaryObservable</key>
+			<dict>
+				<key>highLevelStatus</key>
+				<string>S</string>
+				<key>totalNumberOfAnalyzerIssues</key>
+				<integer>0</integer>
+				<key>totalNumberOfErrors</key>
+				<integer>0</integer>
+				<key>totalNumberOfTestFailures</key>
+				<integer>0</integer>
+				<key>totalNumberOfWarnings</key>
+				<integer>0</integer>
+			</dict>
+			<key>schemeIdentifier-containerName</key>
+			<string>Don't forget project</string>
+			<key>schemeIdentifier-schemeName</key>
+			<string>Don't forget</string>
+			<key>schemeIdentifier-sharedScheme</key>
+			<integer>1</integer>
+			<key>signature</key>
+			<string>Testing project Don't forget with scheme Don't forget</string>
+			<key>timeStartedRecording</key>
+			<real>806348398.91532195</real>
+			<key>timeStoppedRecording</key>
+			<real>806348399.70433497</real>
+			<key>title</key>
+			<string>Testing project Don't forget with scheme Don't forget</string>
+			<key>uniqueIdentifier</key>
+			<string>61F1CBDE-B47D-48BD-BEB4-B1AFEB8A1BB7</string>
+		</dict>
+	</dict>
+</dict>
+</plist>

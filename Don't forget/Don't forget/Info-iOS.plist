@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>AppStoreID</key>
+	<string>6788163617</string>
+	<key>CFBundleDisplayName</key>
+	<string>Forget It</string>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLName</key>
+			<string>Hakketjak.Don-t-forget.navigation</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>dontforget</string>
+			</array>
+		</dict>
+	</array>
+	<key>LSApplicationCategoryType</key>
+	<string>public.app-category.productivity</string>
+	<key>NSCalendarsFullAccessUsageDescription</key>
+	<string>Forget It gebruikt toegang om je agenda-items met de iPhone Kalender te synchroniseren.</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>Forget It gebruikt je locatie om het weer bij toekomstige dagen in je agenda te tonen.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Forget It gebruikt de microfoon om gesproken tekst aan een nieuwe invoer toe te voegen.</string>
+	<key>NSSpeechRecognitionUsageDescription</key>
+	<string>Forget It gebruikt spraakherkenning om je gesproken invoer om te zetten naar tekst.</string>
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>remote-notification</string>
+	</array>
+</dict>
+</plist>

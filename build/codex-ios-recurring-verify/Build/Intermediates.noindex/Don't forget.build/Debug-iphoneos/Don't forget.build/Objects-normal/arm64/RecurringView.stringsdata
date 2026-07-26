@@ -1,0 +1,704 @@
+{
+  "source": "/Users/jenssomers/Desktop/Don't forget/Don't forget/Don't forget/RecurringView.swift",
+  "tables": {
+    "Localizable": [
+      {
+        "comment": "",
+        "key": "category.recurring.birthdays",
+        "location": {
+          "startingColumn": 42,
+          "startingLine": 93
+        }
+      },
+      {
+        "comment": "",
+        "key": "category.recurring.general",
+        "location": {
+          "startingColumn": 42,
+          "startingLine": 100
+        }
+      },
+      {
+        "comment": "",
+        "key": "category.recurring.holidays",
+        "location": {
+          "startingColumn": 42,
+          "startingLine": 107
+        }
+      },
+      {
+        "comment": "",
+        "key": "Herhalingen beheren",
+        "location": {
+          "startingColumn": 45,
+          "startingLine": 436
+        }
+      },
+      {
+        "comment": "",
+        "key": "Kleur en icoon van %@ aanpassen",
+        "location": {
+          "startingColumn": 37,
+          "startingLine": 991
+        }
+      },
+      {
+        "comment": "",
+        "key": "Categorie",
+        "location": {
+          "startingColumn": 33,
+          "startingLine": 1008
+        }
+      },
+      {
+        "comment": "",
+        "key": "Feestdagen kiezen",
+        "location": {
+          "startingColumn": 31,
+          "startingLine": 1049
+        }
+      },
+      {
+        "comment": "",
+        "key": "Eerste verjaardag toevoegen",
+        "location": {
+          "startingColumn": 35,
+          "startingLine": 1051
+        }
+      },
+      {
+        "comment": "",
+        "key": "Eerste herhaling toevoegen",
+        "location": {
+          "startingColumn": 35,
+          "startingLine": 1052
+        }
+      },
+      {
+        "comment": "",
+        "key": "%@ bewerken",
+        "location": {
+          "startingColumn": 53,
+          "startingLine": 1113
+        }
+      },
+      {
+        "comment": "",
+        "key": "Feestdagen kiezen",
+        "location": {
+          "startingColumn": 24,
+          "startingLine": 1151
+        }
+      },
+      {
+        "comment": "",
+        "key": "Volgorde van %@ aanpassen",
+        "location": {
+          "startingColumn": 33,
+          "startingLine": 1179
+        }
+      },
+      {
+        "comment": "",
+        "key": "Herhaling toevoegen aan %@",
+        "location": {
+          "startingColumn": 33,
+          "startingLine": 1197
+        }
+      },
+      {
+        "comment": "",
+        "key": "Helemaal omhoog",
+        "location": {
+          "startingColumn": 38,
+          "startingLine": 1251
+        }
+      },
+      {
+        "comment": "",
+        "key": "Omhoog",
+        "location": {
+          "startingColumn": 38,
+          "startingLine": 1254
+        }
+      },
+      {
+        "comment": "",
+        "key": "Omlaag",
+        "location": {
+          "startingColumn": 38,
+          "startingLine": 1257
+        }
+      },
+      {
+        "comment": "",
+        "key": "Helemaal omlaag",
+        "location": {
+          "startingColumn": 38,
+          "startingLine": 1260
+        }
+      },
+      {
+        "comment": "",
+        "key": "Categorie verwijderen",
+        "location": {
+          "startingColumn": 27,
+          "startingLine": 1268
+        }
+      },
+      {
+        "comment": "",
+        "key": "Kleur",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 1338
+        }
+      },
+      {
+        "comment": "",
+        "key": "Icoon",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 1370
+        }
+      },
+      {
+        "comment": "",
+        "key": "Gereed",
+        "location": {
+          "startingColumn": 28,
+          "startingLine": 1408
+        }
+      },
+      {
+        "comment": "",
+        "key": "· reminder %lld",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 1532
+        }
+      },
+      {
+        "comment": "",
+        "key": "Nieuwe categorie invoeren",
+        "location": {
+          "startingColumn": 33,
+          "startingLine": 1563
+        }
+      },
+      {
+        "comment": "",
+        "key": "Nieuwe categorie",
+        "location": {
+          "startingColumn": 23,
+          "startingLine": 1565
+        }
+      },
+      {
+        "comment": "",
+        "key": "Recurring",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 1685
+        }
+      },
+      {
+        "comment": "",
+        "key": "Overzicht",
+        "location": {
+          "startingColumn": 25,
+          "startingLine": 1648
+        }
+      },
+      {
+        "comment": "",
+        "key": "Toon volgende datum",
+        "location": {
+          "startingColumn": 28,
+          "startingLine": 1664
+        }
+      },
+      {
+        "comment": "",
+        "key": "Sorteer eerstvolgende bovenaan",
+        "location": {
+          "startingColumn": 28,
+          "startingLine": 1665
+        }
+      },
+      {
+        "comment": "",
+        "key": "Toon feestdagen in overzicht",
+        "location": {
+          "startingColumn": 28,
+          "startingLine": 1666
+        }
+      },
+      {
+        "comment": "",
+        "key": "Feestdagen",
+        "location": {
+          "startingColumn": 34,
+          "startingLine": 1653
+        }
+      },
+      {
+        "comment": "",
+        "key": "Compacte rijen",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 1679
+        }
+      },
+      {
+        "comment": "",
+        "key": "Tik op de gekleurde stip om de kleur te wijzigen. Compacte categorieën tonen alleen de titel en eerstvolgende datum.",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 1681
+        }
+      },
+      {
+        "comment": "",
+        "key": "Gereed",
+        "location": {
+          "startingColumn": 28,
+          "startingLine": 1689
+        }
+      },
+      {
+        "comment": "",
+        "key": "Kleur voor %@",
+        "location": {
+          "startingColumn": 33,
+          "startingLine": 1765
+        }
+      },
+      {
+        "comment": "",
+        "key": "",
+        "location": {
+          "startingColumn": 20,
+          "startingLine": 1771
+        }
+      },
+      {
+        "comment": "",
+        "key": "Compacte rij voor %@",
+        "location": {
+          "startingColumn": 37,
+          "startingLine": 1773
+        }
+      },
+      {
+        "comment": "",
+        "key": "Kleur",
+        "location": {
+          "startingColumn": 24,
+          "startingLine": 1746
+        }
+      },
+      {
+        "comment": "",
+        "key": "Feestdagen",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 1862
+        }
+      },
+      {
+        "comment": "",
+        "key": "Standaardland",
+        "location": {
+          "startingColumn": 28,
+          "startingLine": 1813
+        }
+      },
+      {
+        "comment": "",
+        "key": "Laat alleen lokale feestdagen zien",
+        "location": {
+          "startingColumn": 28,
+          "startingLine": 1819
+        }
+      },
+      {
+        "comment": "",
+        "key": "Je land is automatisch gekozen op basis van je regio. Zet de schakelaar uit om ook feestdagen en vieringen uit andere landen te zien.",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 1822
+        }
+      },
+      {
+        "comment": "",
+        "key": "Deselecteer alles",
+        "location": {
+          "startingColumn": 69,
+          "startingLine": 1826
+        }
+      },
+      {
+        "comment": "",
+        "key": "Selecteer alles",
+        "location": {
+          "startingColumn": 91,
+          "startingLine": 1826
+        }
+      },
+      {
+        "comment": "",
+        "key": "Selectie",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 1849
+        }
+      },
+      {
+        "comment": "",
+        "key": "Een landwissel vervangt deze selectie. Eigen feestdagen blijven bewaard. Data uit de islamitische kalender kunnen door lokale maanwaarneming één dag verschillen.",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 1851
+        }
+      },
+      {
+        "comment": "",
+        "key": "Eigen feestdag toevoegen",
+        "location": {
+          "startingColumn": 28,
+          "startingLine": 1855
+        }
+      },
+      {
+        "comment": "",
+        "key": "Eigen feestdagen kun je ook toevoegen met de plusknop bij de oranje categorie.",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 1859
+        }
+      },
+      {
+        "comment": "",
+        "key": "Annuleer",
+        "location": {
+          "startingColumn": 28,
+          "startingLine": 1866
+        }
+      },
+      {
+        "comment": "",
+        "key": "Bewaar",
+        "location": {
+          "startingColumn": 28,
+          "startingLine": 1869
+        }
+      },
+      {
+        "comment": "",
+        "key": "Notitie",
+        "location": {
+          "startingColumn": 17,
+          "startingLine": 2233
+        }
+      },
+      {
+        "comment": "",
+        "key": "Annuleer",
+        "location": {
+          "startingColumn": 28,
+          "startingLine": 2105
+        }
+      },
+      {
+        "comment": "",
+        "key": "Bewaar",
+        "location": {
+          "startingColumn": 28,
+          "startingLine": 2108
+        }
+      },
+      {
+        "comment": "",
+        "key": "Categorie",
+        "location": {
+          "startingColumn": 20,
+          "startingLine": 2241
+        }
+      },
+      {
+        "comment": "",
+        "key": "Verwijder herhaling",
+        "location": {
+          "startingColumn": 27,
+          "startingLine": 2262
+        }
+      },
+      {
+        "comment": "",
+        "key": "Regel",
+        "location": {
+          "startingColumn": 16,
+          "startingLine": 2375
+        }
+      },
+      {
+        "comment": "",
+        "key": "Maand",
+        "location": {
+          "startingColumn": 20,
+          "startingLine": 2384
+        }
+      },
+      {
+        "comment": "",
+        "key": "Welke",
+        "location": {
+          "startingColumn": 20,
+          "startingLine": 2390
+        }
+      },
+      {
+        "comment": "",
+        "key": "Weekdag",
+        "location": {
+          "startingColumn": 20,
+          "startingLine": 2398
+        }
+      },
+      {
+        "comment": "",
+        "key": "In niet-schrikkeljaren wordt de verjaardag op 28 februari getoond.",
+        "location": {
+          "startingColumn": 18,
+          "startingLine": 2592
+        }
+      },
+      {
+        "comment": "",
+        "key": "Type",
+        "location": {
+          "startingColumn": 16,
+          "startingLine": 2329
+        }
+      },
+      {
+        "comment": "",
+        "key": "Wordt iedere drie maanden herhaald vanaf de eerstvolgende datum.",
+        "location": {
+          "startingColumn": 18,
+          "startingLine": 2413
+        }
+      },
+      {
+        "comment": "",
+        "key": "Welke",
+        "location": {
+          "startingColumn": 20,
+          "startingLine": 2423
+        }
+      },
+      {
+        "comment": "",
+        "key": "Weekdag",
+        "location": {
+          "startingColumn": 20,
+          "startingLine": 2428
+        }
+      },
+      {
+        "comment": "",
+        "key": "Eenheid",
+        "location": {
+          "startingColumn": 20,
+          "startingLine": 2441
+        }
+      },
+      {
+        "comment": "",
+        "key": "",
+        "location": {
+          "startingColumn": 24,
+          "startingLine": 2366
+        }
+      },
+      {
+        "comment": "",
+        "key": "Feestdag op vaste dag",
+        "location": {
+          "startingColumn": 18,
+          "startingLine": 2376
+        }
+      },
+      {
+        "comment": "",
+        "key": "Weekdag van een maand",
+        "location": {
+          "startingColumn": 18,
+          "startingLine": 2377
+        }
+      },
+      {
+        "comment": "",
+        "key": "Eerste",
+        "location": {
+          "startingColumn": 22,
+          "startingLine": 2391
+        }
+      },
+      {
+        "comment": "",
+        "key": "Tweede",
+        "location": {
+          "startingColumn": 22,
+          "startingLine": 2392
+        }
+      },
+      {
+        "comment": "",
+        "key": "Derde",
+        "location": {
+          "startingColumn": 22,
+          "startingLine": 2393
+        }
+      },
+      {
+        "comment": "",
+        "key": "Vierde",
+        "location": {
+          "startingColumn": 22,
+          "startingLine": 2394
+        }
+      },
+      {
+        "comment": "",
+        "key": "Laatste",
+        "location": {
+          "startingColumn": 22,
+          "startingLine": 2395
+        }
+      },
+      {
+        "comment": "",
+        "key": "%llde",
+        "location": {
+          "startingColumn": 51,
+          "startingLine": 2424
+        }
+      },
+      {
+        "comment": "",
+        "key": "Dagen",
+        "location": {
+          "startingColumn": 22,
+          "startingLine": 2442
+        }
+      },
+      {
+        "comment": "",
+        "key": "Weken",
+        "location": {
+          "startingColumn": 22,
+          "startingLine": 2443
+        }
+      },
+      {
+        "comment": "",
+        "key": "Maanden",
+        "location": {
+          "startingColumn": 22,
+          "startingLine": 2444
+        }
+      },
+      {
+        "comment": "",
+        "key": "Jaren",
+        "location": {
+          "startingColumn": 22,
+          "startingLine": 2445
+        }
+      },
+      {
+        "comment": "",
+        "key": "%lld",
+        "location": {
+          "startingColumn": 22,
+          "startingLine": 2477
+        }
+      },
+      {
+        "comment": "",
+        "key": "Dag",
+        "location": {
+          "startingColumn": 20,
+          "startingLine": 2506
+        }
+      },
+      {
+        "comment": "",
+        "key": "Maand",
+        "location": {
+          "startingColumn": 20,
+          "startingLine": 2516
+        }
+      },
+      {
+        "comment": "",
+        "key": "%lld",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 2508
+        }
+      },
+      {
+        "comment": "",
+        "key": "",
+        "location": {
+          "startingColumn": 20,
+          "startingLine": 2575
+        }
+      },
+      {
+        "comment": "",
+        "key": "Reminder vooraf",
+        "location": {
+          "startingColumn": 18,
+          "startingLine": 2597
+        }
+      },
+      {
+        "comment": "",
+        "key": "",
+        "location": {
+          "startingColumn": 20,
+          "startingLine": 2603
+        }
+      },
+      {
+        "comment": "",
+        "key": "Dagen vooraf",
+        "location": {
+          "startingColumn": 22,
+          "startingLine": 2611
+        }
+      },
+      {
+        "comment": "",
+        "key": "Eén dag minder",
+        "location": {
+          "startingColumn": 37,
+          "startingLine": 2630
+        }
+      },
+      {
+        "comment": "",
+        "key": "Eén dag meer",
+        "location": {
+          "startingColumn": 37,
+          "startingLine": 2657
+        }
+      }
+    ]
+  },
+  "version": 1
+}

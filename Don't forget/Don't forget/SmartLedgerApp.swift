@@ -107,6 +107,7 @@ private struct MacLocalizedContent<Content: View>: View {
 #endif
 
 private struct StoreRootView: View {
+    @Environment(\.locale) private var locale
     @State private var loadResult = AppModelStore.load()
     @State private var recoveryDocument: AppBackupDocument?
     @State private var isExportingRecoveryBackup = false
@@ -125,17 +126,17 @@ private struct StoreRootView: View {
 #endif
             case .failure(let error):
                 ContentUnavailableView {
-                    Label("Gegevens niet geopend", systemImage: "externaldrive.badge.exclamationmark")
+                    Label(locale.localized("Gegevens niet geopend"), systemImage: "externaldrive.badge.exclamationmark")
                 } description: {
-                    Text("Je gegevens zijn niet verwijderd. Sluit de app niet opnieuw af en installeer hem niet opnieuw. Probeer het nogmaals of neem contact op met support.\n\n\(error.localizedDescription)")
+                    Text(locale.localizedFormat("Je gegevens zijn niet verwijderd. Sluit de app niet opnieuw af en installeer hem niet opnieuw. Probeer het nogmaals of neem contact op met support.\n\n%@", error.localizedDescription))
                 } actions: {
                     VStack(spacing: 12) {
-                        Button("Opnieuw proberen") {
+                        Button(locale.localized("Opnieuw proberen")) {
                             loadResult = AppModelStore.retryAfterFailure()
                         }
                         .buttonStyle(.borderedProminent)
 
-                        Button("Laatste veiligheidskopie bewaren") {
+                        Button(locale.localized("Laatste veiligheidskopie bewaren")) {
                             exportLatestSafetyBackup()
                         }
                     }
@@ -153,8 +154,8 @@ private struct StoreRootView: View {
                 recoveryMessage = error.localizedDescription
             }
         }
-        .alert("Veiligheidskopie", isPresented: recoveryMessageIsPresented) {
-            Button("OK", role: .cancel) {}
+        .alert(locale.localized("Veiligheidskopie"), isPresented: recoveryMessageIsPresented) {
+            Button(locale.localized("OK"), role: .cancel) {}
         } message: {
             Text(recoveryMessage ?? "")
         }
@@ -170,7 +171,7 @@ private struct StoreRootView: View {
     private func exportLatestSafetyBackup() {
         do {
             guard let archive = try AppBackupService.latestAutomaticSnapshot() else {
-                recoveryMessage = "Er is nog geen automatische veiligheidskopie beschikbaar."
+                recoveryMessage = locale.localized("Er is nog geen automatische veiligheidskopie beschikbaar.")
                 return
             }
             recoveryDocument = AppBackupDocument(archive: archive)
@@ -183,6 +184,7 @@ private struct StoreRootView: View {
 
 #if !os(macOS)
 private struct UndoLimitedRootView: View {
+    @Environment(\.locale) private var locale
     @Environment(\.undoManager) private var undoManager
     @State private var persistenceError: String?
 
@@ -193,7 +195,7 @@ private struct UndoLimitedRootView: View {
             }
             .onReceive(NotificationCenter.default.publisher(for: .persistenceSaveFailed)) { note in
                 persistenceError = note.userInfo?[PersistenceSafety.errorUserInfoKey] as? String
-                    ?? "De wijziging kon niet worden bewaard."
+                    ?? locale.localized("De wijziging kon niet worden bewaard.")
             }
             .alert(
                 "Bewaren mislukt",
@@ -202,7 +204,7 @@ private struct UndoLimitedRootView: View {
                     set: { if !$0 { persistenceError = nil } }
                 )
             ) {
-                Button("OK", role: .cancel) {}
+                Button(locale.localized("OK"), role: .cancel) {}
             } message: {
                 Text(persistenceError ?? "")
             }

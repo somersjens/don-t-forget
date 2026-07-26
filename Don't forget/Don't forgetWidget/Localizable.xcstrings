@@ -21,7 +21,13 @@
       "localizations" : {
         "en" : {
           "stringUnit" : {
-            "state" : "new",
+            "state" : "translated",
+            "value" : "%1$lld%2$@"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
             "value" : "%1$lld%2$@"
           }
         }
@@ -129,7 +135,20 @@
       }
     },
     "Taak toevoegen" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Add task"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Taak toevoegen"
+          }
+        }
+      }
     },
     "Taken" : {
       "extractionState" : "stale",
@@ -149,7 +168,20 @@
       }
     },
     "Toevoegen aan kalender" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Add to calendar"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Toevoegen aan kalender"
+          }
+        }
+      }
     },
     "widget.gallery.description" : {
       "localizations" : {
@@ -184,6 +216,7 @@
       }
     },
     "widget.noUpcomingItems" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {

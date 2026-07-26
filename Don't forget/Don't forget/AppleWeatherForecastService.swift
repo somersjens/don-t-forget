@@ -308,11 +308,11 @@ enum WeatherLocationError: LocalizedError {
     var errorDescription: String? {
         switch self {
         case .permissionDenied:
-            "Locatietoegang is niet toegestaan. Vul hieronder zelf een plaats in."
+            AppCalendar.locale.localized("Locatietoegang is niet toegestaan. Vul hieronder zelf een plaats in.")
         case .locationUnavailable:
-            "Je huidige locatie kon niet worden bepaald. Probeer opnieuw of vul zelf een plaats in."
+            AppCalendar.locale.localized("Je huidige locatie kon niet worden bepaald. Probeer opnieuw of vul zelf een plaats in.")
         case .placeNotFound:
-            "Deze plaats kon niet worden gevonden. Controleer de naam en probeer opnieuw."
+            AppCalendar.locale.localized("Deze plaats kon niet worden gevonden. Controleer de naam en probeer opnieuw.")
         }
     }
 }
@@ -366,7 +366,7 @@ final class WeatherLocationResolver: NSObject, CLLocationManagerDelegate {
 
     func name(for location: CLLocation) async -> String {
         guard let placemark = try? await CLGeocoder().reverseGeocodeLocation(location).first else {
-            return "Huidige locatie"
+            return AppCalendar.locale.localized("Huidige locatie")
         }
         return [placemark.locality, placemark.administrativeArea, placemark.country]
             .compactMap { $0 }

@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>AppStoreID</key>
+	<string>6788163617</string>
+	<key>BuildMachineOSBuild</key>
+	<string>25F84</string>
+	<key>CFBundleDevelopmentRegion</key>
+	<string>en</string>
+	<key>CFBundleDisplayName</key>
+	<string>Forget It</string>
+	<key>CFBundleExecutable</key>
+	<string>Forget It</string>
+	<key>CFBundleIconFile</key>
+	<string>AppIcon</string>
+	<key>CFBundleIconName</key>
+	<string>AppIcon</string>
+	<key>CFBundleIdentifier</key>
+	<string>Hakketjak.Don-t-forget</string>
+	<key>CFBundleInfoDictionaryVersion</key>
+	<string>6.0</string>
+	<key>CFBundleName</key>
+	<string>Forget It</string>
+	<key>CFBundlePackageType</key>
+	<string>APPL</string>
+	<key>CFBundleShortVersionString</key>
+	<string>1</string>
+	<key>CFBundleSupportedPlatforms</key>
+	<array>
+		<string>MacOSX</string>
+	</array>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLName</key>
+			<string>Hakketjak.Don-t-forget.navigation</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>dontforget</string>
+			</array>
+		</dict>
+	</array>
+	<key>CFBundleVersion</key>
+	<string>14</string>
+	<key>DTCompiler</key>
+	<string>com.apple.compilers.llvm.clang.1_0</string>
+	<key>DTPlatformBuild</key>
+	<string>25F70</string>
+	<key>DTPlatformName</key>
+	<string>macosx</string>
+	<key>DTPlatformVersion</key>
+	<string>26.5</string>
+	<key>DTSDKBuild</key>
+	<string>25F70</string>
+	<key>DTSDKName</key>
+	<string>macosx26.5</string>
+	<key>DTXcode</key>
+	<string>2660</string>
+	<key>DTXcodeBuild</key>
+	<string>17F113</string>
+	<key>LSApplicationCategoryType</key>
+	<string>public.app-category.productivity</string>
+	<key>LSMinimumSystemVersion</key>
+	<string>14.0</string>
+	<key>NSAccentColorName</key>
+	<string>AccentColor</string>
+	<key>NSCalendarsFullAccessUsageDescription</key>
+	<string>Forget It gebruikt toegang om je agenda-items met de iPhone Kalender te synchroniseren.</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>Forget It gebruikt je locatie om het weer bij toekomstige dagen in je agenda te tonen.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Forget It gebruikt de microfoon om gesproken tekst aan een nieuwe invoer toe te voegen.</string>
+	<key>NSSpeechRecognitionUsageDescription</key>
+	<string>Forget It gebruikt spraakherkenning om je gesproken invoer om te zetten naar tekst.</string>
+	<key>UIApplicationSupportsIndirectInputEvents</key>
+	<false/>
+	<key>UIBackgroundModes</key>
+	<array/>
+	<key>UIStatusBarStyle</key>
+	<string></string>
+	<key>UISupportedInterfaceOrientations~ipad</key>
+	<array>
+		<string>UIInterfaceOrientationPortrait</string>
+		<string>UIInterfaceOrientationPortraitUpsideDown</string>
+		<string>UIInterfaceOrientationLandscapeLeft</string>
+		<string>UIInterfaceOrientationLandscapeRight</string>
+	</array>
+	<key>UISupportedInterfaceOrientations~iphone</key>
+	<array>
+		<string>UIInterfaceOrientationPortrait</string>
+		<string>UIInterfaceOrientationLandscapeLeft</string>
+		<string>UIInterfaceOrientationLandscapeRight</string>
+	</array>
+</dict>
+</plist>

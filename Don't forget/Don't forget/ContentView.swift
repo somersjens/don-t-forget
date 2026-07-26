@@ -11,6 +11,7 @@ import SwiftData
 
 struct ContentView: View {
     @Environment(\.modelContext) private var modelContext
+    @Environment(\.locale) private var locale
     @Query private var items: [Item]
 
     var body: some View {
@@ -36,12 +37,12 @@ struct ContentView: View {
 #endif
                 ToolbarItem {
                     Button(action: addItem) {
-                        Label("Add Item", systemImage: "plus")
+                        Label(locale.localized("Add Item"), systemImage: "plus")
                     }
                 }
             }
         } detail: {
-            Text("Select an item")
+            Text(locale.localized("Select an item"))
         }
     }
 
