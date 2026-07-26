@@ -434,6 +434,7 @@ struct TutorialCompletionContent: View {
 
             Button(replayTitle, action: replay)
                 .font(.system(size: AdaptiveLayout.scaled(13), weight: .semibold))
+                .foregroundStyle(Color.brandHardBlue)
                 .lineLimit(1)
                 .fixedSize(horizontal: true, vertical: false)
         }

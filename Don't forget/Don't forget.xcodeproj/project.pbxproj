@@ -492,7 +492,7 @@
 				APPLICATION_EXTENSION_API_ONLY = YES;
 				CODE_SIGN_ENTITLEMENTS = "Don't forgetWidget/Don't_forgetWidget.entitlements";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 14;
+				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = 4283ACUG4Y;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = "Don't forgetWidget/Info.plist";
@@ -502,7 +502,7 @@
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
-				MARKETING_VERSION = 1;
+				MARKETING_VERSION = 1.1;
 				PRODUCT_BUNDLE_IDENTIFIER = "Hakketjak.Don-t-forget.Widget";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				REGISTER_APP_GROUPS = YES;
@@ -522,7 +522,7 @@
 				APPLICATION_EXTENSION_API_ONLY = YES;
 				CODE_SIGN_ENTITLEMENTS = "Don't forgetWidget/Don't_forgetWidget.entitlements";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 14;
+				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = 4283ACUG4Y;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = "Don't forgetWidget/Info.plist";
@@ -532,7 +532,7 @@
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
-				MARKETING_VERSION = 1;
+				MARKETING_VERSION = 1.1;
 				PRODUCT_BUNDLE_IDENTIFIER = "Hakketjak.Don-t-forget.Widget";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				REGISTER_APP_GROUPS = YES;
@@ -555,7 +555,7 @@
 				CODE_SIGN_ENTITLEMENTS = "Don't forget/Don_t_forget.entitlements";
 				"CODE_SIGN_ENTITLEMENTS[sdk=macosx*]" = "Don't forget/Don_t_forget-macOS.entitlements";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 14;
+				CURRENT_PROJECT_VERSION = 1;
 				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_TEAM = 4283ACUG4Y;
 				ENABLE_APP_SANDBOX = YES;
@@ -576,7 +576,7 @@
 					ContentView.swift,
 					DeferredCommitTextField.swift,
 					HistoryView.swift,
-					Info-iOS.plist,
+					"Info-iOS.plist",
 					InfoPlist.strings,
 					Item.swift,
 					QuickTodoCapture.swift,
@@ -603,7 +603,7 @@
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				MARKETING_VERSION = 1;
+				MARKETING_VERSION = 1.1;
 				PRODUCT_BUNDLE_IDENTIFIER = "Hakketjak.Don-t-forget";
 				PRODUCT_MODULE_NAME = Don_t_forget;
 				PRODUCT_NAME = "Forget It";
@@ -636,7 +636,7 @@
 				CODE_SIGN_ENTITLEMENTS = "Don't forget/Don_t_forget.entitlements";
 				"CODE_SIGN_ENTITLEMENTS[sdk=macosx*]" = "Don't forget/Don_t_forget-macOS.entitlements";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 14;
+				CURRENT_PROJECT_VERSION = 1;
 				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_TEAM = 4283ACUG4Y;
 				ENABLE_APP_SANDBOX = YES;
@@ -657,7 +657,7 @@
 					ContentView.swift,
 					DeferredCommitTextField.swift,
 					HistoryView.swift,
-					Info-iOS.plist,
+					"Info-iOS.plist",
 					InfoPlist.strings,
 					Item.swift,
 					QuickTodoCapture.swift,
@@ -684,7 +684,7 @@
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				MARKETING_VERSION = 1;
+				MARKETING_VERSION = 1.1;
 				PRODUCT_BUNDLE_IDENTIFIER = "Hakketjak.Don-t-forget";
 				PRODUCT_MODULE_NAME = Don_t_forget;
 				PRODUCT_NAME = "Forget It";
