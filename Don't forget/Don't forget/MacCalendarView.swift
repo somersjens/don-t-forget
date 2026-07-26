@@ -559,7 +559,7 @@ private struct MacCalendarDay: View {
                 )
         }
         .font(.system(size: 13, weight: .medium))
-        .offset(x: -4)
+        .logicalHorizontalOffset(-4)
     }
 
     private var macWeekdayWidth: CGFloat {
@@ -652,7 +652,7 @@ private struct MacCalendarEntryRow: View {
                 .help(locale.localized("Verplaats item"))
             }
             .font(.system(size: 13, weight: .medium))
-            .offset(x: -4)
+            .logicalHorizontalOffset(-4)
 
             // Keep the content spacing after the overlaid day divider.
             Color.clear.frame(width: 1)

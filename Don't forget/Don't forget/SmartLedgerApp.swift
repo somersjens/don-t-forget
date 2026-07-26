@@ -54,11 +54,13 @@ struct SmartLedgerApp: App {
         }
 #else
         WindowGroup {
-            Group {
-                if hasCompletedWelcome {
-                    StoreRootView()
-                } else {
-                    WelcomeView()
+            AppLocalizedContent {
+                Group {
+                    if hasCompletedWelcome {
+                        StoreRootView()
+                    } else {
+                        WelcomeView()
+                    }
                 }
             }
             .iPadComfortableControls()
@@ -91,10 +93,7 @@ private struct MacLocalizedContent<Content: View>: View {
     }
 
     private var layoutDirection: LayoutDirection {
-        let languageCode = locale.language.languageCode?.identifier ?? "en"
-        return Locale.Language(identifier: languageCode).characterDirection == .rightToLeft
-            ? .rightToLeft
-            : .leftToRight
+        AppLanguage.resolved(from: language).layoutDirection
     }
 
     var body: some View {
@@ -102,6 +101,33 @@ private struct MacLocalizedContent<Content: View>: View {
             .environment(\.locale, locale)
             .environment(\.layoutDirection, layoutDirection)
             .appThemeForeground()
+    }
+}
+#endif
+
+#if !os(macOS)
+/// Installs the selected language and writing direction above the complete
+/// iOS experience, including the welcome screen. Child views can still use
+/// semantic leading/trailing layout without knowing which RTL language is
+/// active.
+private struct AppLocalizedContent<Content: View>: View {
+    @AppStorage(SettingsKeys.language)
+    private var language = AppLanguage.system.rawValue
+
+    private let content: Content
+
+    init(@ViewBuilder content: () -> Content) {
+        self.content = content()
+    }
+
+    private var appLanguage: AppLanguage {
+        AppLanguage.resolved(from: language)
+    }
+
+    var body: some View {
+        content
+            .environment(\.locale, appLanguage.locale)
+            .environment(\.layoutDirection, appLanguage.layoutDirection)
     }
 }
 #endif

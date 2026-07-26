@@ -1445,7 +1445,7 @@ private struct MacTodoBoard: View {
         .menuIndicator(.hidden)
         .tint(group.color)
         .padding(.trailing, 2)
-        .offset(x: -7)
+        .logicalHorizontalOffset(-7)
     }
 
     @ViewBuilder
@@ -1966,7 +1966,7 @@ private struct MacRecurringBoard: View {
                         Image(systemName: "link").frame(width: 24, height: 24)
                     }.help(link.name.isEmpty ? "Open link" : link.name)
                 }
-                Image(systemName: "chevron.right")
+                Image(systemName: "chevron.forward")
                     .font(.system(size: 11, weight: .semibold))
                     .foregroundStyle(category.color)
                     .frame(width: 28, height: 28, alignment: .center)

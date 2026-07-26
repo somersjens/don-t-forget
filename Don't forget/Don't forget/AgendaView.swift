@@ -694,7 +694,7 @@ struct AgendaView: View {
                                     AppActivitySpinner(controlSize: .mini)
                                         .frame(width: AdaptiveLayout.scaled(20), height: AdaptiveLayout.scaled(20))
                                         .background(.regularMaterial, in: Circle())
-                                        .offset(x: 5, y: -5)
+                                        .logicalHorizontalOffset(5, y: -5)
                                         .allowsHitTesting(false)
                                         .transition(.opacity)
                                         .accessibilityLabel(locale.localized("App is bezig"))
@@ -2874,7 +2874,7 @@ struct AgendaEntryLine: View {
                             .padding(.vertical, -5)
                     }
                 }
-                .offset(x: -AgendaLayout.completionControlInset)
+                .logicalHorizontalOffset(-AgendaLayout.completionControlInset)
         } else {
             Image(systemName: entry.isDone ? "checkmark.circle.fill" : "circle")
                 .font(.system(size: AdaptiveLayout.scaled(18)))
@@ -2894,7 +2894,7 @@ struct AgendaEntryLine: View {
                 }
                 // Apply the offset after the onboarding overlay so the ring,
                 // checkbox and hit area stay centered on the same axis.
-                .offset(x: -AgendaLayout.completionControlInset)
+                .logicalHorizontalOffset(-AgendaLayout.completionControlInset)
         }
     }
 
@@ -3241,7 +3241,7 @@ struct AgendaInputLine: View {
                             focusedField.wrappedValue = .newEntry(date)
                         }
                     }
-                    .offset(x: -AgendaLayout.completionControlInset)
+                    .logicalHorizontalOffset(-AgendaLayout.completionControlInset)
             } else {
                 Button {
                     addEntry()
@@ -3252,7 +3252,7 @@ struct AgendaInputLine: View {
                 }
                 .buttonStyle(.plain)
                 .opacity(cleanText.isEmpty ? 0 : 1)
-                .offset(x: -AgendaLayout.completionControlInset)
+                .logicalHorizontalOffset(-AgendaLayout.completionControlInset)
             }
         }
         .background {
@@ -3367,7 +3367,7 @@ private struct AgendaWeatherBadge: View {
             Text(locale.localized("°"))
                 .font(.system(size: AdaptiveLayout.scaled(11), weight: .semibold, design: .rounded))
                 .foregroundStyle(Color.appPrimaryText)
-                .offset(x: 5, y: -1)
+                .logicalHorizontalOffset(5, y: -1)
         }
         .frame(width: AgendaLayout.weatherTemperatureWidth, height: AdaptiveLayout.scaled(18), alignment: .center)
     }
@@ -3388,14 +3388,14 @@ private struct AgendaWeatherBadge: View {
                 .symbolRenderingMode(.monochrome)
                 .foregroundStyle(.yellow)
                 .frame(width: AgendaLayout.weatherIconWidth, height: AdaptiveLayout.scaled(18))
-                .offset(x: AgendaLayout.weatherIconOpticalOffset)
+                .logicalHorizontalOffset(AgendaLayout.weatherIconOpticalOffset)
         } else if weather.symbolName.contains("cloud.sun") {
             Image(systemName: weather.symbolName)
                 .font(.system(size: AdaptiveLayout.scaled(13), weight: .medium))
                 .symbolRenderingMode(.palette)
                 .foregroundStyle(cloudColor, Color.yellow)
                 .frame(width: AgendaLayout.weatherIconWidth, height: AdaptiveLayout.scaled(18))
-                .offset(x: AgendaLayout.weatherIconOpticalOffset)
+                .logicalHorizontalOffset(AgendaLayout.weatherIconOpticalOffset)
         } else if weather.symbolName.contains("rain")
                     || weather.symbolName.contains("drizzle")
                     || weather.symbolName.contains("sleet")
@@ -3405,20 +3405,20 @@ private struct AgendaWeatherBadge: View {
                 .symbolRenderingMode(.palette)
                 .foregroundStyle(cloudColor, Color.cyan)
                 .frame(width: AgendaLayout.weatherIconWidth, height: AdaptiveLayout.scaled(18))
-                .offset(x: AgendaLayout.weatherIconOpticalOffset)
+                .logicalHorizontalOffset(AgendaLayout.weatherIconOpticalOffset)
         } else if weather.symbolName.contains("cloud") {
             Image(systemName: weather.symbolName)
                 .font(.system(size: AdaptiveLayout.scaled(13), weight: .medium))
                 .symbolRenderingMode(.monochrome)
                 .foregroundStyle(cloudColor)
                 .frame(width: AgendaLayout.weatherIconWidth, height: AdaptiveLayout.scaled(18))
-                .offset(x: AgendaLayout.weatherIconOpticalOffset)
+                .logicalHorizontalOffset(AgendaLayout.weatherIconOpticalOffset)
         } else {
             Image(systemName: weather.symbolName)
                 .font(.system(size: AdaptiveLayout.scaled(13), weight: .medium))
                 .symbolRenderingMode(.multicolor)
                 .frame(width: AgendaLayout.weatherIconWidth, height: AdaptiveLayout.scaled(18))
-                .offset(x: AgendaLayout.weatherIconOpticalOffset)
+                .logicalHorizontalOffset(AgendaLayout.weatherIconOpticalOffset)
         }
     }
 }

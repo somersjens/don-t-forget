@@ -1737,7 +1737,7 @@ private struct TodoLine: View {
             }
             // The header action is centered 40 pt from the readable edge. Move
             // only the control so the task text keeps its full layout width.
-            .offset(x: -6)
+            .logicalHorizontalOffset(-6)
             .buttonStyle(.plain)
             .allowsHitTesting(isCompletionEnabled)
         }
@@ -2228,7 +2228,7 @@ private struct NewTodoLine: View {
                         .allowsHitTesting(false)
                 }
             }
-            .offset(x: -6)
+            .logicalHorizontalOffset(-6)
         }
         .overlay {
             if highlightsField {
@@ -2364,16 +2364,12 @@ private struct NewTodoGroupLine: View {
             .buttonStyle(.plain)
             .accessibilityLabel(locale.localized("Nieuwe categorie invoeren"))
 
-            TextField(locale.localized("Nieuwe groep"), text: $text, axis: .vertical)
+            TextField(locale.localized("Nieuwe groep"), text: $text)
                 .font(.system(size: AdaptiveLayout.scaled(16), weight: .medium))
                 .textFieldStyle(.plain)
                 .focused($isTextFieldFocused)
-                .lineLimit(1...)
-                .onChange(of: text) { _, newValue in
-                    guard newValue.contains("\n") else { return }
-                    text = newValue.replacingOccurrences(of: "\n", with: "")
-                    addAndDismissKeyboard()
-                }
+                .lineLimit(1)
+                .submitLabel(.done)
                 .onSubmit {
                     addAndDismissKeyboard()
                 }
@@ -2405,10 +2401,10 @@ private struct NewTodoGroupLine: View {
     }
 
     private func addAndDismissKeyboard() {
-        guard !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
-        add()
         isTextFieldFocused = false
         AppKeyboard.dismiss()
+        guard !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
+        add()
     }
 }
 

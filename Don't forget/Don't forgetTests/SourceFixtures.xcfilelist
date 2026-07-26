@@ -8,6 +8,7 @@ $(SRCROOT)/Don't forget/AppSchema.swift
 $(SRCROOT)/Don't forget/AppSettings.swift
 $(SRCROOT)/Don't forget/AppleAccountView.swift
 $(SRCROOT)/Don't forget/AppleWeatherForecastService.swift
+$(SRCROOT)/Don't forget/AutomatedReviewRequest.swift
 $(SRCROOT)/Don't forget/BackupSettingsView.swift
 $(SRCROOT)/Don't forget/CalendarSyncService.swift
 $(SRCROOT)/Don't forget/CalendarWidgetSnapshot.swift

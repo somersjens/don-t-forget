@@ -177,10 +177,10 @@ struct RootTabView: View {
     }
 
     private var appLayoutDirection: LayoutDirection {
-        let languageCode = appLocale.language.languageCode?.identifier ?? "en"
-        return Locale.Language(identifier: languageCode).characterDirection == .rightToLeft
-            ? .rightToLeft
-            : .leftToRight
+        AppLanguage.effective(
+            from: language,
+            holidayCountryCode: holidayCountryCode
+        ).layoutDirection
     }
 
     private var showsRecurringCalendarHint: Bool {
@@ -224,7 +224,14 @@ struct RootTabView: View {
             WidgetSnapshotPublisherView()
                 .equatable()
             EndOfDayReminderPublisherView()
+            AutomatedReviewRequestView()
         }
+        .simultaneousGesture(
+            DragGesture(minimumDistance: 0)
+                .onChanged { _ in
+                    AutomatedReviewRequestService.shared.recordInteraction()
+                }
+        )
         .overlay(alignment: .top) {
             if isShowingQuickTodoCapture {
                 QuickTodoCaptureView(
@@ -388,7 +395,7 @@ struct RootTabView: View {
                     Circle()
                         .fill(Color.brandHardBlue)
                         .frame(width: 9, height: 9)
-                        .offset(x: 7, y: -4)
+                        .logicalHorizontalOffset(7, y: -4)
                 }
             }
             .foregroundStyle(selectedTab == tab ? Color.brandHardBlue : Color.secondary)

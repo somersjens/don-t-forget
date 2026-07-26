@@ -238,6 +238,24 @@ extension View {
     func appThemeForeground() -> some View {
         modifier(AppThemeForegroundModifier())
     }
+
+    /// Moves a control toward the same logical edge in both writing
+    /// directions. Use this for optical alignment with leading/trailing
+    /// content; decorative artwork and physical device mock-ups should keep
+    /// using a literal `offset`.
+    func logicalHorizontalOffset(_ x: CGFloat, y: CGFloat = 0) -> some View {
+        modifier(LogicalHorizontalOffsetModifier(x: x, y: y))
+    }
+}
+
+private struct LogicalHorizontalOffsetModifier: ViewModifier {
+    @Environment(\.layoutDirection) private var layoutDirection
+    let x: CGFloat
+    let y: CGFloat
+
+    func body(content: Content) -> some View {
+        content.offset(x: layoutDirection == .rightToLeft ? -x : x, y: y)
+    }
 }
 
 struct AppActivityIndicator: View {
@@ -951,6 +969,13 @@ struct AppLanguage: RawRepresentable, Hashable, Identifiable, CaseIterable {
 
     var locale: Locale {
         self == .system ? .current : Locale(identifier: rawValue)
+    }
+
+    var layoutDirection: LayoutDirection {
+        let code = locale.language.languageCode?.identifier ?? rawValue
+        return Locale.Language(identifier: code).characterDirection == .rightToLeft
+            ? .rightToLeft
+            : .leftToRight
     }
 
     /// Flag emoji shown next to the language in the picker. Falls back to a

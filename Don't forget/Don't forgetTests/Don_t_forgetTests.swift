@@ -7,9 +7,123 @@
 
 import XCTest
 import SwiftData
+import SwiftUI
 @testable import Don_t_forget
 
 final class Don_t_forgetTests: XCTestCase {
+
+    func testAutomatedReviewUsesEachUsageMilestoneOnce() {
+        let now = Date(timeIntervalSinceReferenceDate: 1_000_000)
+
+        XCTAssertEqual(
+            AutomatedReviewPolicy.eligibleMilestone(
+                totalActiveDuration: 15 * 60,
+                completedMilestoneCount: 0,
+                requestDates: [],
+                sessionActiveDuration: 90,
+                idleDuration: 5,
+                isTextInputActive: false,
+                now: now
+            ),
+            0
+        )
+        XCTAssertEqual(
+            AutomatedReviewPolicy.eligibleMilestone(
+                totalActiveDuration: 60 * 60,
+                completedMilestoneCount: 1,
+                requestDates: [now.addingTimeInterval(-15 * 24 * 60 * 60)],
+                sessionActiveDuration: 90,
+                idleDuration: 5,
+                isTextInputActive: false,
+                now: now
+            ),
+            1
+        )
+        XCTAssertEqual(
+            AutomatedReviewPolicy.eligibleMilestone(
+                totalActiveDuration: 180 * 60,
+                completedMilestoneCount: 2,
+                requestDates: [now.addingTimeInterval(-30 * 24 * 60 * 60)],
+                sessionActiveDuration: 90,
+                idleDuration: 5,
+                isTextInputActive: false,
+                now: now
+            ),
+            2
+        )
+    }
+
+    func testAutomatedReviewWaitsForCalmEligibleMoment() {
+        let now = Date(timeIntervalSinceReferenceDate: 1_000_000)
+
+        XCTAssertNil(AutomatedReviewPolicy.eligibleMilestone(
+            totalActiveDuration: 15 * 60,
+            completedMilestoneCount: 0,
+            requestDates: [],
+            sessionActiveDuration: 89,
+            idleDuration: 5,
+            isTextInputActive: false,
+            now: now
+        ))
+        XCTAssertNil(AutomatedReviewPolicy.eligibleMilestone(
+            totalActiveDuration: 15 * 60,
+            completedMilestoneCount: 0,
+            requestDates: [],
+            sessionActiveDuration: 90,
+            idleDuration: 4.9,
+            isTextInputActive: false,
+            now: now
+        ))
+        XCTAssertNil(AutomatedReviewPolicy.eligibleMilestone(
+            totalActiveDuration: 15 * 60,
+            completedMilestoneCount: 0,
+            requestDates: [],
+            sessionActiveDuration: 90,
+            idleDuration: 5,
+            isTextInputActive: true,
+            now: now
+        ))
+    }
+
+    func testAutomatedReviewEnforcesRollingYearLimitAndCooldown() {
+        let now = Date(timeIntervalSinceReferenceDate: 40_000_000)
+        let day: TimeInterval = 24 * 60 * 60
+
+        XCTAssertNil(AutomatedReviewPolicy.eligibleMilestone(
+            totalActiveDuration: 180 * 60,
+            completedMilestoneCount: 2,
+            requestDates: [
+                now.addingTimeInterval(-300 * day),
+                now.addingTimeInterval(-100 * day),
+                now.addingTimeInterval(-15 * day)
+            ],
+            sessionActiveDuration: 90,
+            idleDuration: 5,
+            isTextInputActive: false,
+            now: now
+        ))
+        XCTAssertNil(AutomatedReviewPolicy.eligibleMilestone(
+            totalActiveDuration: 60 * 60,
+            completedMilestoneCount: 1,
+            requestDates: [now.addingTimeInterval(-13 * day)],
+            sessionActiveDuration: 90,
+            idleDuration: 5,
+            isTextInputActive: false,
+            now: now
+        ))
+    }
+
+    func testRightToLeftLanguagesResolveTheirWritingDirection() {
+        for code in ["ar", "fa", "he", "ur", "ug"] {
+            XCTAssertEqual(AppLanguage(rawValue: code)?.layoutDirection, .rightToLeft)
+        }
+    }
+
+    func testLeftToRightLanguagesKeepTheirWritingDirection() {
+        for code in ["nl", "en", "fr", "de"] {
+            XCTAssertEqual(AppLanguage(rawValue: code)?.layoutDirection, .leftToRight)
+        }
+    }
 
     private var sourceFixturesRoot: URL {
         get throws {
@@ -117,7 +231,7 @@ final class Don_t_forgetTests: XCTestCase {
     }
 
     @MainActor
-    func testResetDefaultsPreservesOnlyLanguage() throws {
+    func testResetDefaultsPreservesLanguageAndReviewThrottle() throws {
         let suiteName = "AppResetServiceTests.\(UUID().uuidString)"
         let defaults = try XCTUnwrap(UserDefaults(suiteName: suiteName))
         defer { defaults.removePersistentDomain(forName: suiteName) }
@@ -125,6 +239,10 @@ final class Don_t_forgetTests: XCTestCase {
         defaults.set(AppLanguage.english.rawValue, forKey: SettingsKeys.language)
         defaults.set(true, forKey: SettingsKeys.hasCompletedWelcome)
         defaults.set("temporary", forKey: SettingsKeys.historyTutorialExampleID)
+        defaults.set(
+            2,
+            forKey: AutomatedReviewPersistence.completedMilestoneCount
+        )
 
         AppResetService.clearDefaultsPreservingLanguage(
             defaults: defaults,
@@ -133,6 +251,10 @@ final class Don_t_forgetTests: XCTestCase {
         )
 
         XCTAssertEqual(defaults.string(forKey: SettingsKeys.language), AppLanguage.english.rawValue)
+        XCTAssertEqual(
+            defaults.integer(forKey: AutomatedReviewPersistence.completedMilestoneCount),
+            2
+        )
         XCTAssertNil(defaults.object(forKey: SettingsKeys.hasCompletedWelcome))
         XCTAssertNil(defaults.object(forKey: SettingsKeys.historyTutorialExampleID))
     }

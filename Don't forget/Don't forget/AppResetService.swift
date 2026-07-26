@@ -55,6 +55,14 @@ enum AppResetService {
         domainName: String?,
         preservedLanguage: Any?
     ) {
+        // Review throttling must survive an in-app data reset; otherwise the
+        // reset action could accidentally bypass the 365-day request limit.
+        let preservedReviewValues = AutomatedReviewPersistence.allKeys.reduce(
+            into: [String: Any]()
+        ) { values, key in
+            values[key] = defaults.object(forKey: key)
+        }
+
         if let domainName {
             defaults.removePersistentDomain(forName: domainName)
         } else {
@@ -65,6 +73,9 @@ enum AppResetService {
 
         if let preservedLanguage {
             defaults.set(preservedLanguage, forKey: SettingsKeys.language)
+        }
+        for (key, value) in preservedReviewValues {
+            defaults.set(value, forKey: key)
         }
     }
 }

@@ -333,8 +333,13 @@ struct RecurringView: View {
         let itemsByCategory = Dictionary(grouping: recurringItems, by: \.themeRawValue)
 
         NavigationStack {
-            ScrollView {
-                LazyVStack(spacing: 12) {
+            ScrollViewReader { _ in
+                ScrollView {
+                    // Keep category cards alive while the keyboard changes the
+                    // viewport. LazyVStack can evict and recreate off-screen
+                    // cards during that transition, which makes the content
+                    // offset jump when the bottom category field submits.
+                    VStack(spacing: 12) {
                     if isRecurringHelpExpanded {
                         RecurringHelpCard(
                             locale: locale,
@@ -395,16 +400,23 @@ struct RecurringView: View {
                         add: addCategory,
                         isOnboardingHighlighted: visibleTutorialStep == 0
                     )
+                    }
+                    .padding(.horizontal, AdaptiveLayout.scaled(14))
+                    .padding(.vertical, AdaptiveLayout.scaled(14))
+                    .adaptiveReadableWidth()
                 }
-                .padding(.horizontal, AdaptiveLayout.scaled(14))
-                .padding(.vertical, AdaptiveLayout.scaled(14))
-                .adaptiveReadableWidth()
+                .onPreferenceChange(RecurringLeadingColumnWidthPreferenceKey.self) { width in
+                    // Ignore transient fallback measurements while the
+                    // keyboard changes the viewport; shrinking here would
+                    // shift every recurring row sideways for one frame.
+                    leadingColumnWidth = max(
+                        leadingColumnWidth,
+                        max(AdaptiveLayout.scaled(38), width)
+                    )
+                }
+                .background(Color.appCanvasBackground)
+                .recurringScrollCompatibility(isScrolled: $isScrolled)
             }
-            .onPreferenceChange(RecurringLeadingColumnWidthPreferenceKey.self) { width in
-                leadingColumnWidth = max(AdaptiveLayout.scaled(38), width)
-            }
-            .background(Color.appCanvasBackground)
-            .recurringScrollCompatibility(isScrolled: $isScrolled)
             .toolbar(.hidden, for: .navigationBar)
             .safeAreaInset(edge: .top, spacing: 0) {
                 ZStack {
@@ -516,6 +528,9 @@ struct RecurringView: View {
             }
             .onChange(of: recurringHorizon) { _, _ in
                 recurringExtendedThrough = 0
+            }
+            .onChange(of: showNextDate) { _, _ in
+                leadingColumnWidth = AdaptiveLayout.scaled(38)
             }
             .onChange(of: isKeyboardVisible) { _, visible in
                 if visible && !requiresImmediateSync {
@@ -1582,16 +1597,12 @@ private struct NewRecurringCategoryLine: View {
             .buttonStyle(.plain)
             .accessibilityLabel(locale.localized("Nieuwe categorie invoeren"))
 
-            TextField(locale.localized("Nieuwe categorie"), text: $text, axis: .vertical)
+            TextField(locale.localized("Nieuwe categorie"), text: $text)
                 .font(.system(size: AdaptiveLayout.scaled(16), weight: .medium))
                 .textFieldStyle(.plain)
                 .focused($isTextFieldFocused)
-                .lineLimit(1...)
-                .onChange(of: text) { _, newValue in
-                    guard newValue.contains("\n") else { return }
-                    text = newValue.replacingOccurrences(of: "\n", with: "")
-                    finishEditing()
-                }
+                .lineLimit(1)
+                .submitLabel(.done)
                 .onSubmit {
                     finishEditing()
                 }
@@ -1625,10 +1636,10 @@ private struct NewRecurringCategoryLine: View {
     }
 
     private func finishEditing() {
-        if !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-            add()
-        }
         isTextFieldFocused = false
+        AppKeyboard.dismiss()
+        guard !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
+        add()
     }
 
     private func beginEditing() {
@@ -1995,7 +2006,9 @@ private struct CompactNumberField: UIViewRepresentable {
     @Binding var text: String
     var isDisabled = false
     var accessibilityLabel: String
-    var textAlignment: NSTextAlignment = .right
+    /// `nil` means trailing in the active writing direction. Centered fields
+    /// can still opt into `.center`.
+    var textAlignment: NSTextAlignment?
     var textChanged: () -> Void = {}
     var editingChanged: (Bool) -> Void = { _ in }
 
@@ -2008,7 +2021,7 @@ private struct CompactNumberField: UIViewRepresentable {
         textField.adjustsFontForContentSizeCategory = true
         textField.placeholder = placeholder
         textField.text = text
-        textField.textAlignment = textAlignment
+        configureDirection(of: textField, context: context)
         textField.accessibilityLabel = accessibilityLabel
         textField.addTarget(
             context.coordinator,
@@ -2024,10 +2037,18 @@ private struct CompactNumberField: UIViewRepresentable {
             textField.text = text
         }
         textField.placeholder = placeholder
-        textField.textAlignment = textAlignment
+        configureDirection(of: textField, context: context)
         textField.textColor = isDisabled ? .secondaryLabel : .label
         textField.isEnabled = true
         textField.accessibilityLabel = accessibilityLabel
+    }
+
+    private func configureDirection(of textField: UITextField, context: Context) {
+        let isRightToLeft = context.environment.layoutDirection == .rightToLeft
+        textField.semanticContentAttribute = isRightToLeft
+            ? .forceRightToLeft
+            : .forceLeftToRight
+        textField.textAlignment = textAlignment ?? (isRightToLeft ? .left : .right)
     }
 
     func makeCoordinator() -> Coordinator {
@@ -2044,12 +2065,10 @@ private struct CompactNumberField: UIViewRepresentable {
         @objc func textChanged(_ textField: UITextField) {
             parent.textChanged()
             parent.text = textField.text ?? ""
-            textField.textAlignment = parent.textAlignment
         }
 
         func textFieldDidBeginEditing(_ textField: UITextField) {
             parent.editingChanged(true)
-            textField.textAlignment = parent.textAlignment
             let targetPosition = textField.endOfDocument
             textField.selectedTextRange = textField.textRange(from: targetPosition, to: targetPosition)
         }
@@ -2514,7 +2533,7 @@ private struct RecurringEditorView: View {
             // Keep min, value and plus evenly spaced while aligning the
             // complete control group with native picker chevrons.
             .padding(.trailing, AdaptiveLayout.scaled(1))
-            .offset(x: 9)
+            .logicalHorizontalOffset(9)
         }
         .font(.body)
         .foregroundStyle(.primary)
