@@ -811,6 +811,67 @@ final class Don_t_forgetTests: XCTestCase {
         XCTAssertEqual(Set(try managedItems().map(\.id)), firstIDs)
     }
 
+    /// The shared day zone is derived from the rows the user already has, so
+    /// every existing day has to keep the label it has today — including rows
+    /// written on both sides of a daylight saving change.
+    @MainActor
+    func testDerivedDayTimeZoneKeepsExistingDayLabels() throws {
+        for identifier in ["Europe/Amsterdam", "America/New_York", "Pacific/Auckland"] {
+            let home = try XCTUnwrap(TimeZone(identifier: identifier))
+            var writer = Calendar(identifier: .gregorian)
+            writer.timeZone = home
+
+            let days = [
+                DateComponents(year: 2026, month: 7, day: 15),
+                DateComponents(year: 2026, month: 12, day: 24),
+                DateComponents(year: 2027, month: 3, day: 1)
+            ]
+            let storedDays = try days.map { try XCTUnwrap(writer.date(from: $0)) }
+            let offsets = storedDays.map {
+                DayTimeZonePin.impliedOffset(
+                    of: $0,
+                    deviceOffset: home.secondsFromGMT(for: $0)
+                )
+            }
+
+            var reader = Calendar(identifier: .gregorian)
+            reader.timeZone = try XCTUnwrap(
+                TimeZone(secondsFromGMT: DayTimeZonePin.resolvedOffset(from: offsets))
+            )
+
+            for (expected, storedDay) in zip(days, storedDays) {
+                let actual = reader.dateComponents([.year, .month, .day], from: storedDay)
+                XCTAssertEqual(actual.year, expected.year, identifier)
+                XCTAssertEqual(actual.month, expected.month, identifier)
+                XCTAssertEqual(actual.day, expected.day, identifier)
+            }
+        }
+    }
+
+    /// Installing the update while abroad must not repin the day zone to
+    /// wherever the user happens to be; the rows still say where they are from.
+    @MainActor
+    func testDayTimeZoneIsDerivedFromDataNotFromATravellingDevice() throws {
+        let home = try XCTUnwrap(TimeZone(identifier: "Europe/Amsterdam"))
+        var writer = Calendar(identifier: .gregorian)
+        writer.timeZone = home
+        let storedDay = try XCTUnwrap(
+            writer.date(from: DateComponents(year: 2026, month: 7, day: 15))
+        )
+
+        for abroad in ["America/New_York", "Asia/Tokyo", "America/Los_Angeles"] {
+            let deviceZone = try XCTUnwrap(TimeZone(identifier: abroad))
+            XCTAssertEqual(
+                DayTimeZonePin.impliedOffset(
+                    of: storedDay,
+                    deviceOffset: deviceZone.secondsFromGMT(for: storedDay)
+                ),
+                home.secondsFromGMT(for: storedDay),
+                abroad
+            )
+        }
+    }
+
     private func inMemoryContainer() throws -> ModelContainer {
         let schema = Schema(versionedSchema: AppSchemaV1.self)
         return try ModelContainer(

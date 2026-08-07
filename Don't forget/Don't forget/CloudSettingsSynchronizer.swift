@@ -26,6 +26,9 @@ final class CloudSettingsSynchronizer {
         SettingsKeys.weekNumberRule,
         SettingsKeys.dateFormat,
         SettingsKeys.language,
+        // Every device has to read a stored day in the same zone, so whichever
+        // device derives it first decides for all of them.
+        SettingsKeys.dayTimeZoneSeconds,
         SettingsKeys.defaultColorCombinationEnabled,
         SettingsKeys.recurringBirthdayColor,
         SettingsKeys.recurringGeneralColor,

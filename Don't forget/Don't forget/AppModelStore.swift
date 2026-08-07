@@ -40,6 +40,9 @@ enum AppModelStore {
                 configurations: configuration
             )
             cachedContainer = container
+            // Before anything reads a stored day, settle which zone those days
+            // are written in. Skipped once iCloud has already supplied one.
+            DayTimeZonePin.resolveIfNeeded(in: container)
             return .success(container)
         } catch {
             cachedError = error

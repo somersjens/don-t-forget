@@ -319,7 +319,7 @@ struct AgendaView: View {
     @FocusState private var focusedField: AgendaField?
     @State private var scrollPresentation = AgendaScrollPresentation()
     @State private var activeMoveEntryID: UUID?
-    @State private var moveDraftDate = AppCalendar.startOfDay(.now)
+    @State private var moveDraftDate = AppCalendar.today
     @State private var scrollTargetDate: Date?
     @State private var scrollTask: Task<Void, Never>?
     @State private var inputScrollTask: Task<Void, Never>?
@@ -398,7 +398,7 @@ struct AgendaView: View {
     }
 
     private var openPastDates: Set<Date> {
-        let today = AppCalendar.startOfDay(.now)
+        let today = AppCalendar.today
         return Set(presentedEntries.compactMap { entry in
             guard entry.date < today else { return nil }
             return AppCalendar.startOfDay(entry.date)
@@ -465,7 +465,7 @@ struct AgendaView: View {
     }
 
     private var onboardingMoveExampleEntry: DayEntry? {
-        let today = AppCalendar.startOfDay(.now)
+        let today = AppCalendar.today
         let todayEntries = presentedEntries
             .filter { AppCalendar.isSameDay($0.date, today) }
             .sorted(by: sortEntries)
@@ -478,7 +478,7 @@ struct AgendaView: View {
     }
 
     private var weeks: [WeekSection] {
-        let today = AppCalendar.startOfDay(.now)
+        let today = AppCalendar.today
         let oldestOpenDate = presentedEntries
             .filter { $0.date < today }
             .map(\.date)
@@ -1027,7 +1027,7 @@ struct AgendaView: View {
         guard !hasSeededAgendaExamples || reset else { return }
         hasSeededAgendaExamples = true
 
-        let today = AppCalendar.startOfDay(.now)
+        let today = AppCalendar.today
         let examples = agendaOnboardingExamples
         let allEntries = (try? modelContext.fetch(FetchDescriptor<DayEntry>())) ?? entries
         let legacyExamples = [
@@ -1665,13 +1665,13 @@ struct AgendaView: View {
             let endDate = AppCalendar.calendar.date(
                 byAdding: .weekOfYear,
                 value: loadedFutureWeeks,
-                to: AppCalendar.startOfDay(.now)
+                to: AppCalendar.today
             ) ?? offer.targetDate
             let modelContainer = modelContext.container
             let itemID = workingOffer.itemID
             let plan = RecurringScheduler.seriesPlan(
                 for: item,
-                from: AppCalendar.startOfDay(.now),
+                from: AppCalendar.today,
                 through: endDate
             )
             let didChangeEntries: Bool
@@ -1767,7 +1767,7 @@ struct AgendaView: View {
             return
         }
 
-        let today = AppCalendar.startOfDay(.now)
+        let today = AppCalendar.today
         let currentEndDate = AppCalendar.calendar.date(
             byAdding: .weekOfYear,
             value: loadedFutureWeeks,
@@ -1884,7 +1884,7 @@ struct AgendaView: View {
         isLoadingMoreFuture = false
         appActivityState.finish(.calendarExtension, after: .milliseconds(300))
         let option = RecurringHorizonOption(rawValue: recurringHorizon) ?? .threeMonths
-        let today = AppCalendar.startOfDay(.now)
+        let today = AppCalendar.today
         let configuredEndDate = AppCalendar.calendar.date(
             byAdding: .month,
             value: option.months,
@@ -1900,7 +1900,7 @@ struct AgendaView: View {
     }
 
     private var maximumFutureWeekCount: Int {
-        let today = AppCalendar.startOfDay(.now)
+        let today = AppCalendar.today
         let maximumEndDate = AppCalendar.calendar.date(
             byAdding: .month,
             value: 24,
@@ -1912,7 +1912,7 @@ struct AgendaView: View {
     private func weekCount(through endDate: Date) -> Int {
         let days = AppCalendar.calendar.dateComponents(
             [.day],
-            from: AppCalendar.startOfDay(.now),
+            from: AppCalendar.today,
             to: AppCalendar.startOfDay(endDate)
         ).day ?? 0
         return max(1, (max(0, days) + 6) / 7)
@@ -2116,10 +2116,10 @@ struct AgendaView: View {
     private func requestScroll(to date: Date) {
         let day = AppCalendar.startOfDay(date)
         guard !visibilityCache.dates.contains(day) else { return }
-        if day > AppCalendar.startOfDay(.now) {
+        if day > AppCalendar.today {
             let weeksAhead = AppCalendar.calendar.dateComponents(
                 [.weekOfYear],
-                from: AppCalendar.startOfDay(.now),
+                from: AppCalendar.today,
                 to: day
             ).weekOfYear ?? 0
             loadedFutureWeeks = max(loadedFutureWeeks, weeksAhead + 1)
@@ -2458,7 +2458,7 @@ struct WeekCard: View {
     let currentSearchMatchID: UUID?
 
     private var visibleDays: [DayInfo] {
-        let today = AppCalendar.startOfDay(.now)
+        let today = AppCalendar.today
 
         return week.days.filter { day in
             if day.date >= today {
@@ -2621,7 +2621,7 @@ struct DayBlock: View {
                                 dateLabel: index == 0 ? day.dateLabel : "",
                                 weekdayLetter: day.weekdayLetter,
                                 entry: entry,
-                                weather: index == 0 && day.date >= AppCalendar.startOfDay(.now)
+                                weather: index == 0 && day.date >= AppCalendar.today
                                     ? weather
                                     : nil,
                                 focusedField: focusedField,
@@ -2682,7 +2682,7 @@ struct DayBlock: View {
                         weekdayLetter: day.weekdayLetter,
                         date: day.date,
                         nextOrder: nextUntimedManualOrder,
-                        weather: sortedEntries.isEmpty && day.date >= AppCalendar.startOfDay(.now)
+                        weather: sortedEntries.isEmpty && day.date >= AppCalendar.today
                             ? weather
                             : nil,
                         focusedField: focusedField,

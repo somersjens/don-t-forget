@@ -63,7 +63,7 @@ enum CalendarWidgetSnapshotPublisher {
         homeWidgetShowsOtherWhenEmpty: Bool,
         homeWidgetTodoCategoryID: String
     ) {
-        let today = AppCalendar.startOfDay(.now)
+        let today = AppCalendar.today
         let categoryColors = decodeCategoryColors(categoriesData)
 
         let items = entries
@@ -168,7 +168,7 @@ enum CalendarWidgetSnapshotPublisher {
         itemCount: Int,
         categoryColors: [String: String]
     ) -> [CalendarWidgetItem] {
-        let today = AppCalendar.startOfDay(.now)
+        let today = AppCalendar.today
 
         if content == .todo {
             let groups = TodoGroupStore.decode(todoGroupsData)

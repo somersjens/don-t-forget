@@ -16,6 +16,7 @@ $(SRCROOT)/Don't forget/CloudImportGate.swift
 $(SRCROOT)/Don't forget/CloudSettingsSynchronizer.swift
 $(SRCROOT)/Don't forget/ContentView.swift
 $(SRCROOT)/Don't forget/DeferredCommitTextField.swift
+$(SRCROOT)/Don't forget/DayTimeZonePin.swift
 $(SRCROOT)/Don't forget/DemoData.swift
 $(SRCROOT)/Don't forget/Don_t_forgetApp.swift
 $(SRCROOT)/Don't forget/EndOfDayReminderService.swift

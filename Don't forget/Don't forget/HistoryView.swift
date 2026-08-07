@@ -320,7 +320,7 @@ struct HistoryView: View {
     }
 
     private func completedLastSevenDays(in rows: [HistoryRow]) -> Int {
-        let today = AppCalendar.startOfDay(.now)
+        let today = AppCalendar.today
         let start = AppCalendar.calendar.date(byAdding: .day, value: -6, to: today) ?? today
         return rows.count { $0.completedAt >= start }
     }
@@ -589,7 +589,7 @@ struct HistoryView: View {
             return
         }
 
-        let entry = DayEntry(date: .now, rawText: historyTutorialExampleText)
+        let entry = DayEntry(date: AppCalendar.today, rawText: historyTutorialExampleText)
         entry.isDone = true
         entry.completedAt = .now
         modelContext.insert(entry)
@@ -1402,7 +1402,7 @@ private enum HistoryChartPeriod: String, Identifiable {
         guard let oldest = dates.min() else { return periods }
 
         let calendar = AppCalendar.calendar
-        let today = AppCalendar.startOfDay(.now)
+        let today = AppCalendar.today
         let fourteenDaysAgo = calendar.date(byAdding: .day, value: -14, to: today) ?? today
         if oldest < fourteenDaysAgo {
             periods.append(.weeks)
@@ -1419,7 +1419,7 @@ private enum HistoryChartPeriod: String, Identifiable {
 
     func buckets(for dates: [Date]) -> [HistoryChartBucket] {
         let calendar = AppCalendar.calendar
-        let today = AppCalendar.startOfDay(.now)
+        let today = AppCalendar.today
         let currentStart: Date
         let component: Calendar.Component
         let numberOfBuckets: Int

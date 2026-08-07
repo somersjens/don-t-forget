@@ -214,7 +214,9 @@ final class RecurringItem {
     init(
         title: String = "",
         frequencyText: String = "",
-        nextDate: Date = .now,
+        // A day value, not an instant: `.now` would anchor a new series to the
+        // day it is in the shared day zone while the user is somewhere else.
+        nextDate: Date = AppCalendar.today,
         reminderMinutesBefore: Int? = nil,
         showOnWidget: Bool = true,
         theme: RecurringTheme = .general,

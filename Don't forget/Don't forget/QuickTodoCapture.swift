@@ -111,7 +111,7 @@ struct CaptureTodoIntent: AppIntent {
         let context = try AppModelStore.requireContainer().mainContext
 
         if usesCalendar {
-            context.insert(DayEntry(date: .now, rawText: text, source: .manual))
+            context.insert(DayEntry(date: AppCalendar.today, rawText: text, source: .manual))
             try context.save()
         } else {
             let groups = TodoGroupStore.decode(
@@ -145,7 +145,7 @@ private struct QuickCaptureSnippetView: View {
     @Environment(\.locale) private var locale
     @State private var text = ""
     @State private var destinationID: String
-    @State private var agendaDate = AppCalendar.startOfDay(.now)
+    @State private var agendaDate = AppCalendar.today
     @StateObject private var speechRecorder = QuickSpeechRecorder()
 
     private let groups: [TodoGroup]
@@ -213,7 +213,7 @@ private struct QuickCaptureSnippetView: View {
 
                     Button {
                         destinationID = Self.agendaDestinationID
-                        agendaDate = AppCalendar.startOfDay(.now)
+                        agendaDate = AppCalendar.today
                     } label: {
                         Label(locale.localized("Kalender"), systemImage: "calendar")
                     }
@@ -366,7 +366,7 @@ struct QuickTodoCaptureView: View {
 
     @State private var text = ""
     @State private var destinationID: String
-    @State private var agendaDate = AppCalendar.startOfDay(.now)
+    @State private var agendaDate = AppCalendar.today
     @State private var isShowingDatePicker = false
     @StateObject private var speechRecorder = QuickSpeechRecorder()
     @FocusState private var isTextFieldFocused: Bool

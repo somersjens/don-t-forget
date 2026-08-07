@@ -34,7 +34,7 @@ struct MacCalendarView: View {
     @State private var newEntryDate: Date?
     @State private var newEntryText = ""
     @State private var movingEntry: DayEntry?
-    @State private var moveDate = AppCalendar.startOfDay(.now)
+    @State private var moveDate = AppCalendar.today
     @State private var moveDateText = ""
     @State private var isMoveCalendarPresented = false
     @State private var recurringMoveOffer: MacRecurringMoveOffer?
@@ -63,7 +63,7 @@ struct MacCalendarView: View {
     }
 
     private var weeks: [WeekSection] {
-        AppCalendar.weekSections(startingFrom: AppCalendar.startOfDay(.now), numberOfWeeks: visibleWeekCount)
+        AppCalendar.weekSections(startingFrom: AppCalendar.today, numberOfWeeks: visibleWeekCount)
     }
 
     var body: some View {
@@ -238,7 +238,7 @@ struct MacCalendarView: View {
 
     private func ensureDateIsLoaded(_ date: Date) {
         let calendar = AppCalendar.calendar
-        let start = AppCalendar.startOfDay(.now)
+        let start = AppCalendar.today
         let target = AppCalendar.startOfDay(date)
         guard let dayDistance = calendar.dateComponents([.day], from: start, to: target).day,
               dayDistance >= 0 else { return }
@@ -363,7 +363,7 @@ private struct MacWeekCard: View {
     let created: (DayEntry) -> Void
 
     private var visibleDays: [DayInfo] {
-        let today = AppCalendar.startOfDay(.now)
+        let today = AppCalendar.today
         return week.days.filter { day in
             day.date >= today || !(entriesByDay[day.date] ?? []).isEmpty
         }

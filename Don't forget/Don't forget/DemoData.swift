@@ -88,7 +88,7 @@ enum DemoData {
         }
 
         let calendar = AppCalendar.calendar
-        let today = AppCalendar.startOfDay(.now)
+        let today = AppCalendar.today
 
         for dayOffset in 0..<365 {
             let day = calendar.date(byAdding: .day, value: -dayOffset, to: today) ?? today

@@ -237,13 +237,14 @@ enum CalendarSyncService {
 
         event.title = firstEntry.rawText
         event.isAllDay = true
-        event.startDate = AppCalendar.startOfDay(firstEntry.date)
+        event.startDate = AppDayCalendar.localStartOfDay(for: firstEntry.date)
 
-        let dayAfterLast = AppCalendar.calendar.date(
+        let localLastDay = AppDayCalendar.localStartOfDay(for: lastEntry.date)
+        let dayAfterLast = Calendar.current.date(
             byAdding: .day,
             value: 1,
-            to: AppCalendar.startOfDay(lastEntry.date)
-        ) ?? AppCalendar.startOfDay(lastEntry.date)
+            to: localLastDay
+        ) ?? localLastDay
         // Keep the boundary inside the final intended calendar day. Some
         // Calendar backends expose midnight of the following day as an extra
         // visible all-day date (for example 24–26 for entries on 24 and 25).
@@ -349,9 +350,12 @@ enum CalendarSyncService {
         return AppCalendar.isSameDay(expectedDate, date)
     }
 
+    /// A calendar event happens at a wall-clock moment, so a stored day has to
+    /// be turned back into an instant in the *device's* zone here — not in the
+    /// shared day zone the day itself is written in.
     private static func date(on day: Date, minutes: Int) -> Date {
-        let startOfDay = AppCalendar.startOfDay(day)
-        return AppCalendar.calendar.date(
+        let startOfDay = AppDayCalendar.localStartOfDay(for: day)
+        return Calendar.current.date(
             byAdding: .minute,
             value: minutes,
             to: startOfDay

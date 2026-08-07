@@ -167,7 +167,7 @@ enum RecurringScheduler {
         in modelContext: ModelContext,
         through endDate: Date
     ) {
-        let today = AppCalendar.startOfDay(.now)
+        let today = AppCalendar.today
         var allEntries: [DayEntry]
         do {
             allEntries = try modelContext.fetch(FetchDescriptor<DayEntry>())
@@ -263,7 +263,7 @@ enum RecurringScheduler {
         items: [RecurringItem],
         through endDate: Date
     ) -> RecurringFullSyncPlan {
-        let today = AppCalendar.startOfDay(.now)
+        let today = AppCalendar.today
         return RecurringFullSyncPlan(
             today: today,
             endDate: endDate,
@@ -619,7 +619,9 @@ nonisolated enum RecurringFullSyncWorker {
         let title: String
 
         init(date: Date, title: String) {
-            self.date = Calendar.current.startOfDay(for: date)
+            // The shared day zone, not this device's: the main-actor scheduler
+            // builds the very same key and the two have to agree.
+            self.date = AppDayCalendar.startOfDay(date)
             self.title = title
         }
     }

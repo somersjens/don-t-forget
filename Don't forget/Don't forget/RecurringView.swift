@@ -1446,7 +1446,7 @@ private struct RecurringRow: View {
         }
         let days = max(0, AppCalendar.calendar.dateComponents(
             [.day],
-            from: AppCalendar.startOfDay(.now),
+            from: AppCalendar.today,
             to: AppCalendar.startOfDay(nextDate)
         ).day ?? 0)
         if days == 0 {
@@ -2886,7 +2886,7 @@ private struct RecurringDraft {
     var title = ""
     var categoryID = RecurringCategoryStore.generalID
     var kind = RecurrenceKind.interval
-    var startDate = AppCalendar.startOfDay(.now)
+    var startDate = AppCalendar.today
     var intervalValue = 1
     var intervalUnit = RecurrenceUnit.week
     var monthlyDay = 1

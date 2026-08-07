@@ -493,7 +493,7 @@ struct MacRootView: View {
     private func createItem() {
         switch section {
         case .agenda:
-            let item = DayEntry(date: .now)
+            let item = DayEntry(date: AppCalendar.today)
             modelContext.insert(item)
             selection = item.id
         case .todo:
@@ -501,7 +501,7 @@ struct MacRootView: View {
             modelContext.insert(item)
             selection = item.id
         case .recurring:
-            let item = RecurringItem(nextDate: .now)
+            let item = RecurringItem(nextDate: AppCalendar.today)
             modelContext.insert(item)
             selection = item.id
         case .history:
@@ -606,7 +606,7 @@ private enum MacHistoryChartPeriod: String, Identifiable {
         guard let oldest = dates.min() else { return periods }
 
         let calendar = AppCalendar.calendar
-        let today = AppCalendar.startOfDay(.now)
+        let today = AppCalendar.today
         let fourteenDaysAgo = calendar.date(byAdding: .day, value: -14, to: today) ?? today
         if oldest < fourteenDaysAgo {
             periods.append(.weeks)
@@ -623,7 +623,7 @@ private enum MacHistoryChartPeriod: String, Identifiable {
 
     func buckets(for dates: [Date]) -> [MacHistoryChartBucket] {
         let calendar = AppCalendar.calendar
-        let today = AppCalendar.startOfDay(.now)
+        let today = AppCalendar.today
         let currentStart: Date
         let component: Calendar.Component
         let numberOfBuckets: Int
@@ -904,7 +904,7 @@ private struct MacHistoryBoard: View {
     }
 
     private var summary: some View {
-        let start = Calendar.current.date(byAdding: .day, value: -6, to: AppCalendar.startOfDay(.now)) ?? .now
+        let start = AppCalendar.calendar.date(byAdding: .day, value: -6, to: AppCalendar.today) ?? .now
         let recent = completedItems.filter { $0.completedAt >= start }.count
         return VStack(spacing: 0) {
             Button { withAnimation(.easeInOut(duration: 0.2)) { isChartExpanded.toggle() } } label: {
@@ -1126,7 +1126,7 @@ private struct MacTodoBoard: View {
     @State private var feedback: MacTodoFeedback?
     @State private var dismissUndoTask: Task<Void, Never>?
     @State private var agendaTodo: TodoItem?
-    @State private var agendaDate = AppCalendar.startOfDay(.now)
+    @State private var agendaDate = AppCalendar.today
     @State private var openSinceTodo: TodoItem?
     @State private var openDaysDraft = 0
     @State private var appearanceGroupID: String?
@@ -1425,11 +1425,15 @@ private struct MacTodoBoard: View {
         }
         if groups.count == 1 { Text(locale.localized("todo.menu.noOtherCategories")) }
         Divider()
-        Button { moveToAgenda(todo, date: .now) } label: {
+        Button { moveToAgenda(todo, date: AppCalendar.today) } label: {
             Label(locale.localized("todo.menu.moveToToday"), systemImage: "calendar.badge.checkmark")
         }
         Button {
-            agendaDate = Calendar.current.date(byAdding: .day, value: 1, to: .now) ?? .now
+            agendaDate = AppCalendar.calendar.date(
+                byAdding: .day,
+                value: 1,
+                to: AppCalendar.today
+            ) ?? AppCalendar.today
             agendaTodo = todo
         } label: { Label(locale.localized("todo.menu.otherAgendaDate"), systemImage: "calendar.badge.plus") }
         Divider()
@@ -1592,7 +1596,7 @@ private struct MacTodoBoard: View {
     }
     private func move(_ todo: TodoItem, to id: String) { todo.bucketRawValue = id; save() }
     private func setOpenDays(_ days: Int, for todo: TodoItem) {
-        let today = AppCalendar.startOfDay(.now)
+        let today = AppCalendar.today
         todo.createdAt = AppCalendar.calendar.date(byAdding: .day, value: -max(0, days), to: today) ?? today
         save()
     }
@@ -1600,7 +1604,7 @@ private struct MacTodoBoard: View {
         max(0, AppCalendar.calendar.dateComponents(
             [.day],
             from: AppCalendar.startOfDay(date),
-            to: AppCalendar.startOfDay(.now)
+            to: AppCalendar.today
         ).day ?? 0)
     }
     private func addGroup() {
@@ -1633,12 +1637,12 @@ private struct MacTodoBoard: View {
         if changed { save() }
     }
     private func openDuration(_ date: Date) -> String {
-        let days = max(0, Calendar.current.dateComponents([.day], from: Calendar.current.startOfDay(for: date), to: Calendar.current.startOfDay(for: .now)).day ?? 0)
+        let days = max(0, AppCalendar.calendar.dateComponents([.day], from: AppCalendar.startOfDay(date), to: AppCalendar.today).day ?? 0)
         if days == 0 { return locale.localized("Sinds vandaag open") }
         return locale.localizedFormat("%lld dagen open", days)
     }
     private func ageBadge(_ date: Date) -> String {
-        let days = max(0, Calendar.current.dateComponents([.day], from: Calendar.current.startOfDay(for: date), to: Calendar.current.startOfDay(for: .now)).day ?? 0)
+        let days = max(0, AppCalendar.calendar.dateComponents([.day], from: AppCalendar.startOfDay(date), to: AppCalendar.today).day ?? 0)
         if days == 0 { return locale.localized("todo.age.now") }
         if days < 14 { return locale.localizedFormat("todo.age.daysShort", days) }
         if days < 70 { return locale.localizedFormat("todo.age.weeksShort", days / 7) }
@@ -2182,7 +2186,7 @@ private struct MacRecurringBoard: View {
     }
     private func itemDetail(_ item: RecurringItem, nextDate date: Date) -> String {
         guard item.recurrenceKind == .birthday else { return RecurrenceEngine.description(for: item) }
-        let days = max(0, AppCalendar.calendar.dateComponents([.day], from: AppCalendar.startOfDay(.now), to: date).day ?? 0)
+        let days = max(0, AppCalendar.calendar.dateComponents([.day], from: AppCalendar.today, to: date).day ?? 0)
         let timing: String
         if days == 0 {
             if item.birthdayYearUncertain {
@@ -2212,8 +2216,8 @@ private struct MacRecurringBoard: View {
         let kind: RecurrenceKind = id == MacRecurringCategoryStore.birthdayID
             ? .birthday
             : (id == MacRecurringCategoryStore.holidayID ? .annualFixed : .interval)
-        let item = RecurringItem(nextDate: .now, theme: RecurringTheme(rawValue: id) ?? .general, recurrenceKind: kind)
-        item.themeRawValue = id; if kind == .birthday { item.birthDate = .now }
+        let item = RecurringItem(nextDate: AppCalendar.today, theme: RecurringTheme(rawValue: id) ?? .general, recurrenceKind: kind)
+        item.themeRawValue = id; if kind == .birthday { item.birthDate = AppCalendar.today }
         showsTitleValidation = false
         isCreatingItem = true
         creatingItem = item
@@ -2555,7 +2559,7 @@ private struct MacHolidayManagerView: View {
     }
     private func beginCustomHoliday() {
         let holiday = RecurringItem(
-            nextDate: .now,
+            nextDate: AppCalendar.today,
             theme: .general,
             recurrenceKind: .annualFixed
         )

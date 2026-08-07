@@ -462,12 +462,13 @@ struct TutorialCompletionContent: View {
     }
 }
 
-enum SettingsKeys {
+nonisolated enum SettingsKeys {
     static let weekStart = "settings.weekStart"
     static let weekdayLabelLength = "settings.weekdayLabelLength"
     static let weekNumberRule = "settings.weekNumberRule"
     static let dateFormat = "settings.dateFormat"
     static let language = "settings.language"
+    static let dayTimeZoneSeconds = "settings.dayTimeZoneSeconds"
     static let calendarSyncEnabled = "settings.calendarSyncEnabled"
     static let calendarLastSyncDate = "settings.calendarLastSyncDate"
     static let weatherInAgendaEnabled = "settings.weatherInAgendaEnabled"
@@ -803,7 +804,7 @@ enum ActionButtonLaunchMode: String, CaseIterable, Identifiable {
     }
 }
 
-enum WeekStartOption: String, CaseIterable, Identifiable {
+nonisolated enum WeekStartOption: String, CaseIterable, Identifiable {
     case monday
     case sunday
 
@@ -816,6 +817,7 @@ enum WeekStartOption: String, CaseIterable, Identifiable {
         }
     }
 
+    @MainActor
     func title(for locale: Locale) -> String {
         locale.localized(title)
     }
@@ -825,7 +827,7 @@ enum WeekStartOption: String, CaseIterable, Identifiable {
     }
 }
 
-enum WeekNumberRule: String, CaseIterable, Identifiable {
+nonisolated enum WeekNumberRule: String, CaseIterable, Identifiable {
     case iso8601
     case januaryFirst
 
@@ -838,7 +840,7 @@ enum WeekNumberRule: String, CaseIterable, Identifiable {
         }
     }
 
-
+    @MainActor
     func title(for locale: Locale) -> String {
         locale.localized(title)
     }

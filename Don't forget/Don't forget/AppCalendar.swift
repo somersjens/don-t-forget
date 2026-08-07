@@ -1,4 +1,137 @@
 import Foundation
+import SwiftUI
+
+extension View {
+    /// Puts the shared day zone into the environment, so a `DatePicker` shows
+    /// and produces the same calendar day the stored value means — on a device
+    /// in another time zone too.
+    func appDayTimeZone() -> some View {
+        environment(\.calendar, AppCalendar.calendar)
+            .environment(\.timeZone, AppDayTimeZone.current)
+    }
+}
+
+/// The time zone every stored calendar *day* is expressed in.
+///
+/// `DayEntry.date`, `RecurringItem.nextDate` and the generated occurrence keys
+/// are day values, but they are stored as absolute instants. Reading such an
+/// instant with the device's own time zone yields a different calendar day
+/// abroad than at home, so an iPhone that had travelled produced different
+/// occurrence keys — and different midnights — than the Mac at home. The two
+/// then deleted and recreated each other's occurrences on every sync. No
+/// single instant maps to the same calendar day in every zone, so the reading
+/// side is what has to be shared.
+///
+/// The zone is derived from the data the user already has (see
+/// `DayTimeZonePin`), which keeps every existing day on the label it has
+/// today, and it is mirrored through iCloud so a second device adopts it
+/// instead of choosing its own. It carries no daylight saving rules on
+/// purpose: uniform 24-hour days keep recurrence arithmetic from drifting an
+/// hour across a transition.
+nonisolated enum AppDayTimeZone {
+    static var current: TimeZone {
+        guard let seconds = storedSecondsFromGMT,
+              let timeZone = TimeZone(secondsFromGMT: seconds) else {
+            return TimeZone.current
+        }
+        return timeZone
+    }
+
+    static var storedSecondsFromGMT: Int? {
+        let defaults = UserDefaults.standard
+        guard defaults.object(forKey: SettingsKeys.dayTimeZoneSeconds) != nil else { return nil }
+        return defaults.integer(forKey: SettingsKeys.dayTimeZoneSeconds)
+    }
+
+    static func pin(secondsFromGMT: Int) {
+        UserDefaults.standard.set(secondsFromGMT, forKey: SettingsKeys.dayTimeZoneSeconds)
+    }
+}
+
+/// Day arithmetic, in the shared day time zone.
+///
+/// Deliberately reachable off the main actor: the private-context recurrence
+/// workers compare and normalise stored days too, and they used
+/// `Calendar.current` for it, which reintroduced the device's own zone.
+nonisolated enum AppDayCalendar {
+    static var calendar: Calendar {
+        let defaults = UserDefaults.standard
+        let weekStart = WeekStartOption(
+            rawValue: defaults.string(forKey: SettingsKeys.weekStart) ?? ""
+        ) ?? .monday
+        let weekRule = WeekNumberRule(
+            rawValue: defaults.string(forKey: SettingsKeys.weekNumberRule) ?? ""
+        ) ?? .iso8601
+        let timeZone = AppDayTimeZone.current
+        let cacheKey = [
+            "AppDayCalendar.calendar",
+            timeZone.identifier,
+            String(weekStart.calendarWeekday),
+            weekRule.rawValue
+        ].joined(separator: "|")
+        if let cached = Thread.current.threadDictionary[cacheKey] as? Calendar {
+            return cached
+        }
+
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = timeZone
+        calendar.firstWeekday = weekStart.calendarWeekday
+        calendar.minimumDaysInFirstWeek = weekRule == .iso8601 ? 4 : 1
+        Thread.current.threadDictionary[cacheKey] = calendar
+        return calendar
+    }
+
+    static func startOfDay(_ date: Date) -> Date {
+        calendar.startOfDay(for: date)
+    }
+
+    /// The stored day value for the calendar day it is *right now on this
+    /// device*. The user's own clock decides which day it is; the shared zone
+    /// decides how that day is written down.
+    static var today: Date {
+        day(containing: .now)
+    }
+
+    /// The stored day value for the calendar day `instant` falls on locally.
+    /// Use this for real instants — "now", `createdAt`, a picked date — never
+    /// for a value that already is a stored day.
+    static func day(containing instant: Date) -> Date {
+        let components = localCalendar.dateComponents([.year, .month, .day], from: instant)
+        return calendar.date(from: DateComponents(
+            year: components.year,
+            month: components.month,
+            day: components.day
+        )) ?? startOfDay(instant)
+    }
+
+    /// The instant a stored day starts at on *this* device. Only for things
+    /// that must happen at a local wall-clock moment, such as a calendar event
+    /// or a notification.
+    static func localStartOfDay(for storedDay: Date) -> Date {
+        let components = calendar.dateComponents([.year, .month, .day], from: storedDay)
+        return localCalendar.date(from: DateComponents(
+            year: components.year,
+            month: components.month,
+            day: components.day
+        )) ?? storedDay
+    }
+
+    /// Cached per thread like the day calendar: `today` is read from view
+    /// bodies and row builders, so this must not allocate a `Calendar` on
+    /// every call.
+    private static var localCalendar: Calendar {
+        let timeZone = TimeZone.current
+        let cacheKey = "AppDayCalendar.localCalendar|" + timeZone.identifier
+        if let cached = Thread.current.threadDictionary[cacheKey] as? Calendar {
+            return cached
+        }
+
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = timeZone
+        Thread.current.threadDictionary[cacheKey] = calendar
+        return calendar
+    }
+}
 
 struct WeekSection: Identifiable {
     let id: Date
@@ -28,32 +161,23 @@ enum AppCalendar {
         return language.locale
     }
 
+    /// The day calendar plus the display locale. Day arithmetic is identical
+    /// to `AppDayCalendar.calendar`; the locale only affects symbols.
     static var calendar: Calendar {
-        let defaults = UserDefaults.standard
-        let weekStart = WeekStartOption(
-            rawValue: defaults.string(forKey: SettingsKeys.weekStart) ?? ""
-        ) ?? .monday
-        let weekRule = WeekNumberRule(
-            rawValue: defaults.string(forKey: SettingsKeys.weekNumberRule) ?? ""
-        ) ?? .iso8601
         let locale = locale
-        let timeZone = TimeZone.current
+        var calendar = AppDayCalendar.calendar
         let cacheKey = [
             "AppCalendar.calendar",
             locale.identifier,
-            timeZone.identifier,
-            String(weekStart.calendarWeekday),
-            weekRule.rawValue
+            calendar.timeZone.identifier,
+            String(calendar.firstWeekday),
+            String(calendar.minimumDaysInFirstWeek)
         ].joined(separator: "|")
         if let cached = Thread.current.threadDictionary[cacheKey] as? Calendar {
             return cached
         }
 
-        var calendar = Calendar(identifier: .gregorian)
-        calendar.timeZone = timeZone
         calendar.locale = locale
-        calendar.firstWeekday = weekStart.calendarWeekday
-        calendar.minimumDaysInFirstWeek = weekRule == .iso8601 ? 4 : 1
         Thread.current.threadDictionary[cacheKey] = calendar
         return calendar
     }
@@ -74,8 +198,23 @@ enum AppCalendar {
         )
     }
 
+    /// Normalises a value that already *is* a stored day.
     static func startOfDay(_ date: Date) -> Date {
-        calendar.startOfDay(for: date)
+        AppDayCalendar.startOfDay(date)
+    }
+
+    /// The stored day for the calendar day it is right now on this device.
+    ///
+    /// Use this rather than `startOfDay(.now)`: `.now` is a real instant, and
+    /// normalising it in the shared day zone would name the day it is at home
+    /// while the user is travelling.
+    static var today: Date {
+        AppDayCalendar.today
+    }
+
+    /// The stored day for the calendar day `instant` falls on locally.
+    static func day(containing instant: Date) -> Date {
+        AppDayCalendar.day(containing: instant)
     }
 
     static var monthSymbols: [String] {

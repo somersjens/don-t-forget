@@ -84,6 +84,8 @@ struct SmartLedgerApp: App {
 private struct MacLocalizedContent<Content: View>: View {
     @AppStorage(SettingsKeys.language)
     private var language = AppLanguage.system.rawValue
+    @AppStorage(SettingsKeys.dayTimeZoneSeconds)
+    private var dayTimeZoneSeconds = 0
 
     private let content: Content
 
@@ -103,6 +105,7 @@ private struct MacLocalizedContent<Content: View>: View {
         content
             .environment(\.locale, locale)
             .environment(\.layoutDirection, layoutDirection)
+            .appDayTimeZone()
             .appThemeForeground()
     }
 }
@@ -116,6 +119,8 @@ private struct MacLocalizedContent<Content: View>: View {
 private struct AppLocalizedContent<Content: View>: View {
     @AppStorage(SettingsKeys.language)
     private var language = AppLanguage.system.rawValue
+    @AppStorage(SettingsKeys.dayTimeZoneSeconds)
+    private var dayTimeZoneSeconds = 0
 
     private let content: Content
 
@@ -131,6 +136,7 @@ private struct AppLocalizedContent<Content: View>: View {
         content
             .environment(\.locale, appLanguage.locale)
             .environment(\.layoutDirection, appLanguage.layoutDirection)
+            .appDayTimeZone()
     }
 }
 #endif

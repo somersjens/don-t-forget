@@ -1671,7 +1671,7 @@ private struct TodoLine: View {
     private var defaultColorCombinationEnabled = true
 
     @State private var showMoveToAgenda = false
-    @State private var agendaDate = AppCalendar.startOfDay(.now)
+    @State private var agendaDate = AppCalendar.today
     @State private var showOpenSinceEditor = false
     @State private var openDaysDraft = "0"
     @State private var isDeleting = false
@@ -1975,7 +1975,7 @@ private struct TodoLine: View {
 
             Button {
                 dismissKeyboard()
-                moveToAgenda(on: AppCalendar.startOfDay(.now))
+                moveToAgenda(on: AppCalendar.today)
             } label: {
                 Label(
                     locale.localizedFormat("todo.menu.moveToTodayWithDate", todayDateText),
@@ -1985,7 +1985,7 @@ private struct TodoLine: View {
 
             Button {
                 dismissKeyboard()
-                let today = AppCalendar.startOfDay(.now)
+                let today = AppCalendar.today
                 agendaDate = AppCalendar.calendar.date(
                     byAdding: .day,
                     value: 1,

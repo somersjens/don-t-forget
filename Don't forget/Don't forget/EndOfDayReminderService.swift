@@ -66,7 +66,9 @@ enum EndOfDayReminderService {
         guard generation == schedulingGeneration else { return }
 
         let calendar = AppCalendar.calendar
-        let today = calendar.startOfDay(for: now)
+        // `now` is a real instant: the device's own clock decides which day it
+        // is, the shared day zone only decides how that day is written down.
+        let today = AppDayCalendar.day(containing: now)
         let safeMinutes = min(max(minutes, 0), 23 * 60 + 59)
         let snapshots = entries.map {
             EntrySnapshot(
@@ -85,11 +87,13 @@ enum EndOfDayReminderService {
         var identifiers: [String] = []
         for day in scheduledDays {
             guard generation == schedulingGeneration else { return }
-            guard let fireDate = calendar.date(
+            // A reminder fires at a wall-clock moment, so the stored day has to
+            // become an instant in the device's own zone first.
+            guard let fireDate = Calendar.current.date(
                 bySettingHour: safeMinutes / 60,
                 minute: safeMinutes % 60,
                 second: 0,
-                of: day
+                of: AppDayCalendar.localStartOfDay(for: day)
             ), fireDate > now else {
                 continue
             }
@@ -103,7 +107,7 @@ enum EndOfDayReminderService {
                 body: reminderBody(texts: dayEntries.map(\.text))
             )
 
-            let dateComponents = calendar.dateComponents(
+            let dateComponents = Calendar.current.dateComponents(
                 [.year, .month, .day, .hour, .minute],
                 from: fireDate
             )
@@ -143,7 +147,9 @@ enum EndOfDayReminderService {
         now: Date = .now
     ) async throws {
         let calendar = AppCalendar.calendar
-        let today = calendar.startOfDay(for: now)
+        // `now` is a real instant: the device's own clock decides which day it
+        // is, the shared day zone only decides how that day is written down.
+        let today = AppDayCalendar.day(containing: now)
         let texts = entries
             .map {
                 EntrySnapshot(
