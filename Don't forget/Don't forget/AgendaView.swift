@@ -1803,6 +1803,16 @@ struct AgendaView: View {
             isLoadingMoreFuture = true
             appActivityState.begin(.calendarExtension)
 
+            // Appending occurrences that iCloud is still delivering would add
+            // a second copy of each of them.
+            await CloudImportGate.waitUntilSettled()
+            guard !Task.isCancelled else {
+                isLoadingMoreFuture = false
+                appActivityState.finish(.calendarExtension, after: .milliseconds(300))
+                visibilityCache.futureLoadTask = nil
+                return
+            }
+
             let extensionPlan = RecurringScheduler.extensionPlan(
                 items: recurringItems,
                 from: currentEndDate,

@@ -19,6 +19,9 @@ struct SmartLedgerApp: App {
         EndOfDayReminderService.configureNotificationPresentation()
         if AppModelStore.isICloudSyncEnabled {
             CloudSettingsSynchronizer.shared.start()
+            // Observe from launch, so the quiet window used before the first
+            // recurrence generation is measured from process start.
+            CloudImportGate.start()
         }
     }
 

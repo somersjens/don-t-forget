@@ -122,16 +122,11 @@ enum RecurringScheduler {
                 && entry.date >= generationStart
                 && entry.date <= endDate
         })
-        let existingEntries = try batchContext.fetch(descriptor)
-        var existingByIdentity: [OccurrenceIdentity: DayEntry] = [:]
-
-        for entry in existingEntries {
-            guard let itemID = entry.recurringItemIdentifier,
-                  let key = entry.recurringOccurrenceKey else {
-                continue
-            }
-            existingByIdentity[OccurrenceIdentity(itemID: itemID, key: key)] = entry
-        }
+        var existingEntries = try batchContext.fetch(descriptor)
+        var existingByIdentity = RecurringOccurrenceReconciler.collapseDuplicates(
+            among: &existingEntries,
+            in: batchContext
+        )
 
         for item in items {
             RecurrenceEngine.prepareLegacyItem(item)
@@ -180,25 +175,42 @@ enum RecurringScheduler {
             PersistenceSafety.report(error)
             return
         }
-        let validItemIDs = Set(items.map(\.id))
-        let orphanedEntries = allEntries.filter {
-            guard let itemID = $0.recurringItemIdentifier else { return false }
-            return $0.date >= today && !validItemIDs.contains(itemID)
+        RecurringOccurrenceReconciler.collapseDuplicates(among: &allEntries, in: modelContext)
+
+        // An empty recurring table with linked occurrences means the iCloud
+        // import has not delivered the items yet; sweeping then would delete
+        // every occurrence the other devices generated.
+        let storedItems = (try? modelContext.fetch(FetchDescriptor<RecurringItem>())) ?? items
+        if !storedItems.isEmpty {
+            let validItemIDs = Set(storedItems.lazy.filter { !$0.isRemoved }.map(\.id))
+            let orphanedEntries = allEntries.filter {
+                guard let itemID = $0.recurringItemIdentifier else { return false }
+                return $0.date >= today && !validItemIDs.contains(itemID)
+            }
+            remove(orphanedEntries, from: &allEntries, in: modelContext)
         }
-        remove(orphanedEntries, from: &allEntries, in: modelContext)
 
         for item in items {
             RecurrenceEngine.prepareLegacyItem(item)
             let desired = desiredEntries(for: item, from: today, through: endDate)
-            sync(item: item, desired: desired, allEntries: &allEntries, in: modelContext)
+            sync(
+                item: item,
+                desired: desired,
+                from: today,
+                through: endDate,
+                allEntries: &allEntries,
+                in: modelContext
+            )
         }
     }
 
-    static func syncTwoYears(items: [RecurringItem], in modelContext: ModelContext) {
-        guard let endDate = AppCalendar.calendar.date(byAdding: .year, value: 2, to: .now) else {
-            return
-        }
-        syncAll(items: items, in: modelContext, through: endDate)
+    /// Reconciles every series over the window both platforms agree on.
+    static func syncHorizon(items: [RecurringItem], in modelContext: ModelContext) {
+        syncAll(
+            items: items,
+            in: modelContext,
+            through: RecurringGenerationWindow.endDate()
+        )
     }
 
     static func insertNextOccurrenceAndAdvance(item: RecurringItem, in modelContext: ModelContext) {
@@ -211,7 +223,14 @@ enum RecurringScheduler {
             return
         }
         let desired = desiredEntries(for: item, from: date, through: date)
-        sync(item: item, desired: desired, allEntries: &entries, in: modelContext)
+        sync(
+            item: item,
+            desired: desired,
+            from: date,
+            through: date,
+            allEntries: &entries,
+            in: modelContext
+        )
     }
 
     static func seriesPlan(
@@ -219,19 +238,23 @@ enum RecurringScheduler {
         from startDate: Date,
         through endDate: Date
     ) -> RecurringSeriesSyncPlan {
-        RecurringSeriesSyncPlan(entries: desiredEntries(
-            for: item,
-            from: startDate,
-            through: endDate
-        ).map {
-            RecurringSeriesSyncPlan.Entry(
-                key: $0.key,
-                legacyKey: $0.legacyKey,
-                date: $0.date,
-                title: $0.title,
-                accent: $0.accent
-            )
-        })
+        RecurringSeriesSyncPlan(
+            startDate: AppCalendar.startOfDay(startDate),
+            endDate: endDate,
+            entries: desiredEntries(
+                for: item,
+                from: startDate,
+                through: endDate
+            ).map {
+                RecurringSeriesSyncPlan.Entry(
+                    key: $0.key,
+                    legacyKey: $0.legacyKey,
+                    date: $0.date,
+                    title: $0.title,
+                    accent: $0.accent
+                )
+            }
+        )
     }
 
     /// Captures a complete recurrence sync as value types so the SwiftData
@@ -243,6 +266,7 @@ enum RecurringScheduler {
         let today = AppCalendar.startOfDay(.now)
         return RecurringFullSyncPlan(
             today: today,
+            endDate: endDate,
             series: items.map { item in
                 RecurrenceEngine.prepareLegacyItem(item)
                 return RecurringFullSyncPlan.Series(
@@ -306,11 +330,6 @@ enum RecurringScheduler {
         let date: Date
         let title: String
         let accent: String
-    }
-
-    private struct OccurrenceIdentity: Hashable {
-        let itemID: UUID
-        let key: String
     }
 
     private static func desiredEntries(
@@ -378,13 +397,22 @@ enum RecurringScheduler {
     private static func sync(
         item: RecurringItem,
         desired: [DesiredEntry],
+        from startDate: Date,
+        through endDate: Date,
         allEntries: inout [DayEntry],
         in modelContext: ModelContext
     ) {
-        let today = AppCalendar.startOfDay(.now)
         let desiredKeys = Set(desired.flatMap { [$0.key, $0.legacyKey] })
+        // Only occurrences inside the window that was just generated may be
+        // deleted. Anything beyond it belongs to a device with a longer
+        // horizon and is deliberately left alone.
         let linkedEntries = allEntries.filter {
-            $0.recurringItemIdentifier == item.id && $0.date >= today
+            $0.recurringItemIdentifier == item.id
+                && RecurringOccurrenceReconciler.isInsideGeneratedWindow(
+                    $0,
+                    from: startDate,
+                    through: endDate
+                )
         }
         let staleEntries = linkedEntries.filter {
             guard let key = $0.recurringOccurrenceKey else { return true }
@@ -524,6 +552,9 @@ struct RecurringFullSyncPlan: Sendable {
     }
 
     let today: Date
+    /// Upper bound of the generated window. Occurrences past it were made by a
+    /// device with a longer horizon and must survive this reconciliation.
+    let endDate: Date
     let series: [Series]
 }
 
@@ -536,6 +567,10 @@ struct RecurringSeriesSyncPlan: Sendable {
         let accent: String
     }
 
+    /// The window these entries were generated for. Deletions are limited to
+    /// it so a short horizon cannot truncate another device's series.
+    let startDate: Date
+    let endDate: Date
     let entries: [Entry]
 }
 
@@ -579,11 +614,6 @@ nonisolated enum RecurringWorkerUpdate {
 /// This avoids publishing hundreds of individual inserts on the main context
 /// when a daily (or dense weekly) series is added.
 nonisolated enum RecurringFullSyncWorker {
-    private struct Identity: Hashable {
-        let itemID: UUID
-        let key: String
-    }
-
     private struct LegacyEntryKey: Hashable {
         let date: Date
         let title: String
@@ -601,27 +631,34 @@ nonisolated enum RecurringFullSyncWorker {
         let context = ModelContext(modelContainer)
         context.autosaveEnabled = false
         var entries = try context.fetch(FetchDescriptor<DayEntry>())
-        let validItemIDs = Set(plan.series.map(\.itemID))
 
-        let orphaned = entries.filter { entry in
-            guard let itemID = entry.recurringItemIdentifier else { return false }
-            return entry.date >= plan.today && !validItemIDs.contains(itemID)
+        // Collapse first: copies that iCloud merged from another device must
+        // become one row before anything is diffed against the plan.
+        var linkedByIdentity = RecurringOccurrenceReconciler.collapseDuplicates(
+            among: &entries,
+            in: context
+        )
+
+        // Read the items from this context instead of trusting the plan: an
+        // empty recurring table with linked occurrences means the iCloud
+        // import is still running, and sweeping then would delete every
+        // occurrence the user's other devices generated.
+        let storedItems = try context.fetch(FetchDescriptor<RecurringItem>())
+        if !storedItems.isEmpty {
+            let validItemIDs = Set(storedItems.lazy.filter { !$0.isRemoved }.map(\.id))
+            let orphaned = entries.filter { entry in
+                guard let itemID = entry.recurringItemIdentifier else { return false }
+                return entry.date >= plan.today && !validItemIDs.contains(itemID)
+            }
+            remove(orphaned, from: &entries, in: context)
         }
-        remove(orphaned, from: &entries, in: context)
 
-        var linkedByIdentity: [Identity: DayEntry] = [:]
         var linkedByItem: [UUID: [DayEntry]] = [:]
         var legacyByDateAndTitle: [LegacyEntryKey: DayEntry] = [:]
 
         for entry in entries {
             if let itemID = entry.recurringItemIdentifier {
                 linkedByItem[itemID, default: []].append(entry)
-                if let key = entry.recurringOccurrenceKey {
-                    let identity = Identity(itemID: itemID, key: key)
-                    if linkedByIdentity[identity] == nil {
-                        linkedByIdentity[identity] = entry
-                    }
-                }
             } else if entry.source == .recurring {
                 let key = LegacyEntryKey(date: entry.date, title: entry.rawText)
                 if legacyByDateAndTitle[key] == nil {
@@ -633,14 +670,20 @@ nonisolated enum RecurringFullSyncWorker {
         for series in plan.series {
             let validKeys = Set(series.entries.flatMap { [$0.key, $0.legacyKey] })
             let stale = (linkedByItem[series.itemID] ?? []).filter { entry in
-                entry.date >= plan.today
-                    && !validKeys.contains(entry.recurringOccurrenceKey ?? "")
+                RecurringOccurrenceReconciler.isInsideGeneratedWindow(
+                    entry,
+                    from: plan.today,
+                    through: plan.endDate
+                ) && !validKeys.contains(entry.recurringOccurrenceKey ?? "")
             }
             remove(stale, from: &entries, in: context)
 
             for desired in series.entries {
-                let identity = Identity(itemID: series.itemID, key: desired.key)
-                let legacyIdentity = Identity(itemID: series.itemID, key: desired.legacyKey)
+                let identity = OccurrenceIdentity(itemID: series.itemID, key: desired.key)
+                let legacyIdentity = OccurrenceIdentity(
+                    itemID: series.itemID,
+                    key: desired.legacyKey
+                )
                 let legacyEntry = legacyByDateAndTitle[
                     LegacyEntryKey(date: desired.date, title: series.baseTitle)
                 ] ?? legacyByDateAndTitle[
@@ -719,11 +762,6 @@ nonisolated enum RecurringFullSyncWorker {
 /// Keeping this work off the main actor prevents reaching the agenda boundary
 /// from pausing touch delivery while the batch is fetched and saved.
 nonisolated enum RecurringExtensionWorker {
-    private struct Identity: Hashable {
-        let itemID: UUID
-        let key: String
-    }
-
     static func extend(
         plan: RecurringExtensionPlan,
         in modelContainer: ModelContainer
@@ -732,22 +770,20 @@ nonisolated enum RecurringExtensionWorker {
         context.autosaveEnabled = false
         let generationStart = plan.generationStart
         let endDate = plan.endDate
-        let existingEntries = try context.fetch(FetchDescriptor<DayEntry>(
+        var existingEntries = try context.fetch(FetchDescriptor<DayEntry>(
             predicate: #Predicate { entry in
                 entry.recurringItemIdentifier != nil
                     && entry.date >= generationStart
                     && entry.date <= endDate
             }
         ))
-        var existingByIdentity: [Identity: DayEntry] = [:]
-
-        for entry in existingEntries {
-            guard let itemID = entry.recurringItemIdentifier,
-                  let key = entry.recurringOccurrenceKey else {
-                continue
-            }
-            existingByIdentity[Identity(itemID: itemID, key: key)] = entry
-        }
+        // Extending the horizon is also the moment to clear copies iCloud
+        // merged into this range; without it a duplicate is invisible to the
+        // lookup below and simply stays forever.
+        var existingByIdentity = RecurringOccurrenceReconciler.collapseDuplicates(
+            among: &existingEntries,
+            in: context
+        )
 
         // Save in bounded batches. One monolithic save merged hundreds of new
         // occurrences into the main context in a single pass, which stalled
@@ -758,8 +794,11 @@ nonisolated enum RecurringExtensionWorker {
 
         for series in plan.series {
             for desired in series.entries {
-                let identity = Identity(itemID: series.itemID, key: desired.key)
-                let legacyIdentity = Identity(itemID: series.itemID, key: desired.legacyKey)
+                let identity = OccurrenceIdentity(itemID: series.itemID, key: desired.key)
+                let legacyIdentity = OccurrenceIdentity(
+                    itemID: series.itemID,
+                    key: desired.legacyKey
+                )
                 if let existing = existingByIdentity[identity]
                     ?? existingByIdentity[legacyIdentity] {
                     update(existing, with: desired, itemID: series.itemID)
@@ -818,22 +857,27 @@ nonisolated enum RecurringSeriesWorker {
                 entry.recurringItemIdentifier == itemID
             }
         ))
-        let today = Calendar.current.startOfDay(for: .now)
+        var survivors = RecurringOccurrenceReconciler.collapseDuplicates(
+            among: &entries,
+            in: context
+        )
+
         let validKeys = Set(plan.entries.flatMap { [$0.key, $0.legacyKey] })
         let stale = entries.filter {
-            $0.date >= today && !validKeys.contains($0.recurringOccurrenceKey ?? "")
+            RecurringOccurrenceReconciler.isInsideGeneratedWindow(
+                $0,
+                from: plan.startDate,
+                through: plan.endDate
+            ) && !validKeys.contains($0.recurringOccurrenceKey ?? "")
         }
         remove(stale, from: &entries, in: context)
 
-        var entriesByKey = Dictionary(
-            grouping: entries,
-            by: { $0.recurringOccurrenceKey ?? "" }
-        )
         for desired in plan.entries {
-            if let entry = entriesByKey[desired.key]?.first
-                ?? entriesByKey[desired.legacyKey]?.first {
+            let identity = OccurrenceIdentity(itemID: itemID, key: desired.key)
+            let legacyIdentity = OccurrenceIdentity(itemID: itemID, key: desired.legacyKey)
+            if let entry = survivors[identity] ?? survivors[legacyIdentity] {
                 update(entry, with: desired, itemID: itemID)
-                entriesByKey[desired.key] = [entry]
+                survivors[identity] = entry
             } else {
                 let entry = DayEntry(
                     date: desired.date,
@@ -847,7 +891,7 @@ nonisolated enum RecurringSeriesWorker {
                 entry.accentRawValue = desired.accent
                 context.insert(entry)
                 entries.append(entry)
-                entriesByKey[desired.key] = [entry]
+                survivors[identity] = entry
             }
         }
 

@@ -690,6 +690,136 @@ final class Don_t_forgetTests: XCTestCase {
         )
     }
 
+    /// A device with a short horizon must leave the occurrences a device with
+    /// a long horizon generated in place. Deleting them made the two devices
+    /// delete and recreate each other's series through iCloud.
+    @MainActor
+    func testShortHorizonSyncKeepsOccurrencesGeneratedBeyondItsWindow() throws {
+        let container = try inMemoryContainer()
+        let context = container.mainContext
+        let today = AppCalendar.startOfDay(.now)
+        let item = RecurringItem(
+            title: "Dagtaak",
+            nextDate: today,
+            recurrenceKind: .interval,
+            intervalValue: 1,
+            intervalUnit: .day
+        )
+        context.insert(item)
+
+        let longHorizon = try XCTUnwrap(
+            AppCalendar.calendar.date(byAdding: .day, value: 60, to: today)
+        )
+        RecurringScheduler.syncAll(items: [item], in: context, through: longHorizon)
+        try context.save()
+        XCTAssertEqual(try context.fetch(FetchDescriptor<DayEntry>()).count, 61)
+
+        let shortHorizon = try XCTUnwrap(
+            AppCalendar.calendar.date(byAdding: .day, value: 10, to: today)
+        )
+        RecurringScheduler.syncAll(items: [item], in: context, through: shortHorizon)
+        try context.save()
+
+        XCTAssertEqual(try context.fetch(FetchDescriptor<DayEntry>()).count, 61)
+    }
+
+    /// iCloud merges two independently generated copies of one occurrence into
+    /// two rows. Every device has to collapse them onto the same survivor and
+    /// keep the state the user set on either copy.
+    @MainActor
+    func testMergedDuplicateOccurrencesCollapseOntoOneRowKeepingUserState() throws {
+        let container = try inMemoryContainer()
+        let context = container.mainContext
+        let today = AppCalendar.startOfDay(.now)
+        let item = RecurringItem(
+            title: "Verjaardag",
+            nextDate: today,
+            recurrenceKind: .interval,
+            intervalValue: 1,
+            intervalUnit: .day
+        )
+        context.insert(item)
+
+        let endDate = try XCTUnwrap(
+            AppCalendar.calendar.date(byAdding: .day, value: 3, to: today)
+        )
+        RecurringScheduler.syncAll(items: [item], in: context, through: endDate)
+        try context.save()
+
+        let original = try XCTUnwrap(
+            try context.fetch(FetchDescriptor<DayEntry>())
+                .first { $0.recurringOccurrenceKey != nil && $0.date == today }
+        )
+
+        // The copy another device generated for the same occurrence.
+        let imported = DayEntry(date: today, rawText: original.rawText, source: .recurring)
+        imported.recurringItemIdentifier = original.recurringItemIdentifier
+        imported.recurringOccurrenceKey = original.recurringOccurrenceKey
+        imported.isDone = true
+        imported.completedAt = .now
+        context.insert(imported)
+        try context.save()
+
+        let expectedSurvivorID = min(original.id.uuidString, imported.id.uuidString)
+        RecurringScheduler.syncAll(items: [item], in: context, through: endDate)
+        try context.save()
+
+        let remaining = try context.fetch(FetchDescriptor<DayEntry>())
+            .filter { $0.recurringOccurrenceKey == original.recurringOccurrenceKey }
+        XCTAssertEqual(remaining.count, 1)
+        let survivor = try XCTUnwrap(remaining.first)
+        XCTAssertEqual(survivor.id.uuidString, expectedSurvivorID)
+        XCTAssertTrue(survivor.isDone)
+        XCTAssertNotNil(survivor.completedAt)
+    }
+
+    /// Confirming the same holiday selection twice must not replace the rows:
+    /// a new identifier reads as a delete plus an insert on every other
+    /// device, which is what duplicated holidays through iCloud.
+    @MainActor
+    func testReapplyingTheSameHolidaySelectionKeepsTheExistingItems() throws {
+        let container = try inMemoryContainer()
+        let context = container.mainContext
+        let options = HolidayCatalog.options(for: .netherlands, onlyLocal: true)
+        let selection = Set(options.prefix(3).map(\.id))
+
+        func managedItems() throws -> [RecurringItem] {
+            try context.fetch(FetchDescriptor<RecurringItem>())
+                .filter { HolidayCatalog.managedHoliday(from: $0.notes) != nil }
+        }
+
+        HolidayReconciler.apply(
+            selectedIDs: selection,
+            options: options,
+            managedItems: try managedItems(),
+            categoryID: "holidays",
+            in: context
+        )
+        try context.save()
+        let firstIDs = Set(try managedItems().map(\.id))
+        XCTAssertEqual(firstIDs.count, 3)
+
+        HolidayReconciler.apply(
+            selectedIDs: selection,
+            options: options,
+            managedItems: try managedItems(),
+            categoryID: "holidays",
+            in: context
+        )
+        try context.save()
+
+        XCTAssertEqual(Set(try managedItems().map(\.id)), firstIDs)
+    }
+
+    private func inMemoryContainer() throws -> ModelContainer {
+        let schema = Schema(versionedSchema: AppSchemaV1.self)
+        return try ModelContainer(
+            for: schema,
+            migrationPlan: AppSchemaMigrationPlan.self,
+            configurations: ModelConfiguration(schema: schema, isStoredInMemoryOnly: true)
+        )
+    }
+
     private func date(_ year: Int, _ month: Int, _ day: Int) throws -> Date {
         try XCTUnwrap(AppCalendar.calendar.date(from: DateComponents(
             year: year,

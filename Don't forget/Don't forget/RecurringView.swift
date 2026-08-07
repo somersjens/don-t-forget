@@ -265,37 +265,14 @@ struct RecurringView: View {
     @AppStorage(SettingsKeys.recurringSoonestFirst) private var soonestFirst = true
     @AppStorage(SettingsKeys.recurringShowHolidays) private var showHolidays = true
 
-    private var syncSignature: String {
-        recurringItems.sorted { $0.id.uuidString < $1.id.uuidString }.map {
-            [
-                $0.id.uuidString, $0.title, $0.themeRawValue, $0.recurrenceKindRawValue,
-                String($0.nextDate.timeIntervalSinceReferenceDate), String($0.intervalValue), $0.scheduleShiftsData,
-                $0.intervalUnitRawValue, String($0.monthlyDay), String($0.monthlyOrdinal),
-                String($0.monthlyWeekday), String($0.reminderDaysBefore ?? -1),
-                String($0.birthDate?.timeIntervalSinceReferenceDate ?? -1),
-                String($0.birthdayYearUncertain),
-                String($0.annualMonth), $0.notes, $0.linksData
-            ].joined(separator: "|")
-        }.joined(separator: "\n")
-    }
-
+    /// Shared with macOS so both platforms decide identically when a
+    /// reconciliation is needed and how far it reaches.
     private var effectiveSyncSignature: String {
-        let today = AppCalendar.calendar.dateComponents(
-            [.year, .month, .day],
-            from: AppCalendar.startOfDay(.now)
-        )
-        return [
-            syncSignature,
-            recurringHorizon,
-            String(format: "%04d-%02d-%02d", today.year ?? 0, today.month ?? 0, today.day ?? 0)
-        ].joined(separator: "\n")
+        RecurringSyncSignature.make(items: recurringItems)
     }
 
     private var syncEndDate: Date {
-        let option = RecurringHorizonOption(rawValue: recurringHorizon) ?? .threeMonths
-        let base = AppCalendar.calendar.date(byAdding: .month, value: option.months, to: .now) ?? .now
-        guard recurringExtendedThrough > 0 else { return base }
-        return max(base, Date(timeIntervalSinceReferenceDate: recurringExtendedThrough))
+        RecurringGenerationWindow.endDate()
     }
 
     private var categories: [RecurringCategory] {
@@ -734,6 +711,12 @@ struct RecurringView: View {
                 AppActivityState.shared.finish(.recurringSync)
                 return
             }
+
+            // Generating a series while iCloud is still importing the copy
+            // another device made produces a second copy of every occurrence.
+            await CloudImportGate.waitUntilSettled()
+            guard !Task.isCancelled else { return }
+
             let signatureBeingSynced = effectiveSyncSignature
             let plan = RecurringScheduler.fullSyncPlan(
                 items: recurringItems,
@@ -1971,23 +1954,13 @@ private struct HolidayManagerView: View {
     }
 
     private func applySelection() {
-        for item in managedItems {
-            modelContext.delete(item)
-        }
-
-        for option in options where selectedHolidayIDs.contains(option.id) {
-            let definition = option.definition
-            let item = RecurringItem(
-                title: definition.title,
-                nextDate: HolidayCatalog.nextDate(for: definition),
-                theme: .general,
-                recurrenceKind: .annualFixed,
-                notes: HolidayCatalog.marker(country: option.country, holidayID: definition.id)
-            )
-            item.themeRawValue = RecurringCategoryStore.holidayID
-            item.frequencyText = definition.recurrenceDescription
-            modelContext.insert(item)
-        }
+        HolidayReconciler.apply(
+            selectedIDs: selectedHolidayIDs,
+            options: options,
+            managedItems: managedItems,
+            categoryID: RecurringCategoryStore.holidayID,
+            in: modelContext
+        )
 
         storedCountryCode = country.rawValue
         _ = PersistenceSafety.save(modelContext)

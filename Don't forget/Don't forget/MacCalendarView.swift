@@ -324,8 +324,7 @@ struct MacCalendarView: View {
             dayOffset: offset,
             to: item
         )
-        let through = AppCalendar.calendar.date(byAdding: .month, value: 3, to: .now) ?? offer.targetDate
-        RecurringScheduler.syncAll(items: recurringItems, in: modelContext, through: through)
+        RecurringScheduler.syncHorizon(items: recurringItems, in: modelContext)
         PersistenceSafety.save(modelContext)
         recurringMoveOffer = nil
     }

@@ -95,6 +95,8 @@ struct MacRootView: View {
 
     @AppStorage(SettingsKeys.defaultColorCombinationEnabled)
     private var defaultColorCombinationEnabled = true
+    @AppStorage(SettingsKeys.recurringLastSyncSignature)
+    private var lastRecurringSyncSignature = ""
 
     @State private var section: MacSection = .agenda
     @State private var selection: UUID?
@@ -122,6 +124,7 @@ struct MacRootView: View {
         .frame(minWidth: 480, minHeight: 520)
         .background(Color.appCanvasBackground)
         .onAppear(perform: applyInitialWindowSize)
+        .task(id: recurringSyncSignature) { await reconcileRecurringSeries() }
         .inspector(isPresented: inspectorPresented) {
             detail
                 .inspectorColumnWidth(min: 300, ideal: 350, max: 440)
@@ -434,6 +437,44 @@ struct MacRootView: View {
 
     private func matchesSearch(_ value: String) -> Bool {
         value.localizedStandardContains(normalizedSearch)
+    }
+
+    private var recurringSyncSignature: String {
+        RecurringSyncSignature.make(items: activeRecurringItems)
+    }
+
+    /// Reconciles the generated occurrences the way iPhone and iPad do.
+    ///
+    /// Without this the Mac only reconciled while the user was creating or
+    /// moving an item, so occurrences another device had already changed —
+    /// and any copies iCloud had merged in — stayed visible here until the
+    /// user happened to touch the series.
+    private func reconcileRecurringSeries() async {
+        guard recurringSyncSignature != lastRecurringSyncSignature else { return }
+
+        // Coalesce bursts: editing a title changes the signature on every
+        // keystroke, and `.task(id:)` cancels the previous attempt for us.
+        try? await Task.sleep(for: .seconds(2))
+        guard !Task.isCancelled else { return }
+
+        await CloudImportGate.waitUntilSettled()
+        guard !Task.isCancelled else { return }
+
+        let signatureBeingSynced = recurringSyncSignature
+        let plan = RecurringScheduler.fullSyncPlan(
+            items: activeRecurringItems,
+            through: RecurringGenerationWindow.endDate()
+        )
+        let modelContainer = modelContext.container
+        do {
+            try await Task.detached(priority: .utility) {
+                try RecurringFullSyncWorker.sync(plan: plan, in: modelContainer)
+            }.value
+            guard !Task.isCancelled else { return }
+            lastRecurringSyncSignature = signatureBeingSynced
+        } catch {
+            // Keep the old signature so the next change or launch retries.
+        }
     }
 
     @ViewBuilder
@@ -2204,7 +2245,10 @@ private struct MacRecurringBoard: View {
             modelContext.insert(item)
             item.frequencyText = RecurrenceEngine.description(for: item)
             let scheduleItems = items.filter { $0.id != item.id } + [item]
-            RecurringScheduler.syncTwoYears(items: scheduleItems, in: modelContext)
+            // Generate exactly the window iOS uses. Generating two years here
+            // while iPhone reconciled three months made the two platforms
+            // delete and recreate each other's occurrences through iCloud.
+            RecurringScheduler.syncHorizon(items: scheduleItems, in: modelContext)
             save()
         } else if !isCreatingItem {
             save()
@@ -2526,14 +2570,13 @@ private struct MacHolidayManagerView: View {
         customHoliday = nil
     }
     private func applySelection() {
-        managedItems.forEach(modelContext.delete)
-        for option in options where selectedIDs.contains(option.id) {
-            let definition = option.definition
-            let item = RecurringItem(title: definition.title, nextDate: HolidayCatalog.nextDate(for: definition), theme: .general, recurrenceKind: .annualFixed, notes: HolidayCatalog.marker(country: option.country, holidayID: definition.id))
-            item.themeRawValue = MacRecurringCategoryStore.holidayID
-            item.frequencyText = definition.recurrenceDescription
-            modelContext.insert(item)
-        }
+        HolidayReconciler.apply(
+            selectedIDs: selectedIDs,
+            options: options,
+            managedItems: managedItems,
+            categoryID: MacRecurringCategoryStore.holidayID,
+            in: modelContext
+        )
         storedCountryCode = country.rawValue
         _ = PersistenceSafety.save(modelContext)
         dismiss()

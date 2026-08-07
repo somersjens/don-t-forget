@@ -7,6 +7,20 @@ enum CalendarSyncService {
     private static let eventStore = EKEventStore()
     private static let pendingDeletionKey = "calendarSync.pendingDeletionIdentifiers"
 
+    /// Marks a reference as an `EKCalendarItem.calendarItemExternalIdentifier`.
+    ///
+    /// `DayEntry.calendarEventIdentifier` travels through iCloud, but an
+    /// EventKit `eventIdentifier` is local to one device's store. iPhone could
+    /// not resolve the identifier iPad had written, so it created a second
+    /// event for the same entry and overwrote the field with its own local
+    /// identifier — after which iPad did the same, and the calendar filled up
+    /// with copies. The external identifier is the iCalendar UID and is the
+    /// same on every device that has the calendar.
+    ///
+    /// Untagged values are the local identifiers written by earlier versions
+    /// and are still resolved that way.
+    private static let externalIdentifierPrefix = "ekx:"
+
     static func requestAccess() async throws -> Bool {
         try await eventStore.requestFullAccessToEvents()
     }
@@ -79,7 +93,7 @@ enum CalendarSyncService {
         }
 
         for identifier in obsoleteEventIdentifiers.subtracting(usedEventIdentifiers) {
-            if let obsoleteEvent = eventStore.event(withIdentifier: identifier) {
+            if let obsoleteEvent = resolveEvent(reference: identifier) {
                 try eventStore.remove(obsoleteEvent, span: .thisEvent, commit: false)
             }
         }
@@ -89,9 +103,13 @@ enum CalendarSyncService {
         // A newly-created EKEvent does not reliably receive its permanent
         // identifier until the store commits, especially just after launch.
         for assignment in pendingAssignments {
-            guard let identifier = assignment.event.eventIdentifier else { continue }
-            for entry in assignment.entries {
-                entry.calendarEventIdentifier = identifier
+            guard let reference = reference(for: assignment.event) else { continue }
+            for entry in assignment.entries where entry.calendarEventIdentifier != reference {
+                // Only write on a real change. Reassigning the same value
+                // marked every synced entry dirty on each launch, which pushed
+                // the whole agenda to iCloud again and gave the other devices
+                // a conflict to merge for rows that had not changed.
+                entry.calendarEventIdentifier = reference
             }
         }
     }
@@ -105,7 +123,7 @@ enum CalendarSyncService {
         let identifiers = Set(entries.compactMap(\.calendarEventIdentifier))
 
         for identifier in identifiers {
-            guard let event = eventStore.event(withIdentifier: identifier) else { continue }
+            guard let event = resolveEvent(reference: identifier) else { continue }
             try eventStore.remove(event, span: .thisEvent, commit: false)
         }
 
@@ -198,9 +216,7 @@ enum CalendarSyncService {
 
         try eventStore.save(event, span: .thisEvent, commit: false)
         pendingAssignments.append((event, [entry]))
-        if let eventIdentifier = event.eventIdentifier {
-            usedEventIdentifiers.insert(eventIdentifier)
-        }
+        usedEventIdentifiers.formUnion(references(for: event))
     }
 
     private static func syncAllDayGroup(
@@ -236,12 +252,14 @@ enum CalendarSyncService {
         try eventStore.save(event, span: .thisEvent, commit: false)
         pendingAssignments.append((event, entries))
 
-        if let eventIdentifier = event.eventIdentifier {
-            usedEventIdentifiers.insert(eventIdentifier)
-        }
+        // Both forms name this same event, so neither may be treated as an
+        // obsolete leftover: an entry still holding the legacy identifier
+        // would otherwise delete the event that was just written for it.
+        let eventReferences = references(for: event)
+        usedEventIdentifiers.formUnion(eventReferences)
 
         let obsoleteIdentifiers = Set(identifiers.compactMap { $0 })
-            .subtracting(event.eventIdentifier.map { [$0] } ?? [])
+            .subtracting(eventReferences)
         obsoleteEventIdentifiers.formUnion(obsoleteIdentifiers)
     }
 
@@ -251,7 +269,7 @@ enum CalendarSyncService {
     ) -> EKEvent {
         for identifier in candidates.compactMap({ $0 })
             where !usedEventIdentifiers.contains(identifier) {
-            if let event = eventStore.event(withIdentifier: identifier) {
+            if let event = resolveEvent(reference: identifier) {
                 return event
             }
         }
@@ -259,6 +277,41 @@ enum CalendarSyncService {
         let event = EKEvent(eventStore: eventStore)
         event.calendar = eventStore.defaultCalendarForNewEvents
         return event
+    }
+
+    /// Resolves a stored reference, in both the portable and the legacy form.
+    private static func resolveEvent(reference: String) -> EKEvent? {
+        guard reference.hasPrefix(externalIdentifierPrefix) else {
+            return eventStore.event(withIdentifier: reference)
+        }
+        let externalIdentifier = String(reference.dropFirst(externalIdentifierPrefix.count))
+        return eventStore
+            .calendarItems(withExternalIdentifier: externalIdentifier)
+            .lazy
+            .compactMap { $0 as? EKEvent }
+            .first
+    }
+
+    /// The reference to persist for an event, preferring the form the user's
+    /// other devices can resolve too.
+    private static func reference(for event: EKEvent) -> String? {
+        if let externalIdentifier = event.calendarItemExternalIdentifier {
+            return externalIdentifierPrefix + externalIdentifier
+        }
+        return event.eventIdentifier
+    }
+
+    /// Every stored form that names this event, including the local
+    /// identifier written by earlier versions of the app.
+    private static func references(for event: EKEvent) -> Set<String> {
+        var result: Set<String> = []
+        if let externalIdentifier = event.calendarItemExternalIdentifier {
+            result.insert(externalIdentifierPrefix + externalIdentifier)
+        }
+        if let eventIdentifier = event.eventIdentifier {
+            result.insert(eventIdentifier)
+        }
+        return result
     }
 
     private static var pendingDeletionIdentifiers: Set<String> {
@@ -270,7 +323,7 @@ enum CalendarSyncService {
         guard !identifiers.isEmpty else { return }
 
         for identifier in identifiers {
-            guard let event = eventStore.event(withIdentifier: identifier) else { continue }
+            guard let event = resolveEvent(reference: identifier) else { continue }
             try eventStore.remove(event, span: .thisEvent, commit: false)
         }
 

@@ -1,4 +1,5 @@
 import Foundation
+import SwiftData
 
 enum HolidayCountry: String, CaseIterable, Identifiable {
     case netherlands = "NL"
@@ -98,6 +99,111 @@ struct HolidayOption: Identifiable {
     let definition: HolidayDefinition
 
     var id: String { "\(country.rawValue):\(definition.id)" }
+}
+
+/// Applies a holiday selection to the stored recurring items.
+///
+/// Deleting every managed holiday and inserting it again gave each of them a
+/// new identifier, so the user's other devices received a delete plus an
+/// insert for holidays that had not changed at all. Through iCloud that showed
+/// up as duplicated holidays, and it discarded every occurrence that had been
+/// generated for them. Holidays that stay selected now keep their row.
+@MainActor
+enum HolidayReconciler {
+    static func apply(
+        selectedIDs: Set<String>,
+        options: [HolidayOption],
+        managedItems: [RecurringItem],
+        categoryID: String,
+        in modelContext: ModelContext
+    ) {
+        var existingByMarker: [String: RecurringItem] = [:]
+
+        for item in managedItems {
+            guard let managed = HolidayCatalog.managedHoliday(from: item.notes) else { continue }
+            let marker = HolidayCatalog.marker(
+                country: managed.country,
+                holidayID: managed.definition.id
+            )
+            guard let rival = existingByMarker[marker] else {
+                existingByMarker[marker] = item
+                continue
+            }
+            // iCloud may already hold two copies of the same holiday. Keep the
+            // lowest identifier, which is the same choice on every device.
+            let survivor = rival.id.uuidString <= item.id.uuidString ? rival : item
+            modelContext.delete(survivor === rival ? item : rival)
+            existingByMarker[marker] = survivor
+        }
+
+        var keptMarkers: Set<String> = []
+
+        for option in options where selectedIDs.contains(option.id) {
+            let definition = option.definition
+            let marker = HolidayCatalog.marker(
+                country: option.country,
+                holidayID: definition.id
+            )
+            keptMarkers.insert(marker)
+
+            guard let existing = existingByMarker[marker] else {
+                let item = RecurringItem(
+                    title: definition.title,
+                    nextDate: HolidayCatalog.nextDate(for: definition),
+                    theme: .general,
+                    recurrenceKind: .annualFixed,
+                    notes: marker
+                )
+                item.themeRawValue = categoryID
+                item.frequencyText = definition.recurrenceDescription
+                modelContext.insert(item)
+                continue
+            }
+
+            refresh(existing, with: definition, categoryID: categoryID)
+        }
+
+        for (marker, item) in existingByMarker where !keptMarkers.contains(marker) {
+            modelContext.delete(item)
+        }
+    }
+
+    /// Only writes fields that actually differ: an unconditional assignment
+    /// would mark every holiday dirty and push a pointless record to iCloud
+    /// each time the manager is confirmed.
+    private static func refresh(
+        _ item: RecurringItem,
+        with definition: HolidayDefinition,
+        categoryID: String
+    ) {
+        if item.isRemoved {
+            item.isRemoved = false
+            item.completedAt = nil
+        }
+        if item.title != definition.title {
+            item.title = definition.title
+        }
+        if item.themeRawValue != categoryID {
+            item.themeRawValue = categoryID
+        }
+        if item.recurrenceKind != .annualFixed {
+            item.recurrenceKind = .annualFixed
+        }
+        if item.frequencyText != definition.recurrenceDescription {
+            item.frequencyText = definition.recurrenceDescription
+        }
+
+        // Moving holidays (Easter and the days derived from it, the Islamic
+        // calendar) land on another day each year, and the annual recurrence
+        // reads its month and day from `nextDate`.
+        let calendar = AppCalendar.calendar
+        let upcoming = HolidayCatalog.nextDate(for: definition)
+        let current = calendar.dateComponents([.month, .day], from: item.nextDate)
+        let expected = calendar.dateComponents([.month, .day], from: upcoming)
+        if current.month != expected.month || current.day != expected.day {
+            item.nextDate = upcoming
+        }
+    }
 }
 
 enum HolidayCatalog {

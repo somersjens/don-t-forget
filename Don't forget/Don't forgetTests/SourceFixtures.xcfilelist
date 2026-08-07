@@ -12,6 +12,7 @@ $(SRCROOT)/Don't forget/AutomatedReviewRequest.swift
 $(SRCROOT)/Don't forget/BackupSettingsView.swift
 $(SRCROOT)/Don't forget/CalendarSyncService.swift
 $(SRCROOT)/Don't forget/CalendarWidgetSnapshot.swift
+$(SRCROOT)/Don't forget/CloudImportGate.swift
 $(SRCROOT)/Don't forget/CloudSettingsSynchronizer.swift
 $(SRCROOT)/Don't forget/ContentView.swift
 $(SRCROOT)/Don't forget/DeferredCommitTextField.swift
@@ -31,6 +32,7 @@ $(SRCROOT)/Don't forget/PersistenceSafety.swift
 $(SRCROOT)/Don't forget/QuickTodoCapture.swift
 $(SRCROOT)/Don't forget/RecurrenceEngine.swift
 $(SRCROOT)/Don't forget/RecurrenceParser.swift
+$(SRCROOT)/Don't forget/RecurringOccurrenceReconciler.swift
 $(SRCROOT)/Don't forget/RecurringScheduler.swift
 $(SRCROOT)/Don't forget/RecurringView.swift
 $(SRCROOT)/Don't forget/RootTabView.swift
