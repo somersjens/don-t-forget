@@ -1,0 +1,64 @@
+{
+  "source": "/Users/jenssomers/Desktop/Don't forget/Don't forget/Don't forget/TodoView.swift",
+  "tables": {
+    "Localizable": [
+      {
+        "comment": "",
+        "key": "category.todo.soon",
+        "location": {
+          "startingColumn": 42,
+          "startingLine": 72
+        }
+      },
+      {
+        "comment": "",
+        "key": "category.todo.longTerm",
+        "location": {
+          "startingColumn": 42,
+          "startingLine": 78
+        }
+      },
+      {
+        "comment": "",
+        "key": "category.todo.groceries",
+        "location": {
+          "startingColumn": 42,
+          "startingLine": 84
+        }
+      },
+      {
+        "comment": "",
+        "key": "Toetsenbord sluiten",
+        "location": {
+          "startingColumn": 35,
+          "startingLine": 387
+        }
+      },
+      {
+        "comment": "",
+        "key": "Zoeken sluiten",
+        "location": {
+          "startingColumn": 56,
+          "startingLine": 388
+        }
+      },
+      {
+        "comment": "",
+        "key": "Zoeken",
+        "location": {
+          "startingColumn": 75,
+          "startingLine": 388
+        }
+      },
+      {
+        "comment": "",
+        "key": "Groep",
+        "location": {
+          "startingColumn": 25,
+          "startingLine": 1327
+        }
+      }
+    ]
+  },
+  "version": 1
+}

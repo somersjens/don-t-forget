@@ -1,0 +1,32 @@
+{
+  "version" : 2,
+  "source" : "\/Users\/jenssomers\/Desktop\/Don't forget\/Don't forget\/Don't forget\/QuickTodoCapture.swift",
+  "tables" : {
+    "AppShortcuts" : [
+      {
+        "key" : "Nieuwe taak in ${applicationName}",
+        "values" : [
+          "Nieuwe taak in ${applicationName}",
+          "Voeg een taak toe met ${applicationName}"
+        ],
+        "appShortcutMetadata" : [
+          {
+            "parameterTypes" : {
+
+            },
+            "parameterDisplayRepresentations" : {
+
+            },
+            "title" : "Nieuwe taak",
+            "actionIdentifier" : "CaptureTodoIntent",
+            "index" : 0
+          }
+        ],
+        "location" : {
+          "startingColumn" : 0,
+          "startingLine" : 345
+        }
+      }
+    ]
+  }
+}

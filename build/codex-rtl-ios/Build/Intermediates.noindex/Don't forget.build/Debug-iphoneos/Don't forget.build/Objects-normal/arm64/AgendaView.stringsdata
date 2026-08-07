@@ -1,0 +1,48 @@
+{
+  "source": "/Users/jenssomers/Desktop/Don't forget/Don't forget/Don't forget/AgendaView.swift",
+  "tables": {
+    "Localizable": [
+      {
+        "comment": "",
+        "key": "Toetsenbord sluiten",
+        "location": {
+          "startingColumn": 39,
+          "startingLine": 737
+        }
+      },
+      {
+        "comment": "",
+        "key": "Zoeken sluiten",
+        "location": {
+          "startingColumn": 60,
+          "startingLine": 738
+        }
+      },
+      {
+        "comment": "",
+        "key": "Bewerken afsluiten",
+        "location": {
+          "startingColumn": 109,
+          "startingLine": 738
+        }
+      },
+      {
+        "comment": "",
+        "key": "Zoeken",
+        "location": {
+          "startingColumn": 132,
+          "startingLine": 738
+        }
+      },
+      {
+        "comment": "",
+        "key": "%lld",
+        "location": {
+          "startingColumn": 18,
+          "startingLine": 3359
+        }
+      }
+    ]
+  },
+  "version": 1
+}

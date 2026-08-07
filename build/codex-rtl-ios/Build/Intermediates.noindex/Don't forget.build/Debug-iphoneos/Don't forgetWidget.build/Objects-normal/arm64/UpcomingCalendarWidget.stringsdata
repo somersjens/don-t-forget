@@ -1,0 +1,80 @@
+{
+  "source": "/Users/jenssomers/Desktop/Don't forget/Don't forget/Don't forgetWidget/UpcomingCalendarWidget.swift",
+  "tables": {
+    "Localizable": [
+      {
+        "comment": "",
+        "key": "Toevoegen aan kalender",
+        "location": {
+          "startingColumn": 27,
+          "startingLine": 363
+        }
+      },
+      {
+        "comment": "",
+        "key": "Taak toevoegen",
+        "location": {
+          "startingColumn": 27,
+          "startingLine": 364
+        }
+      },
+      {
+        "comment": "",
+        "key": "%lld%@",
+        "location": {
+          "startingColumn": 34,
+          "startingLine": 846
+        }
+      },
+      {
+        "comment": "",
+        "key": "%lld",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 831
+        }
+      },
+      {
+        "comment": "",
+        "key": "%lld",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 839
+        }
+      },
+      {
+        "comment": "",
+        "key": "widget.gallery.name",
+        "location": {
+          "startingColumn": 35,
+          "startingLine": 867
+        }
+      },
+      {
+        "comment": "",
+        "key": "widget.gallery.description",
+        "location": {
+          "startingColumn": 22,
+          "startingLine": 868
+        }
+      },
+      {
+        "comment": "",
+        "key": "1",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 894
+        }
+      },
+      {
+        "comment": "",
+        "key": "%lld",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 896
+        }
+      }
+    ]
+  },
+  "version": 1
+}

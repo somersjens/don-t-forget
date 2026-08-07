@@ -1,0 +1,40 @@
+{
+  "source": "/Users/jenssomers/Desktop/Don't forget/Don't forget/Don't forget/SettingsView.swift",
+  "tables": {
+    "Localizable": [
+      {
+        "comment": "",
+        "key": "",
+        "location": {
+          "startingColumn": 29,
+          "startingLine": 261
+        }
+      },
+      {
+        "comment": "",
+        "key": "Kalender synchroniseren…",
+        "location": {
+          "startingColumn": 38,
+          "startingLine": 427
+        }
+      },
+      {
+        "comment": "",
+        "key": "%lld",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 1193
+        }
+      },
+      {
+        "comment": "",
+        "key": "d",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 1605
+        }
+      }
+    ]
+  },
+  "version": 1
+}

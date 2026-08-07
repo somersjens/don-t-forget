@@ -1,0 +1,128 @@
+{
+  "source": "/Users/jenssomers/Desktop/Don't forget/Don't forget/Don't forget/QuickTodoCapture.swift",
+  "tables": {
+    "Localizable": [
+      {
+        "comment": "",
+        "key": "Nieuwe taak",
+        "location": {
+          "startingColumn": 49,
+          "startingLine": 57
+        }
+      },
+      {
+        "comment": "",
+        "key": "Opent direct een invoerveld voor een nieuwe taak.",
+        "location": {
+          "startingColumn": 9,
+          "startingLine": 59
+        }
+      },
+      {
+        "comment": "",
+        "key": "Tekst",
+        "location": {
+          "startingColumn": 16,
+          "startingLine": 66
+        }
+      },
+      {
+        "comment": "",
+        "key": "Wat wil je niet vergeten?",
+        "location": {
+          "startingColumn": 29,
+          "startingLine": 67
+        }
+      },
+      {
+        "comment": "",
+        "key": "Wat wil je niet vergeten?",
+        "location": {
+          "startingColumn": 44,
+          "startingLine": 88
+        }
+      },
+      {
+        "comment": "",
+        "key": "Snelle invoer",
+        "location": {
+          "startingColumn": 49,
+          "startingLine": 135
+        }
+      },
+      {
+        "comment": "",
+        "key": "Datum",
+        "location": {
+          "startingColumn": 25,
+          "startingLine": 229
+        }
+      },
+      {
+        "comment": "",
+        "key": "Sla snelle invoer op",
+        "location": {
+          "startingColumn": 49,
+          "startingLine": 304
+        }
+      },
+      {
+        "comment": "",
+        "key": "Tekst",
+        "location": {
+          "startingColumn": 23,
+          "startingLine": 307
+        }
+      },
+      {
+        "comment": "",
+        "key": "Bestemming",
+        "location": {
+          "startingColumn": 23,
+          "startingLine": 308
+        }
+      },
+      {
+        "comment": "",
+        "key": "Datum",
+        "location": {
+          "startingColumn": 23,
+          "startingLine": 309
+        }
+      },
+      {
+        "comment": "",
+        "key": "Toegevoegd.",
+        "location": {
+          "startingColumn": 32,
+          "startingLine": 340
+        }
+      },
+      {
+        "comment": "",
+        "key": "Er is geen tekst ingevoerd.",
+        "location": {
+          "startingColumn": 36,
+          "startingLine": 323
+        }
+      },
+      {
+        "comment": "",
+        "key": "Nieuwe taak",
+        "location": {
+          "startingColumn": 25,
+          "startingLine": 352
+        }
+      },
+      {
+        "comment": "",
+        "key": "Kies een datum",
+        "location": {
+          "startingColumn": 29,
+          "startingLine": 483
+        }
+      }
+    ]
+  },
+  "version": 1
+}

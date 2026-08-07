@@ -1,0 +1,64 @@
+{
+  "source": "/Users/jenssomers/Desktop/Don't forget/Don't forget/Don't forget/RecurringView.swift",
+  "tables": {
+    "Localizable": [
+      {
+        "comment": "",
+        "key": "category.recurring.birthdays",
+        "location": {
+          "startingColumn": 42,
+          "startingLine": 93
+        }
+      },
+      {
+        "comment": "",
+        "key": "category.recurring.general",
+        "location": {
+          "startingColumn": 42,
+          "startingLine": 100
+        }
+      },
+      {
+        "comment": "",
+        "key": "category.recurring.holidays",
+        "location": {
+          "startingColumn": 42,
+          "startingLine": 107
+        }
+      },
+      {
+        "comment": "",
+        "key": "Categorie",
+        "location": {
+          "startingColumn": 33,
+          "startingLine": 1031
+        }
+      },
+      {
+        "comment": "",
+        "key": "%llde",
+        "location": {
+          "startingColumn": 51,
+          "startingLine": 2465
+        }
+      },
+      {
+        "comment": "",
+        "key": "%lld",
+        "location": {
+          "startingColumn": 22,
+          "startingLine": 2518
+        }
+      },
+      {
+        "comment": "",
+        "key": "%lld",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 2549
+        }
+      }
+    ]
+  },
+  "version": 1
+}

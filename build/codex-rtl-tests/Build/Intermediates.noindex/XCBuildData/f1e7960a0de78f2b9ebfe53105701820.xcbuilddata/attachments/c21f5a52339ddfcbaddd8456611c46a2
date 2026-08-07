@@ -1,0 +1,29 @@
+{
+  "" : {
+    "diagnostics" : "/Users/jenssomers/Desktop/Don't forget/build/codex-rtl-tests/Build/Intermediates.noindex/Don't forget.build/Debug/Don't forgetUITests.build/Objects-normal/arm64/Don't forgetUITests-primary.dia",
+    "emit-module-dependencies" : "/Users/jenssomers/Desktop/Don't forget/build/codex-rtl-tests/Build/Intermediates.noindex/Don't forget.build/Debug/Don't forgetUITests.build/Objects-normal/arm64/Don't forgetUITests-primary-emit-module.d",
+    "emit-module-diagnostics" : "/Users/jenssomers/Desktop/Don't forget/build/codex-rtl-tests/Build/Intermediates.noindex/Don't forget.build/Debug/Don't forgetUITests.build/Objects-normal/arm64/Don't forgetUITests-primary-emit-module.dia",
+    "pch" : "/Users/jenssomers/Desktop/Don't forget/build/codex-rtl-tests/Build/Intermediates.noindex/Don't forget.build/Debug/Don't forgetUITests.build/Objects-normal/arm64/Don't forgetUITests-primary-Bridging-header.pch",
+    "swift-dependencies" : "/Users/jenssomers/Desktop/Don't forget/build/codex-rtl-tests/Build/Intermediates.noindex/Don't forget.build/Debug/Don't forgetUITests.build/Objects-normal/arm64/Don't forgetUITests-primary.swiftdeps"
+  },
+  "/Users/jenssomers/Desktop/Don't forget/Don't forget/Don't forgetUITests/Don_t_forgetUITests.swift" : {
+    "const-values" : "/Users/jenssomers/Desktop/Don't forget/build/codex-rtl-tests/Build/Intermediates.noindex/Don't forget.build/Debug/Don't forgetUITests.build/Objects-normal/arm64/Don_t_forgetUITests.swiftconstvalues",
+    "dependencies" : "/Users/jenssomers/Desktop/Don't forget/build/codex-rtl-tests/Build/Intermediates.noindex/Don't forget.build/Debug/Don't forgetUITests.build/Objects-normal/arm64/Don_t_forgetUITests.d",
+    "diagnostics" : "/Users/jenssomers/Desktop/Don't forget/build/codex-rtl-tests/Build/Intermediates.noindex/Don't forget.build/Debug/Don't forgetUITests.build/Objects-normal/arm64/Don_t_forgetUITests.dia",
+    "index-unit-output-path" : "/Don't forget.build/Debug/Don't forgetUITests.build/Objects-normal/arm64/Don_t_forgetUITests.o",
+    "llvm-bc" : "/Users/jenssomers/Desktop/Don't forget/build/codex-rtl-tests/Build/Intermediates.noindex/Don't forget.build/Debug/Don't forgetUITests.build/Objects-normal/arm64/Don_t_forgetUITests.bc",
+    "object" : "/Users/jenssomers/Desktop/Don't forget/build/codex-rtl-tests/Build/Intermediates.noindex/Don't forget.build/Debug/Don't forgetUITests.build/Objects-normal/arm64/Don_t_forgetUITests.o",
+    "swift-dependencies" : "/Users/jenssomers/Desktop/Don't forget/build/codex-rtl-tests/Build/Intermediates.noindex/Don't forget.build/Debug/Don't forgetUITests.build/Objects-normal/arm64/Don_t_forgetUITests.swiftdeps",
+    "swiftmodule" : "/Users/jenssomers/Desktop/Don't forget/build/codex-rtl-tests/Build/Intermediates.noindex/Don't forget.build/Debug/Don't forgetUITests.build/Objects-normal/arm64/Don_t_forgetUITests~partial.swiftmodule"
+  },
+  "/Users/jenssomers/Desktop/Don't forget/Don't forget/Don't forgetUITests/Don_t_forgetUITestsLaunchTests.swift" : {
+    "const-values" : "/Users/jenssomers/Desktop/Don't forget/build/codex-rtl-tests/Build/Intermediates.noindex/Don't forget.build/Debug/Don't forgetUITests.build/Objects-normal/arm64/Don_t_forgetUITestsLaunchTests.swiftconstvalues",
+    "dependencies" : "/Users/jenssomers/Desktop/Don't forget/build/codex-rtl-tests/Build/Intermediates.noindex/Don't forget.build/Debug/Don't forgetUITests.build/Objects-normal/arm64/Don_t_forgetUITestsLaunchTests.d",
+    "diagnostics" : "/Users/jenssomers/Desktop/Don't forget/build/codex-rtl-tests/Build/Intermediates.noindex/Don't forget.build/Debug/Don't forgetUITests.build/Objects-normal/arm64/Don_t_forgetUITestsLaunchTests.dia",
+    "index-unit-output-path" : "/Don't forget.build/Debug/Don't forgetUITests.build/Objects-normal/arm64/Don_t_forgetUITestsLaunchTests.o",
+    "llvm-bc" : "/Users/jenssomers/Desktop/Don't forget/build/codex-rtl-tests/Build/Intermediates.noindex/Don't forget.build/Debug/Don't forgetUITests.build/Objects-normal/arm64/Don_t_forgetUITestsLaunchTests.bc",
+    "object" : "/Users/jenssomers/Desktop/Don't forget/build/codex-rtl-tests/Build/Intermediates.noindex/Don't forget.build/Debug/Don't forgetUITests.build/Objects-normal/arm64/Don_t_forgetUITestsLaunchTests.o",
+    "swift-dependencies" : "/Users/jenssomers/Desktop/Don't forget/build/codex-rtl-tests/Build/Intermediates.noindex/Don't forget.build/Debug/Don't forgetUITests.build/Objects-normal/arm64/Don_t_forgetUITestsLaunchTests.swiftdeps",
+    "swiftmodule" : "/Users/jenssomers/Desktop/Don't forget/build/codex-rtl-tests/Build/Intermediates.noindex/Don't forget.build/Debug/Don't forgetUITests.build/Objects-normal/arm64/Don_t_forgetUITestsLaunchTests~partial.swiftmodule"
+  }
+}

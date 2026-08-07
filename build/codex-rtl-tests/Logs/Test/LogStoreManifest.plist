@@ -1,0 +1,259 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>logFormatVersion</key>
+	<integer>12</integer>
+	<key>logs</key>
+	<dict>
+		<key>3ABB8B05-CB0B-4E7A-9AD3-3474774F1460</key>
+		<dict>
+			<key>auxiliaryLogUniqueIdentifier</key>
+			<string>07ADD11B-F96A-4E00-BF2D-D1E686D4168D</string>
+			<key>auxiliaryObservable</key>
+			<dict>
+				<key>highLevelStatus</key>
+				<string>S</string>
+				<key>totalNumberOfAnalyzerIssues</key>
+				<integer>0</integer>
+				<key>totalNumberOfErrors</key>
+				<integer>0</integer>
+				<key>totalNumberOfTestFailures</key>
+				<integer>0</integer>
+				<key>totalNumberOfWarnings</key>
+				<integer>0</integer>
+			</dict>
+			<key>className</key>
+			<string>IDESchemeActionsInvocationRecord</string>
+			<key>documentTypeString</key>
+			<string>&lt;nil&gt;</string>
+			<key>domainType</key>
+			<string>com.apple.dt.unit.cocoaUnitTest</string>
+			<key>fileName</key>
+			<string>Test-Don't forget-2026.07.26_20-19-09-+0200.xcresult</string>
+			<key>hasAuxiliaryLog</key>
+			<true/>
+			<key>hasCoverageData</key>
+			<true/>
+			<key>hasPrimaryLog</key>
+			<true/>
+			<key>primaryObservable</key>
+			<dict>
+				<key>highLevelStatus</key>
+				<string>E</string>
+				<key>totalCodeCoverage</key>
+				<real>0.019230769230769232</real>
+				<key>totalNumberOfAnalyzerIssues</key>
+				<integer>0</integer>
+				<key>totalNumberOfErrors</key>
+				<integer>1</integer>
+				<key>totalNumberOfTestFailures</key>
+				<integer>0</integer>
+				<key>totalNumberOfWarnings</key>
+				<integer>0</integer>
+			</dict>
+			<key>schemeIdentifier-containerName</key>
+			<string>Don't forget project</string>
+			<key>schemeIdentifier-schemeName</key>
+			<string>Don't forget</string>
+			<key>schemeIdentifier-sharedScheme</key>
+			<integer>1</integer>
+			<key>signature</key>
+			<string>Test Don't forget</string>
+			<key>timeStartedRecording</key>
+			<real>806782749.80273294</real>
+			<key>timeStoppedRecording</key>
+			<real>806782754.50130498</real>
+			<key>title</key>
+			<string>Test Don't forget</string>
+			<key>uniqueIdentifier</key>
+			<string>3ABB8B05-CB0B-4E7A-9AD3-3474774F1460</string>
+		</dict>
+		<key>544C5ACB-8B14-4434-BFC8-9D07581F5149</key>
+		<dict>
+			<key>auxiliaryLogUniqueIdentifier</key>
+			<string>4DC95EF0-E5C7-46AD-88A9-380D6A889FDA</string>
+			<key>auxiliaryObservable</key>
+			<dict>
+				<key>highLevelStatus</key>
+				<string>E</string>
+				<key>totalNumberOfAnalyzerIssues</key>
+				<integer>0</integer>
+				<key>totalNumberOfErrors</key>
+				<integer>2</integer>
+				<key>totalNumberOfTestFailures</key>
+				<integer>0</integer>
+				<key>totalNumberOfWarnings</key>
+				<integer>0</integer>
+			</dict>
+			<key>className</key>
+			<string>IDESchemeActionsInvocationRecord</string>
+			<key>documentTypeString</key>
+			<string>&lt;nil&gt;</string>
+			<key>domainType</key>
+			<string>com.apple.dt.unit.cocoaUnitTest</string>
+			<key>fileName</key>
+			<string>Test-Don't forget-2026.07.26_20-17-35-+0200.xcresult</string>
+			<key>hasAuxiliaryLog</key>
+			<true/>
+			<key>hasCoverageData</key>
+			<true/>
+			<key>hasPrimaryLog</key>
+			<true/>
+			<key>primaryObservable</key>
+			<dict>
+				<key>highLevelStatus</key>
+				<string>E</string>
+				<key>totalNumberOfAnalyzerIssues</key>
+				<integer>0</integer>
+				<key>totalNumberOfErrors</key>
+				<integer>3</integer>
+				<key>totalNumberOfTestFailures</key>
+				<integer>0</integer>
+				<key>totalNumberOfWarnings</key>
+				<integer>0</integer>
+			</dict>
+			<key>schemeIdentifier-containerName</key>
+			<string>Don't forget project</string>
+			<key>schemeIdentifier-schemeName</key>
+			<string>Don't forget</string>
+			<key>schemeIdentifier-sharedScheme</key>
+			<integer>1</integer>
+			<key>signature</key>
+			<string>Test Don't forget</string>
+			<key>timeStartedRecording</key>
+			<real>806782655.77740705</real>
+			<key>timeStoppedRecording</key>
+			<real>806782664.93165302</real>
+			<key>title</key>
+			<string>Test Don't forget</string>
+			<key>uniqueIdentifier</key>
+			<string>544C5ACB-8B14-4434-BFC8-9D07581F5149</string>
+		</dict>
+		<key>7A29BE5B-939E-483E-851C-52B6769785F2</key>
+		<dict>
+			<key>auxiliaryLogUniqueIdentifier</key>
+			<string>E85E50F9-598E-4775-B8F2-6E53CFB4CB59</string>
+			<key>auxiliaryObservable</key>
+			<dict>
+				<key>highLevelStatus</key>
+				<string>S</string>
+				<key>totalNumberOfAnalyzerIssues</key>
+				<integer>0</integer>
+				<key>totalNumberOfErrors</key>
+				<integer>0</integer>
+				<key>totalNumberOfTestFailures</key>
+				<integer>0</integer>
+				<key>totalNumberOfWarnings</key>
+				<integer>0</integer>
+			</dict>
+			<key>className</key>
+			<string>IDESchemeActionsInvocationRecord</string>
+			<key>documentTypeString</key>
+			<string>&lt;nil&gt;</string>
+			<key>domainType</key>
+			<string>com.apple.dt.unit.cocoaUnitTest</string>
+			<key>fileName</key>
+			<string>Test-Don't forget-2026.07.26_20-18-21-+0200.xcresult</string>
+			<key>hasAuxiliaryLog</key>
+			<true/>
+			<key>hasCoverageData</key>
+			<true/>
+			<key>hasPrimaryLog</key>
+			<true/>
+			<key>primaryObservable</key>
+			<dict>
+				<key>highLevelStatus</key>
+				<string>E</string>
+				<key>totalCodeCoverage</key>
+				<real>0.12396859196167155</real>
+				<key>totalNumberOfAnalyzerIssues</key>
+				<integer>0</integer>
+				<key>totalNumberOfErrors</key>
+				<integer>2</integer>
+				<key>totalNumberOfTestFailures</key>
+				<integer>0</integer>
+				<key>totalNumberOfWarnings</key>
+				<integer>0</integer>
+			</dict>
+			<key>schemeIdentifier-containerName</key>
+			<string>Don't forget project</string>
+			<key>schemeIdentifier-schemeName</key>
+			<string>Don't forget</string>
+			<key>schemeIdentifier-sharedScheme</key>
+			<integer>1</integer>
+			<key>signature</key>
+			<string>Test Don't forget</string>
+			<key>timeStartedRecording</key>
+			<real>806782701.42151296</real>
+			<key>timeStoppedRecording</key>
+			<real>806782738.31200397</real>
+			<key>title</key>
+			<string>Test Don't forget</string>
+			<key>uniqueIdentifier</key>
+			<string>7A29BE5B-939E-483E-851C-52B6769785F2</string>
+		</dict>
+		<key>9441F743-EC8B-43B6-8D2D-5EC66B377423</key>
+		<dict>
+			<key>auxiliaryLogUniqueIdentifier</key>
+			<string>BF3A8280-33C3-4851-8517-4D492584B6B3</string>
+			<key>auxiliaryObservable</key>
+			<dict>
+				<key>highLevelStatus</key>
+				<string>E</string>
+				<key>totalNumberOfAnalyzerIssues</key>
+				<integer>0</integer>
+				<key>totalNumberOfErrors</key>
+				<integer>2</integer>
+				<key>totalNumberOfTestFailures</key>
+				<integer>0</integer>
+				<key>totalNumberOfWarnings</key>
+				<integer>0</integer>
+			</dict>
+			<key>className</key>
+			<string>IDESchemeActionsInvocationRecord</string>
+			<key>documentTypeString</key>
+			<string>&lt;nil&gt;</string>
+			<key>domainType</key>
+			<string>com.apple.dt.unit.cocoaUnitTest</string>
+			<key>fileName</key>
+			<string>Test-Don't forget-2026.07.26_20-18-00-+0200.xcresult</string>
+			<key>hasAuxiliaryLog</key>
+			<true/>
+			<key>hasCoverageData</key>
+			<true/>
+			<key>hasPrimaryLog</key>
+			<true/>
+			<key>primaryObservable</key>
+			<dict>
+				<key>highLevelStatus</key>
+				<string>E</string>
+				<key>totalNumberOfAnalyzerIssues</key>
+				<integer>0</integer>
+				<key>totalNumberOfErrors</key>
+				<integer>3</integer>
+				<key>totalNumberOfTestFailures</key>
+				<integer>0</integer>
+				<key>totalNumberOfWarnings</key>
+				<integer>0</integer>
+			</dict>
+			<key>schemeIdentifier-containerName</key>
+			<string>Don't forget project</string>
+			<key>schemeIdentifier-schemeName</key>
+			<string>Don't forget</string>
+			<key>schemeIdentifier-sharedScheme</key>
+			<integer>1</integer>
+			<key>signature</key>
+			<string>Test Don't forget</string>
+			<key>timeStartedRecording</key>
+			<real>806782680.21619904</real>
+			<key>timeStoppedRecording</key>
+			<real>806782691.41883194</real>
+			<key>title</key>
+			<string>Test Don't forget</string>
+			<key>uniqueIdentifier</key>
+			<string>9441F743-EC8B-43B6-8D2D-5EC66B377423</string>
+		</dict>
+	</dict>
+</dict>
+</plist>

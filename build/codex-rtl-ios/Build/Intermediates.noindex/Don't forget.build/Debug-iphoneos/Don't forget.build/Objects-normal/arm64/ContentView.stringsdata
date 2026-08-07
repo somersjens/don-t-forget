@@ -1,0 +1,16 @@
+{
+  "source": "/Users/jenssomers/Desktop/Don't forget/Don't forget/Don't forget/ContentView.swift",
+  "tables": {
+    "Localizable": [
+      {
+        "comment": "",
+        "key": "Item at %@",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 22
+        }
+      }
+    ]
+  },
+  "version": 1
+}

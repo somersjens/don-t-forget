@@ -1,0 +1,72 @@
+{
+  "buildCommand" : {
+    "command" : "build",
+    "skipDependencies" : false,
+    "style" : "buildAndRun"
+  },
+  "configuredTargets" : [
+    {
+      "guid" : "4d0328ecffb91755b84fe55cce9a4ef3d5d17b259cb6b9ef4854e8c1279a1989"
+    },
+    {
+      "guid" : "4d0328ecffb91755b84fe55cce9a4ef3e4bbc9561e7d1af32ff7092fbdd161c3"
+    },
+    {
+      "guid" : "4d0328ecffb91755b84fe55cce9a4ef371d6885131e8c1bd664512189139d7ee"
+    }
+  ],
+  "containerPath" : "/Users/jenssomers/Desktop/Don't forget/Don't forget/Don't forget.xcodeproj",
+  "continueBuildingAfterErrors" : false,
+  "dependencyScope" : "workspace",
+  "enableIndexBuildArena" : false,
+  "hideShellScriptEnvironment" : false,
+  "parameters" : {
+    "action" : "build",
+    "activeArchitecture" : "arm64",
+    "activeRunDestination" : {
+      "disableOnlyActiveArch" : false,
+      "hostTargetedPlatform" : null,
+      "platform" : "macosx",
+      "sdk" : "macosx26.5",
+      "sdkVariant" : "macos",
+      "supportedArchitectures" : [
+        "arm64e",
+        "arm64",
+        "x86_64"
+      ],
+      "targetArchitecture" : "arm64"
+    },
+    "arenaInfo" : {
+      "buildIntermediatesPath" : "/Users/jenssomers/Desktop/Don't forget/build/codex-rtl-tests/Build/Intermediates.noindex",
+      "buildProductsPath" : "/Users/jenssomers/Desktop/Don't forget/build/codex-rtl-tests/Build/Products",
+      "derivedDataPath" : "/Users/jenssomers/Desktop/Don't forget/build/codex-rtl-tests",
+      "indexDataStoreFolderPath" : "/Users/jenssomers/Desktop/Don't forget/build/codex-rtl-tests/Index.noindex/DataStore",
+      "indexEnableDataStore" : true,
+      "indexPCHPath" : "/Users/jenssomers/Desktop/Don't forget/build/codex-rtl-tests/Index.noindex/PrecompiledHeaders",
+      "pchPath" : "/Users/jenssomers/Desktop/Don't forget/build/codex-rtl-tests/Build/Intermediates.noindex/PrecompiledHeaders"
+    },
+    "configurationName" : "Debug",
+    "overrides" : {
+      "commandLine" : {
+        "table" : {
+          "CODE_SIGNING_ALLOWED" : "NO"
+        }
+      },
+      "synthesized" : {
+        "table" : {
+          "CLANG_COVERAGE_MAPPING" : "YES",
+          "CLANG_PROFILE_DATA_DIRECTORY" : "/Users/jenssomers/Desktop/Don't forget/build/codex-rtl-tests/Build/ProfileData",
+          "ENABLE_PREVIEWS" : "NO",
+          "ENABLE_XOJIT_PREVIEWS" : "YES",
+          "ONLY_ACTIVE_ARCH" : "YES"
+        }
+      }
+    }
+  },
+  "schemeCommand" : "test",
+  "showNonLoggedProgress" : true,
+  "useDryRun" : false,
+  "useImplicitDependencies" : true,
+  "useLegacyBuildLocations" : false,
+  "useParallelTargets" : true
+}

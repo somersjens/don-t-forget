@@ -1,0 +1,32 @@
+{
+  "source": "/Users/jenssomers/Desktop/Don't forget/Don't forget/Don't forget/MacCalendarView.swift",
+  "tables": {
+    "Localizable": [
+      {
+        "comment": "",
+        "key": "Toekomstige items ook verplaatsen?",
+        "location": {
+          "startingColumn": 13,
+          "startingLine": 153
+        }
+      },
+      {
+        "comment": "",
+        "key": "Verplaats naar %@",
+        "location": {
+          "startingColumn": 28,
+          "startingLine": 677
+        }
+      },
+      {
+        "comment": "",
+        "key": "Verplaats naar %@",
+        "location": {
+          "startingColumn": 24,
+          "startingLine": 715
+        }
+      }
+    ]
+  },
+  "version": 1
+}

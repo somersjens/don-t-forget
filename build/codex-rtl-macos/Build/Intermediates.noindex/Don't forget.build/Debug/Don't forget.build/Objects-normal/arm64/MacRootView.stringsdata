@@ -1,0 +1,160 @@
+{
+  "source": "/Users/jenssomers/Desktop/Don't forget/Don't forget/Don't forget/MacRootView.swift",
+  "tables": {
+    "Localizable": [
+      {
+        "comment": "",
+        "key": "Periode",
+        "location": {
+          "startingColumn": 31,
+          "startingLine": 659
+        }
+      },
+      {
+        "comment": "",
+        "key": "Afgerond",
+        "location": {
+          "startingColumn": 31,
+          "startingLine": 660
+        }
+      },
+      {
+        "comment": "",
+        "key": "%lld",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 672
+        }
+      },
+      {
+        "comment": "",
+        "key": "Nog niets afgerond",
+        "location": {
+          "startingColumn": 66,
+          "startingLine": 780
+        }
+      },
+      {
+        "comment": "",
+        "key": "%@ — %@",
+        "location": {
+          "startingColumn": 19,
+          "startingLine": 981
+        }
+      },
+      {
+        "comment": "",
+        "key": "‘%@’ teruggezet",
+        "location": {
+          "startingColumn": 24,
+          "startingLine": 1025
+        }
+      },
+      {
+        "comment": "",
+        "key": "‘%@’ verwijderd",
+        "location": {
+          "startingColumn": 24,
+          "startingLine": 1029
+        }
+      },
+      {
+        "comment": "",
+        "key": "Aangemaakt",
+        "location": {
+          "startingColumn": 32,
+          "startingLine": 2263
+        }
+      },
+      {
+        "comment": "",
+        "key": "Bron",
+        "location": {
+          "startingColumn": 32,
+          "startingLine": 2264
+        }
+      },
+      {
+        "comment": "",
+        "key": "Aangemaakt",
+        "location": {
+          "startingColumn": 32,
+          "startingLine": 2293
+        }
+      },
+      {
+        "comment": "",
+        "key": "%lld/%lld",
+        "location": {
+          "startingColumn": 34,
+          "startingLine": 2368
+        }
+      },
+      {
+        "comment": "",
+        "key": "",
+        "location": {
+          "startingColumn": 17,
+          "startingLine": 2721
+        }
+      },
+      {
+        "comment": "",
+        "key": "Verplicht veld",
+        "location": {
+          "startingColumn": 23,
+          "startingLine": 2724
+        }
+      },
+      {
+        "comment": "",
+        "key": "Naam",
+        "location": {
+          "startingColumn": 59,
+          "startingLine": 2725
+        }
+      },
+      {
+        "comment": "",
+        "key": "Titel",
+        "location": {
+          "startingColumn": 68,
+          "startingLine": 2725
+        }
+      },
+      {
+        "comment": "",
+        "key": "Link %lld",
+        "location": {
+          "startingColumn": 96,
+          "startingLine": 2785
+        }
+      },
+      {
+        "comment": "",
+        "key": "%lld",
+        "location": {
+          "startingColumn": 22,
+          "startingLine": 2991
+        }
+      },
+      {
+        "comment": "",
+        "key": "",
+        "location": {
+          "startingColumn": 20,
+          "startingLine": 3024
+        }
+      },
+      {
+        "comment": "",
+        "key": "Synchronisatie",
+        "location": {
+          "startingColumn": 32,
+          "startingLine": 3263
+        }
+      }
+    ]
+  },
+  "version": 1
+}
