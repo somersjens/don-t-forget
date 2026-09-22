@@ -191,7 +191,16 @@ final class CloudSettingsSynchronizer {
     }
 
     private func setLocal(_ value: NSObject, metadata: SyncMetadata?, for key: String) {
-        localStore.set(value, forKey: key)
+        if key == SettingsKeys.dayTimeZoneSeconds,
+           let incoming = value as? NSNumber {
+            // Day-zone discovery is monotonic. A device that has already seen
+            // a row written farther east must not be moved west again by a
+            // delayed preference update from another device.
+            let existing = localStore.object(forKey: key) as? NSNumber
+            localStore.set(max(existing?.intValue ?? incoming.intValue, incoming.intValue), forKey: key)
+        } else {
+            localStore.set(value, forKey: key)
+        }
         if let metadata {
             localStore.set(metadata.dictionary, forKey: metadataKey(for: key))
         }

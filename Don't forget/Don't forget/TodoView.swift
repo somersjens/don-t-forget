@@ -2079,7 +2079,7 @@ private struct TodoLine: View {
     }
 
     private var todayDateText: String {
-        AppCalendar.localizedShortDayMonth(.now)
+        AppCalendar.localizedShortDayMonth(AppCalendar.today)
     }
 
     private func setOpenDays(_ days: Int) {
@@ -2499,8 +2499,8 @@ private enum TodoAge {
     }
 
     static func daysBetween(_ start: Date, _ end: Date) -> Int {
-        let startOfStart = AppCalendar.startOfDay(start)
-        let startOfEnd = AppCalendar.startOfDay(end)
+        let startOfStart = AppCalendar.day(containing: start)
+        let startOfEnd = AppCalendar.day(containing: end)
         return max(0, AppCalendar.calendar.dateComponents(
             [.day],
             from: startOfStart,
@@ -2509,7 +2509,7 @@ private enum TodoAge {
     }
 
     static func creationDate(openForDays days: Int, from date: Date = .now) -> Date {
-        let today = AppCalendar.startOfDay(date)
+        let today = AppCalendar.day(containing: date)
         return AppCalendar.calendar.date(
             byAdding: .day,
             value: -max(0, days),

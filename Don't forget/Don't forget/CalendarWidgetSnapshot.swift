@@ -13,6 +13,9 @@ struct CalendarWidgetItem: Codable, Identifiable {
 struct CalendarWidgetSnapshot: Codable {
     let generatedAt: Date
     let localeIdentifier: String
+    /// Fixed zone used to interpret calendar-day values in this snapshot.
+    /// Optional so widgets can still decode snapshots made by older builds.
+    let dayTimeZoneSeconds: Int?
     let items: [CalendarWidgetItem]
     let dateFormat: String?
     let lockScreenItems: [CalendarWidgetItem]?
@@ -121,7 +124,7 @@ enum CalendarWidgetSnapshotPublisher {
             .map { todo in
                 let age = max(0, AppCalendar.calendar.dateComponents(
                     [.day],
-                    from: AppCalendar.startOfDay(todo.createdAt),
+                    from: AppCalendar.day(containing: todo.createdAt),
                     to: today
                 ).day ?? 0)
                 return CalendarWidgetItem(
@@ -137,6 +140,7 @@ enum CalendarWidgetSnapshotPublisher {
         let snapshot = CalendarWidgetSnapshot(
             generatedAt: .now,
             localeIdentifier: AppCalendar.locale.identifier,
+            dayTimeZoneSeconds: AppDayTimeZone.current.secondsFromGMT(),
             items: Array(items),
             dateFormat: AppCalendar.dateFormatOption.rawValue,
             lockScreenItems: lockScreenItems,

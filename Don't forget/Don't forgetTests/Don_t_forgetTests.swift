@@ -872,6 +872,107 @@ final class Don_t_forgetTests: XCTestCase {
         }
     }
 
+    /// Regression for an item entered as 5 December in Indonesia and opened
+    /// later in the Netherlands. A delayed CloudKit import must be allowed to
+    /// move the shared reader east, otherwise the instant is shown as the 4th.
+    @MainActor
+    func testImportedIndonesianDayStaysOnDecemberFifthInTheNetherlands() throws {
+        let indonesia = try XCTUnwrap(TimeZone(identifier: "Asia/Jakarta"))
+        let netherlands = try XCTUnwrap(TimeZone(identifier: "Europe/Amsterdam"))
+        var writer = Calendar(identifier: .gregorian)
+        writer.timeZone = indonesia
+        let storedDay = try XCTUnwrap(
+            writer.date(from: DateComponents(year: 2026, month: 12, day: 5))
+        )
+
+        let initiallyPinnedOffset = netherlands.secondsFromGMT(for: storedDay)
+        let importedOffset = DayTimeZonePin.impliedOffset(
+            of: storedDay,
+            deviceOffset: initiallyPinnedOffset
+        )
+        let reconciledOffset = DayTimeZonePin.resolvedOffset(
+            from: [initiallyPinnedOffset, importedOffset]
+        )
+
+        var reader = Calendar(identifier: .gregorian)
+        reader.timeZone = try XCTUnwrap(TimeZone(secondsFromGMT: reconciledOffset))
+        let actual = reader.dateComponents([.year, .month, .day], from: storedDay)
+        XCTAssertEqual(reconciledOffset, 7 * 3600)
+        XCTAssertEqual(actual.year, 2026)
+        XCTAssertEqual(actual.month, 12)
+        XCTAssertEqual(actual.day, 5)
+    }
+
+    @MainActor
+    func testPinnedDayTimeZoneCannotBeMovedWestByDelayedCloudSetting() {
+        let defaults = UserDefaults.standard
+        let key = SettingsKeys.dayTimeZoneSeconds
+        let original = defaults.object(forKey: key)
+        defer {
+            if let original {
+                defaults.set(original, forKey: key)
+            } else {
+                defaults.removeObject(forKey: key)
+            }
+        }
+
+        defaults.removeObject(forKey: key)
+        AppDayTimeZone.pin(secondsFromGMT: 7 * 3600)
+        AppDayTimeZone.pin(secondsFromGMT: 1 * 3600)
+        XCTAssertEqual(AppDayTimeZone.storedSecondsFromGMT, 7 * 3600)
+    }
+
+    /// The exact state from the reported screenshot: the shared day zone is
+    /// eight hours east, while the device formats in the Netherlands. The day
+    /// label and weekday must still describe the same stored calendar day.
+    @MainActor
+    func testCalendarLabelsDoNotMixSharedAndDeviceTimeZones() throws {
+        let defaults = UserDefaults.standard
+        let keys = [
+            SettingsKeys.dayTimeZoneSeconds,
+            SettingsKeys.language,
+            SettingsKeys.dateFormat,
+            SettingsKeys.weekStart,
+            SettingsKeys.weekNumberRule,
+            SettingsKeys.weekdayLabelLength,
+        ]
+        let originals = Dictionary(uniqueKeysWithValues: keys.map {
+            ($0, defaults.object(forKey: $0))
+        })
+        defer {
+            for key in keys {
+                if let original = originals[key] ?? nil {
+                    defaults.set(original, forKey: key)
+                } else {
+                    defaults.removeObject(forKey: key)
+                }
+            }
+        }
+
+        defaults.set(8 * 3600, forKey: SettingsKeys.dayTimeZoneSeconds)
+        defaults.set(AppLanguage.dutch.rawValue, forKey: SettingsKeys.language)
+        defaults.set(DateFormatOption.dayHyphenMonth.rawValue, forKey: SettingsKeys.dateFormat)
+        defaults.set(WeekStartOption.monday.rawValue, forKey: SettingsKeys.weekStart)
+        defaults.set(WeekNumberRule.iso8601.rawValue, forKey: SettingsKeys.weekNumberRule)
+        defaults.set(1, forKey: SettingsKeys.weekdayLabelLength)
+
+        let storedTuesday = try XCTUnwrap(AppCalendar.calendar.date(
+            from: DateComponents(year: 2026, month: 9, day: 22)
+        ))
+        XCTAssertEqual(AppCalendar.localizedShortDayMonth(storedTuesday), "22-09")
+
+        let week = try XCTUnwrap(
+            AppCalendar.weekSections(startingFrom: storedTuesday, numberOfWeeks: 1).first
+        )
+        let tuesday = try XCTUnwrap(week.days.first {
+            AppCalendar.calendar.component(.day, from: $0.date) == 22
+        })
+        XCTAssertEqual(week.startDateLabel, "21 september")
+        XCTAssertEqual(tuesday.dateLabel, "22-09")
+        XCTAssertEqual(tuesday.weekdayLetter, "D")
+        XCTAssertTrue(AppCalendar.isToday(AppCalendar.today))
+    }
+
     private func inMemoryContainer() throws -> ModelContainer {
         let schema = Schema(versionedSchema: AppSchemaV1.self)
         return try ModelContainer(

@@ -604,17 +604,18 @@ private enum MacHistoryChartPeriod: String, Identifiable {
     static func available(for dates: [Date]) -> [MacHistoryChartPeriod] {
         var periods: [MacHistoryChartPeriod] = [.days]
         guard let oldest = dates.min() else { return periods }
+        let oldestDay = AppCalendar.day(containing: oldest)
 
         let calendar = AppCalendar.calendar
         let today = AppCalendar.today
         let fourteenDaysAgo = calendar.date(byAdding: .day, value: -14, to: today) ?? today
-        if oldest < fourteenDaysAgo {
+        if oldestDay < fourteenDaysAgo {
             periods.append(.weeks)
         }
 
         let currentMonth = calendar.dateInterval(of: .month, for: today)?.start ?? today
         let twoMonthsAgo = calendar.date(byAdding: .month, value: -2, to: currentMonth) ?? currentMonth
-        if oldest < twoMonthsAgo {
+        if oldestDay < twoMonthsAgo {
             periods.append(.months)
         }
 
@@ -650,7 +651,10 @@ private enum MacHistoryChartPeriod: String, Identifiable {
             return MacHistoryChartBucket(
                 start: start,
                 label: label(for: start, calendar: calendar),
-                count: dates.count { $0 >= start && $0 < end },
+                count: dates.count {
+                    let day = AppCalendar.day(containing: $0)
+                    return day >= start && day < end
+                },
                 isCurrent: index == numberOfBuckets - 1
             )
         }
@@ -801,7 +805,9 @@ private struct MacHistoryBoard: View {
         }
     }
     private var sections: [(Date, [MacHistoryItem])] {
-        Dictionary(grouping: visibleItems) { AppCalendar.startOfDay($0.completedAt) }.sorted { $0.key > $1.key }
+        Dictionary(grouping: visibleItems) {
+            AppCalendar.day(containing: $0.completedAt)
+        }.sorted { $0.key > $1.key }
     }
     private var filteredItems: [MacHistoryItem] { items.filter { filter == .all || $0.filter == filter } }
     private var completedItems: [MacHistoryItem] { filteredItems.filter { !$0.isRemoved } }
@@ -844,7 +850,7 @@ private struct MacHistoryBoard: View {
             guard let id = note.object as? UUID else { return }
             Task { @MainActor in
                 if let item = visibleItems.first(where: { $0.id == id }) {
-                    proxy.scrollTo(AppCalendar.startOfDay(item.completedAt), anchor: .center)
+                    proxy.scrollTo(AppCalendar.day(containing: item.completedAt), anchor: .center)
                 }
                 try? await Task.sleep(for: .milliseconds(60))
                 withAnimation(.easeInOut(duration: 0.24)) { proxy.scrollTo(id, anchor: .center) }
@@ -904,8 +910,11 @@ private struct MacHistoryBoard: View {
     }
 
     private var summary: some View {
-        let start = AppCalendar.calendar.date(byAdding: .day, value: -6, to: AppCalendar.today) ?? .now
-        let recent = completedItems.filter { $0.completedAt >= start }.count
+        let today = AppCalendar.today
+        let start = AppCalendar.calendar.date(byAdding: .day, value: -6, to: today) ?? today
+        let recent = completedItems.filter {
+            AppCalendar.day(containing: $0.completedAt) >= start
+        }.count
         return VStack(spacing: 0) {
             Button { withAnimation(.easeInOut(duration: 0.2)) { isChartExpanded.toggle() } } label: {
                 HStack(spacing: 12) {
@@ -1029,9 +1038,9 @@ private struct MacHistoryBoard: View {
         Button(locale.localized("Definitief verwijderen"), systemImage: "trash", role: .destructive) { beginDeletion(item) }
     }
     private func dayTitle(_ date: Date) -> String {
-        if AppCalendar.calendar.isDateInToday(date) { return locale.localized("Vandaag") }
-        if AppCalendar.calendar.isDateInYesterday(date) { return locale.localized("Gisteren") }
-        return date.formatted(.dateTime.weekday(.wide).day().month(.wide).locale(locale))
+        if AppCalendar.isToday(date) { return locale.localized("Vandaag") }
+        if AppCalendar.isYesterday(date) { return locale.localized("Gisteren") }
+        return AppCalendar.localizedDate(date, template: "EEEEdMMMM")
     }
     private func restore(_ item: MacHistoryItem) {
         dismissTask?.cancel(); item.restore(); restored = item; PersistenceSafety.save(modelContext)
@@ -1587,7 +1596,7 @@ private struct MacTodoBoard: View {
         case .removed(_, let title):
             return locale.localizedFormat("feedback.deleted", title)
         case .agenda(let move):
-            let date = move.date.formatted(.dateTime.day().month(.abbreviated).locale(locale))
+            let date = AppCalendar.localizedDate(move.date, template: "dMMM")
             return locale.localizedFormat("feedback.movedTo", move.text, date)
         }
     }
@@ -1663,7 +1672,7 @@ private struct MacAgendaRow: View {
             VStack(alignment: .leading, spacing: 2) {
                 Text(entry.rawText.isEmpty ? "Nieuw agenda-item" : entry.rawText)
                     .lineLimit(2)
-                Text(entry.date, format: .dateTime.weekday(.abbreviated).day().month().year())
+                Text(AppCalendar.localizedDate(entry.date, template: "EEEdMMMyyyy"))
                     .font(.caption).foregroundStyle(.secondary)
             }
         }.padding(.vertical, 3)
@@ -1692,7 +1701,10 @@ private struct MacRecurringRow: View {
             Image(systemName: "repeat").foregroundStyle(.orange)
             VStack(alignment: .leading, spacing: 2) {
                 Text(item.title.isEmpty ? "Nieuw terugkerend item" : item.title).lineLimit(2)
-                Text(locale.localizedFormat("Volgende: %@", item.nextDate.formatted(date: .abbreviated, time: .omitted)))
+                Text(locale.localizedFormat(
+                    "Volgende: %@",
+                    AppCalendar.localizedDate(item.nextDate, template: "dMMMyyyy")
+                ))
                     .font(.caption).foregroundStyle(.secondary)
             }
         }.padding(.vertical, 3)
@@ -2732,7 +2744,7 @@ private struct MacRecurringEditor: View {
     }
 
     private func dateText(_ date: Date) -> String {
-        date.formatted(.dateTime.day().month(.abbreviated).year())
+        AppCalendar.localizedDate(date, template: "dMMMyyyy")
     }
 
     private func recurrenceKindTitle(_ kind: RecurrenceKind) -> String {

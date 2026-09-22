@@ -1,7 +1,8 @@
 import Foundation
+import CoreData
 import SwiftData
 
-/// Chooses the shared day time zone once, from the data the user already has.
+/// Chooses the shared day time zone from the data the user already has.
 ///
 /// Every stored day is the midnight of that day in whichever zone the device
 /// that wrote it was in, so the rows themselves reveal that zone. Reading it
@@ -9,32 +10,92 @@ import SwiftData
 /// user who installs this version while travelling does not have their whole
 /// agenda shift by a day.
 ///
-/// Runs at most once per device, and the result is mirrored through iCloud, so
-/// a second device adopts the same answer rather than deriving its own.
+/// The result is mirrored through iCloud. Imports are observed as well because
+/// a fresh device can open its local store before CloudKit has delivered the
+/// rows from which the correct zone can be derived.
 @MainActor
 enum DayTimeZonePin {
     /// Enough rows to cover both halves of a daylight saving year without
     /// turning launch into a full table scan.
     private static let sampleLimit = 400
+    private static var container: ModelContainer?
+    private static var observerTokens: [NSObjectProtocol] = []
+    private static var reconcileTask: Task<Void, Never>?
+
+    /// Establishes the day zone immediately and keeps reconciling it when
+    /// CloudKit imports rows later in the launch. A newly installed device can
+    /// otherwise pin its own zone while the store is still empty, then read an
+    /// imported midnight as the previous day.
+    static func start(in container: ModelContainer) {
+        self.container = container
+        reconcile(in: container)
+
+        guard observerTokens.isEmpty, AppModelStore.isICloudSyncEnabled else { return }
+        observerTokens.append(
+            NotificationCenter.default.addObserver(
+                forName: .NSPersistentStoreRemoteChange,
+                object: nil,
+                queue: .main
+            ) { _ in
+                Task { @MainActor in
+                    DayTimeZonePin.scheduleReconciliation()
+                }
+            }
+        )
+        observerTokens.append(
+            NotificationCenter.default.addObserver(
+                forName: NSPersistentCloudKitContainer.eventChangedNotification,
+                object: nil,
+                queue: .main
+            ) { notification in
+                guard let event = notification.userInfo?[
+                    NSPersistentCloudKitContainer.eventNotificationUserInfoKey
+                ] as? NSPersistentCloudKitContainer.Event,
+                    event.type == .import,
+                    event.endDate != nil else { return }
+                Task { @MainActor in
+                    DayTimeZonePin.scheduleReconciliation()
+                }
+            }
+        )
+    }
 
     static func resolveIfNeeded(in container: ModelContainer) {
-        guard AppDayTimeZone.storedSecondsFromGMT == nil else { return }
+        reconcile(in: container)
+    }
+
+    private static func scheduleReconciliation() {
+        reconcileTask?.cancel()
+        reconcileTask = Task { @MainActor in
+            try? await Task.sleep(for: .milliseconds(350))
+            guard !Task.isCancelled, let container else { return }
+            reconcile(in: container)
+        }
+    }
+
+    private static func reconcile(in container: ModelContainer) {
+        let referenceOffset = AppDayTimeZone.storedSecondsFromGMT
+            ?? TimeZone.current.secondsFromGMT()
 
         let context = ModelContext(container)
-        var offsets: [Int] = []
+        var offsets = [referenceOffset]
 
         var entryDescriptor = FetchDescriptor<DayEntry>(
             sortBy: [SortDescriptor(\.createdAt, order: .reverse)]
         )
         entryDescriptor.fetchLimit = sampleLimit
         if let entries = try? context.fetch(entryDescriptor) {
-            offsets.append(contentsOf: entries.map { impliedOffset(of: $0.date) })
+            offsets.append(contentsOf: entries.map {
+                impliedOffset(of: $0.date, deviceOffset: referenceOffset)
+            })
         }
 
         var itemDescriptor = FetchDescriptor<RecurringItem>()
         itemDescriptor.fetchLimit = sampleLimit
         if let items = try? context.fetch(itemDescriptor) {
-            offsets.append(contentsOf: items.map { impliedOffset(of: $0.nextDate) })
+            offsets.append(contentsOf: items.map {
+                impliedOffset(of: $0.nextDate, deviceOffset: referenceOffset)
+            })
         }
 
         AppDayTimeZone.pin(secondsFromGMT: resolvedOffset(from: offsets))

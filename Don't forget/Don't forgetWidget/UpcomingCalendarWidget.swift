@@ -18,6 +18,7 @@ private struct WidgetCalendarItem: Codable, Identifiable {
 private struct WidgetCalendarSnapshot: Codable {
     let generatedAt: Date
     let localeIdentifier: String
+    let dayTimeZoneSeconds: Int?
     let items: [WidgetCalendarItem]
     let dateFormat: String?
     let lockScreenItems: [WidgetCalendarItem]?
@@ -71,6 +72,7 @@ private struct UpcomingCalendarProvider: TimelineProvider {
             return WidgetCalendarSnapshot(
                 generatedAt: .now,
                 localeIdentifier: Locale.current.identifier,
+                dayTimeZoneSeconds: nil,
                 items: [],
                 dateFormat: nil,
                 lockScreenItems: nil,
@@ -95,6 +97,7 @@ private struct UpcomingCalendarProvider: TimelineProvider {
         return WidgetCalendarSnapshot(
             generatedAt: .now,
             localeIdentifier: "nl_NL",
+            dayTimeZoneSeconds: TimeZone.current.secondsFromGMT(),
             items: [
                 WidgetCalendarItem(id: UUID(), title: "Teamoverleg", date: .now, startMinutes: 600, colorRawValue: "blue", prefixText: "0"),
                 WidgetCalendarItem(id: UUID(), title: "Verjaardag Noor", date: calendar.date(byAdding: .day, value: 1, to: .now) ?? .now, startMinutes: nil, colorRawValue: "pink", prefixText: "1"),
@@ -143,8 +146,8 @@ private struct UpcomingCalendarWidgetView: View {
     }
 
     private var homeCalendarItems: [WidgetCalendarItem] {
-        let calendar = Calendar.current
-        let today = calendar.startOfDay(for: entry.date)
+        let calendar = dayCalendar
+        let today = storedDay(containing: entry.date)
         switch entry.snapshot.homeWidgetCalendarRange ?? "upcoming" {
         case "today":
             let tomorrow = calendar.date(byAdding: .day, value: 1, to: today) ?? today
@@ -159,6 +162,26 @@ private struct UpcomingCalendarWidgetView: View {
 
     private var homeTodoItems: [WidgetCalendarItem] {
         entry.snapshot.todoItems ?? []
+    }
+
+    /// Calendar items contain day values, not moments in time. Always decode
+    /// them in the same fixed zone as the app that produced the snapshot.
+    private var dayCalendar: Calendar {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(
+            secondsFromGMT: entry.snapshot.dayTimeZoneSeconds
+                ?? TimeZone.current.secondsFromGMT()
+        ) ?? .current
+        return calendar
+    }
+
+    /// "Today" is chosen from the device's local wall clock, then encoded in
+    /// the snapshot's day calendar so it can be compared to stored day values.
+    private func storedDay(containing instant: Date) -> Date {
+        var localCalendar = Calendar(identifier: .gregorian)
+        localCalendar.timeZone = .current
+        let components = localCalendar.dateComponents([.year, .month, .day], from: instant)
+        return dayCalendar.date(from: components) ?? dayCalendar.startOfDay(for: instant)
     }
 
     var body: some View {
@@ -644,15 +667,16 @@ private struct UpcomingCalendarWidgetView: View {
                 ShortDatePrefixText(
                     date: item.date,
                     visibleDates: displayedItems.map(\.date),
-                    format: resolvedDateFormat
+                    format: resolvedDateFormat,
+                    timeZone: dayCalendar.timeZone
                 )
                     .font(.system(size: 10, weight: .bold, design: .rounded))
                     .foregroundStyle(color(item.colorRawValue))
                     .fixedSize(horizontal: true, vertical: false)
                     .widgetAccentable()
             } else {
-                let calendar = Calendar.current
-                let today = calendar.startOfDay(for: entry.date)
+                let calendar = dayCalendar
+                let today = storedDay(containing: entry.date)
                 let itemDay = calendar.startOfDay(for: item.date)
                 RelativeDayPrefixText(
                     value: calendar.dateComponents([.day], from: today, to: itemDay).day ?? 0,
@@ -699,7 +723,8 @@ private struct UpcomingCalendarWidgetView: View {
                 ShortDatePrefixText(
                     date: item.date,
                     visibleDates: visibleItems.map(\.date),
-                    format: resolvedDateFormat
+                    format: resolvedDateFormat,
+                    timeZone: dayCalendar.timeZone
                 )
                     .font(.system(
                         size: accessory ? accessoryPrefixFontSize : 10,
@@ -875,6 +900,7 @@ private struct ShortDatePrefixText: View {
     let date: Date
     let visibleDates: [Date]
     let format: WidgetDateFormatOption
+    let timeZone: TimeZone
 
     var body: some View {
         ZStack(alignment: .leading) {
@@ -941,7 +967,8 @@ private struct ShortDatePrefixText: View {
     }
 
     private func components(for date: Date) -> (day: Int, month: Int) {
-        let calendar = Calendar(identifier: .gregorian)
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = timeZone
         let components = calendar.dateComponents([.day, .month], from: date)
         return (components.day ?? 0, components.month ?? 0)
     }

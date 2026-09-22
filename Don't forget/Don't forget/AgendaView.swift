@@ -1429,13 +1429,15 @@ struct AgendaView: View {
         )
     }
 
-    private func moveEntry(_ entryID: UUID, to targetDate: Date, insertionIndex: Int? = nil) {
-        guard let entry = entries.first(where: { $0.id == entryID }) else { return }
+    @discardableResult
+    private func moveEntry(_ entryID: UUID, to targetDate: Date, insertionIndex: Int? = nil) -> Bool {
+        guard let entry = entries.first(where: { $0.id == entryID }) else { return false }
 
         let originalDay = AppCalendar.startOfDay(entry.date)
         let day = AppCalendar.startOfDay(targetDate)
+        let movedToAnotherDay = !AppCalendar.isSameDay(originalDay, day)
 
-        if originalDay != day, entry.recurringItemIdentifier != nil {
+        if movedToAnotherDay, entry.recurringItemIdentifier != nil {
             // Moving the row, saving it and scrolling the lazy agenda all
             // invalidate layout. Finish those operations before inserting the
             // prompt; starting them 16 ms after the popup appeared made its
@@ -1465,7 +1467,7 @@ struct AgendaView: View {
                 )
                 deferredRecurringMoveTask = nil
             }
-            return
+            return true
         }
 
         performMoveEntry(
@@ -1475,6 +1477,7 @@ struct AgendaView: View {
             insertionIndex: insertionIndex,
             shouldOfferRecurringShift: true
         )
+        return movedToAnotherDay
     }
 
     private func performMoveEntry(
@@ -2408,7 +2411,9 @@ private enum AgendaLayout {
     static let weatherIconOpticalOffset: CGFloat = -1
     static let moveActionSpacing: CGFloat = AdaptiveLayout.scaled(8)
     static let categoryControlWidth: CGFloat = AdaptiveLayout.scaled(22)
-    static let dateControlWidth: CGFloat = AdaptiveLayout.scaled(76)
+    // Fits the localized short date on one line while still leaving four
+    // evenly distributed gaps between the move controls on compact iPhones.
+    static let dateControlWidth: CGFloat = AdaptiveLayout.scaled(94)
     static let stepControlWidth: CGFloat = AdaptiveLayout.scaled(24)
     static let finishControlWidth: CGFloat = AdaptiveLayout.scaled(20)
     static let onboardingControlsTrailingSpace: CGFloat = AdaptiveLayout.scaled(6)
@@ -2437,7 +2442,7 @@ struct WeekCard: View {
     let weatherByDay: [Date: AgendaWeatherDay]
     let weatherAttribution: AgendaWeatherAttribution?
     let focusedField: FocusState<AgendaField?>.Binding
-    let moveEntry: (UUID, Date, Int?) -> Void
+    let moveEntry: (UUID, Date, Int?) -> Bool
     let moveEntryOneStep: (UUID, Int) -> Void
     let moveEntryToTodo: (UUID, String) -> Void
     let todoGroups: [TodoGroup]
@@ -2570,7 +2575,7 @@ struct DayBlock: View {
     let entries: [DayEntry]
     let weather: AgendaWeatherDay?
     let focusedField: FocusState<AgendaField?>.Binding
-    let moveEntry: (UUID, Date, Int?) -> Void
+    let moveEntry: (UUID, Date, Int?) -> Bool
     let moveEntryOneStep: (UUID, Int) -> Void
     let moveEntryToTodo: (UUID, String) -> Void
     let todoGroups: [TodoGroup]
@@ -2602,12 +2607,12 @@ struct DayBlock: View {
     }
 
     private var onboardingExampleIndex: Int? {
-        guard AppCalendar.isSameDay(day.date, .now), !sortedEntries.isEmpty else { return nil }
+        guard AppCalendar.isToday(day.date), !sortedEntries.isEmpty else { return nil }
         return min(2, sortedEntries.count - 1)
     }
 
     private var onboardingCompletionIndex: Int? {
-        guard AppCalendar.isSameDay(day.date, .now), !sortedEntries.isEmpty else { return nil }
+        guard AppCalendar.isToday(day.date), !sortedEntries.isEmpty else { return nil }
         return sortedEntries.firstIndex { !onboardingExampleIDs.contains($0.id) }
             ?? onboardingExampleIndex
     }
@@ -2646,7 +2651,9 @@ struct DayBlock: View {
                                 },
                                 moveToDate: {
                                     let targetDate = AppCalendar.startOfDay(moveDraftDate)
-                                    moveEntry(entry.id, targetDate, nil)
+                                    if moveEntry(entry.id, targetDate, nil) {
+                                        finishMove()
+                                    }
                                 },
                                 moveToTodo: { groupID in
                                     moveEntryToTodo(entry.id, groupID)
@@ -2691,7 +2698,7 @@ struct DayBlock: View {
                         moveActiveEntryHere: moveActiveEntryHere,
                         finishMove: finishMove,
                         isOnboardingHighlighted: onboardingStep == 0
-                            && AppCalendar.isSameDay(day.date, .now),
+                            && AppCalendar.isToday(day.date),
                         entryAdded: onboardingEntryAdded
                     )
                     .id(AgendaScrollTarget.newEntry(day.date))
@@ -2732,7 +2739,9 @@ struct DayBlock: View {
 
     private func moveActiveEntryHere() {
         guard let activeMoveEntryID else { return }
-        moveEntry(activeMoveEntryID, day.date, nil)
+        if moveEntry(activeMoveEntryID, day.date, nil) {
+            finishMove()
+        }
     }
 
     private func moveActiveEntry(before targetEntry: DayEntry) {
@@ -2743,7 +2752,9 @@ struct DayBlock: View {
             return
         }
 
-        moveEntry(activeMoveEntryID, day.date, targetIndex)
+        if moveEntry(activeMoveEntryID, day.date, targetIndex) {
+            finishMove()
+        }
     }
 
     private func handleDayLineTap() {
@@ -2816,13 +2827,6 @@ struct AgendaEntryLine: View {
                     .accessibilityLabel(locale.localized("Verplaatsopties"))
 
                 entryContent
-
-                if entry.isUncertain {
-                    Image(systemName: "questionmark.circle")
-                        .font(.system(size: AdaptiveLayout.scaled(14)))
-                        .foregroundStyle(.secondary)
-                        .padding(.top, AdaptiveLayout.scaled(2))
-                }
 
                 Spacer(minLength: 2)
 
@@ -3446,6 +3450,8 @@ private struct AgendaMoveControls: View {
     let highlightsControls: Bool
     let highlightsFinish: Bool
 
+    @State private var isDatePickerPresented = false
+
     var body: some View {
         HStack(spacing: AgendaLayout.rowSpacing) {
             Color.clear
@@ -3519,18 +3525,32 @@ private struct AgendaMoveControls: View {
 
             Spacer(minLength: AgendaLayout.moveActionSpacing)
 
-            DatePicker(locale.localized(""), selection: dateSelection, displayedComponents: .date)
+            Button {
+                isDatePickerPresented = true
+            } label: {
+                Text(AppCalendar.localizedDate(date, template: "dMMMyyyy"))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.8)
+                    .allowsTightening(true)
+                    .frame(width: AgendaLayout.dateControlWidth, height: AdaptiveLayout.scaled(32))
+                    .contentShape(Rectangle().inset(by: -4))
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel(locale.localized("Nieuwe datum"))
+            .accessibilityValue(AppCalendar.localizedDate(date, template: "dMMMyyyy"))
+            .popover(isPresented: $isDatePickerPresented) {
+                DatePicker(
+                    locale.localized("Nieuwe datum"),
+                    selection: dateSelection,
+                    displayedComponents: .date
+                )
+                .datePickerStyle(.graphical)
                 .labelsHidden()
-                .datePickerStyle(.compact)
-                .fixedSize()
-                .opacity(0.02)
-                .overlay {
-                    Text(AppCalendar.localizedDate(date, template: "dMMMyyyy"))
-                        .allowsHitTesting(false)
-                }
-                .frame(width: AgendaLayout.dateControlWidth, height: AdaptiveLayout.scaled(32))
-                .contentShape(Rectangle().inset(by: -4))
-                .accessibilityValue(AppCalendar.localizedDate(date, template: "dMMMyyyy"))
+                .frame(width: AdaptiveLayout.scaled(320))
+                .padding(AdaptiveLayout.scaled(8))
+                .iPadComfortableControls()
+                .presentationCompactAdaptation(.popover)
+            }
 
             Spacer(minLength: AgendaLayout.moveActionSpacing)
 
@@ -3586,6 +3606,7 @@ private struct AgendaMoveControls: View {
         Binding(
             get: { date },
             set: { newDate in
+                isDatePickerPresented = false
                 date = newDate
                 moveToDate()
             }
@@ -3616,7 +3637,7 @@ private struct AgendaLinePrefix: View {
                     dateLabel.isEmpty
                         ? Color.clear
                         : Color.appDarkModeTextColor(
-                            otherwise: AppCalendar.isSameDay(date, .now)
+                            otherwise: AppCalendar.isToday(date)
                                 ? Color.brandHardBlue
                                 : Color.secondary
                         )

@@ -44,7 +44,18 @@ nonisolated enum AppDayTimeZone {
     }
 
     static func pin(secondsFromGMT: Int) {
-        UserDefaults.standard.set(secondsFromGMT, forKey: SettingsKeys.dayTimeZoneSeconds)
+        let defaults = UserDefaults.standard
+        let resolved: Int
+        if defaults.object(forKey: SettingsKeys.dayTimeZoneSeconds) != nil {
+            // A larger observed offset can represent days written farther
+            // east. Moving the shared reader east preserves all earlier day
+            // labels (provided the real-world offset span is under 24 hours),
+            // while accepting a later smaller value can move those days back.
+            resolved = max(defaults.integer(forKey: SettingsKeys.dayTimeZoneSeconds), secondsFromGMT)
+        } else {
+            resolved = secondsFromGMT
+        }
+        defaults.set(resolved, forKey: SettingsKeys.dayTimeZoneSeconds)
     }
 }
 
@@ -242,7 +253,7 @@ enum AppCalendar {
     }
 
     static func weekSections(
-        startingFrom date: Date = .now,
+        startingFrom date: Date = AppCalendar.today,
         numberOfWeeks: Int = 12
     ) -> [WeekSection] {
         let configuredCalendar = calendar
@@ -312,6 +323,21 @@ enum AppCalendar {
         calendar.isDate(first, inSameDayAs: second)
     }
 
+    /// Whether an already stored day is the current calendar day on this
+    /// device. Do not compare a stored day directly with `.now`: when the
+    /// shared day zone is east of the device, that instant may already fall on
+    /// tomorrow in the shared calendar.
+    static func isToday(_ storedDay: Date) -> Bool {
+        isSameDay(storedDay, today)
+    }
+
+    static func isYesterday(_ storedDay: Date) -> Bool {
+        guard let yesterday = calendar.date(byAdding: .day, value: -1, to: today) else {
+            return false
+        }
+        return isSameDay(storedDay, yesterday)
+    }
+
     private static func weekdayLetter(for date: Date, calendar: Calendar) -> String {
         let weekday = calendar.component(.weekday, from: date)
 
@@ -357,6 +383,11 @@ enum AppCalendar {
         let formatter = DateFormatter()
         formatter.locale = configuredLocale
         formatter.calendar = configuredCalendar
+        // Assigning a calendar does not make DateFormatter adopt its zone.
+        // Without this, a stored 22 September midnight in Indonesia is
+        // formatted in Amsterdam as 21 September while its weekday is still
+        // calculated as Tuesday.
+        formatter.timeZone = configuredCalendar.timeZone
         configure(formatter)
         Thread.current.threadDictionary[cacheKey] = formatter
         return formatter

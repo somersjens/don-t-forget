@@ -312,7 +312,7 @@ struct HistoryView: View {
 
     private func sections(from rows: [HistoryRow]) -> [HistoryDaySection] {
         let grouped = Dictionary(grouping: rows) {
-            AppCalendar.startOfDay($0.completedAt)
+            AppCalendar.day(containing: $0.completedAt)
         }
         return grouped
             .map { HistoryDaySection(date: $0.key, rows: $0.value) }
@@ -322,7 +322,7 @@ struct HistoryView: View {
     private func completedLastSevenDays(in rows: [HistoryRow]) -> Int {
         let today = AppCalendar.today
         let start = AppCalendar.calendar.date(byAdding: .day, value: -6, to: today) ?? today
-        return rows.count { $0.completedAt >= start }
+        return rows.count { AppCalendar.day(containing: $0.completedAt) >= start }
     }
 
     private var isHistoryDemoActive: Bool {
@@ -1400,17 +1400,18 @@ private enum HistoryChartPeriod: String, Identifiable {
     static func available(for dates: [Date]) -> [HistoryChartPeriod] {
         var periods: [HistoryChartPeriod] = [.days]
         guard let oldest = dates.min() else { return periods }
+        let oldestDay = AppCalendar.day(containing: oldest)
 
         let calendar = AppCalendar.calendar
         let today = AppCalendar.today
         let fourteenDaysAgo = calendar.date(byAdding: .day, value: -14, to: today) ?? today
-        if oldest < fourteenDaysAgo {
+        if oldestDay < fourteenDaysAgo {
             periods.append(.weeks)
         }
 
         let currentMonth = calendar.dateInterval(of: .month, for: today)?.start ?? today
         let twoMonthsAgo = calendar.date(byAdding: .month, value: -2, to: currentMonth) ?? currentMonth
-        if oldest < twoMonthsAgo {
+        if oldestDay < twoMonthsAgo {
             periods.append(.months)
         }
 
@@ -1446,7 +1447,10 @@ private enum HistoryChartPeriod: String, Identifiable {
             return HistoryChartBucket(
                 start: start,
                 label: label(for: start, calendar: calendar),
-                count: dates.count { $0 >= start && $0 < end },
+                count: dates.count {
+                    let day = AppCalendar.day(containing: $0)
+                    return day >= start && day < end
+                },
                 isCurrent: index == numberOfBuckets - 1
             )
         }
@@ -1881,8 +1885,8 @@ private struct HistoryDaySection: Identifiable {
     var id: Date { date }
 
     func title(for locale: Locale) -> String {
-        if AppCalendar.calendar.isDateInToday(date) { return locale.localized("Vandaag") }
-        if AppCalendar.calendar.isDateInYesterday(date) { return locale.localized("Gisteren") }
+        if AppCalendar.isToday(date) { return locale.localized("Vandaag") }
+        if AppCalendar.isYesterday(date) { return locale.localized("Gisteren") }
         return AppCalendar.localizedDate(date, template: "EEEEdMMMM")
     }
 

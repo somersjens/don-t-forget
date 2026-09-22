@@ -66,6 +66,7 @@
 		F9D98AB92FE86CF700B20CE0 /* Exceptions for "Don't forget" folder in "Don't forget" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
+				"Info-iOS.plist",
 				Info.plist,
 			);
 			target = F9D98A952FE86CF600B20CE0 /* Don't forget */;
@@ -271,6 +272,9 @@
 								enabled = 1;
 							};
 							com.apple.iCloud = {
+								enabled = 1;
+							};
+							com.apple.Push = {
 								enabled = 1;
 							};
 						};
@@ -492,7 +496,7 @@
 				APPLICATION_EXTENSION_API_ONLY = YES;
 				CODE_SIGN_ENTITLEMENTS = "Don't forgetWidget/Don't_forgetWidget.entitlements";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 15;
 				DEVELOPMENT_TEAM = 4283ACUG4Y;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = "Don't forgetWidget/Info.plist";
@@ -502,7 +506,7 @@
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
-				MARKETING_VERSION = 1.1;
+				MARKETING_VERSION = 1.2;
 				PRODUCT_BUNDLE_IDENTIFIER = "Hakketjak.Don-t-forget.Widget";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				REGISTER_APP_GROUPS = YES;
@@ -522,7 +526,7 @@
 				APPLICATION_EXTENSION_API_ONLY = YES;
 				CODE_SIGN_ENTITLEMENTS = "Don't forgetWidget/Don't_forgetWidget.entitlements";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 15;
 				DEVELOPMENT_TEAM = 4283ACUG4Y;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = "Don't forgetWidget/Info.plist";
@@ -532,7 +536,7 @@
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
-				MARKETING_VERSION = 1.1;
+				MARKETING_VERSION = 1.2;
 				PRODUCT_BUNDLE_IDENTIFIER = "Hakketjak.Don-t-forget.Widget";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				REGISTER_APP_GROUPS = YES;
@@ -551,11 +555,12 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				APS_ENVIRONMENT = development;
 				AUTOMATION_APPLE_EVENTS = NO;
 				CODE_SIGN_ENTITLEMENTS = "Don't forget/Don_t_forget.entitlements";
 				"CODE_SIGN_ENTITLEMENTS[sdk=macosx*]" = "Don't forget/Don_t_forget-macOS.entitlements";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 15;
 				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_TEAM = 4283ACUG4Y;
 				ENABLE_APP_SANDBOX = YES;
@@ -597,13 +602,15 @@
 				"INFOPLIST_KEY_UILaunchScreen_Generation[sdk=iphonesimulator*]" = YES;
 				"INFOPLIST_KEY_UIStatusBarStyle[sdk=iphoneos*]" = UIStatusBarStyleDefault;
 				"INFOPLIST_KEY_UIStatusBarStyle[sdk=iphonesimulator*]" = UIStatusBarStyleDefault;
+				ICLOUD_CONTAINER_ENVIRONMENT = Development;
+				"ICLOUD_CONTAINER_ENVIRONMENT[sdk=macosx*]" = Production;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				MARKETING_VERSION = 1.1;
+				MARKETING_VERSION = 1.2;
 				PRODUCT_BUNDLE_IDENTIFIER = "Hakketjak.Don-t-forget";
 				PRODUCT_MODULE_NAME = Don_t_forget;
 				PRODUCT_NAME = "Forget It";
@@ -632,11 +639,12 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				APS_ENVIRONMENT = production;
 				AUTOMATION_APPLE_EVENTS = NO;
 				CODE_SIGN_ENTITLEMENTS = "Don't forget/Don_t_forget.entitlements";
 				"CODE_SIGN_ENTITLEMENTS[sdk=macosx*]" = "Don't forget/Don_t_forget-macOS.entitlements";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 15;
 				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_TEAM = 4283ACUG4Y;
 				ENABLE_APP_SANDBOX = YES;
@@ -678,13 +686,14 @@
 				"INFOPLIST_KEY_UILaunchScreen_Generation[sdk=iphonesimulator*]" = YES;
 				"INFOPLIST_KEY_UIStatusBarStyle[sdk=iphoneos*]" = UIStatusBarStyleDefault;
 				"INFOPLIST_KEY_UIStatusBarStyle[sdk=iphonesimulator*]" = UIStatusBarStyleDefault;
+				ICLOUD_CONTAINER_ENVIRONMENT = Production;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				MARKETING_VERSION = 1.1;
+				MARKETING_VERSION = 1.2;
 				PRODUCT_BUNDLE_IDENTIFIER = "Hakketjak.Don-t-forget";
 				PRODUCT_MODULE_NAME = Don_t_forget;
 				PRODUCT_NAME = "Forget It";

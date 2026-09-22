@@ -470,7 +470,7 @@ struct QuickTodoCaptureView: View {
                     } label: {
                         selectionButtonLabel(
                             title: destinationID == Self.agendaDestinationID
-                                ? agendaDate.formatted(date: .abbreviated, time: .omitted)
+                                ? AppCalendar.localizedDate(agendaDate, template: "dMMMyyyy")
                                 : "Datum",
                             systemImage: "calendar",
                             isSelected: destinationID == Self.agendaDestinationID

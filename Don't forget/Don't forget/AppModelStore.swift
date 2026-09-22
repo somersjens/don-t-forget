@@ -8,6 +8,7 @@ import SwiftData
 @MainActor
 enum AppModelStore {
     static let iCloudContainerIdentifier = "iCloud.Hakketjak.Don-t-forget"
+    static let appGroupIdentifier = "group.Hakketjak.Don-t-forget"
 
     static var isICloudSyncEnabled: Bool {
         let defaults = UserDefaults.standard
@@ -28,6 +29,10 @@ enum AppModelStore {
         let configuration = ModelConfiguration(
             schema: schema,
             isStoredInMemoryOnly: false,
+            // Do not let `.automatic` silently fall back to a different local
+            // store when an entitlement is missing from a development build.
+            // iPhone, iPad and Mac must all attach CloudKit to this exact store.
+            groupContainer: .identifier(appGroupIdentifier),
             cloudKitDatabase: isICloudSyncEnabled
                 ? .private(iCloudContainerIdentifier)
                 : .none
@@ -40,9 +45,9 @@ enum AppModelStore {
                 configurations: configuration
             )
             cachedContainer = container
-            // Before anything reads a stored day, settle which zone those days
-            // are written in. Skipped once iCloud has already supplied one.
-            DayTimeZonePin.resolveIfNeeded(in: container)
+            // Settle the zone before the first read, then keep watching while
+            // CloudKit delivers calendar rows later in the launch.
+            DayTimeZonePin.start(in: container)
             return .success(container)
         } catch {
             cachedError = error

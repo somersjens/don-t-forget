@@ -2972,7 +2972,7 @@ private struct RecurringDraft {
     var isBirthdayYearValid: Bool {
         guard !birthdayYearText.isEmpty else { return true }
         guard let year = Int(birthdayYearText) else { return false }
-        let currentYear = AppCalendar.calendar.component(.year, from: .now)
+        let currentYear = AppCalendar.calendar.component(.year, from: AppCalendar.today)
         return (1...currentYear).contains(year)
     }
 
@@ -3013,7 +3013,7 @@ private struct RecurringDraft {
         let placeholderYear: Int
         if birthdayYearText.count == 4,
            let year = Int(birthdayYearText),
-           (1...calendar.component(.year, from: .now)).contains(year) {
+           (1...calendar.component(.year, from: AppCalendar.today)).contains(year) {
             placeholderYear = year
         } else {
             placeholderYear = 2000
@@ -3023,7 +3023,7 @@ private struct RecurringDraft {
             month: birthdayMonth,
             day: min(birthdayDay, daysInBirthdayMonth)
         )) else {
-            return String(max(0, calendar.component(.year, from: .now) - 2000))
+            return String(max(0, calendar.component(.year, from: AppCalendar.today) - 2000))
         }
         return String(RecurrenceEngine.currentAge(for: AppCalendar.startOfDay(date)))
     }

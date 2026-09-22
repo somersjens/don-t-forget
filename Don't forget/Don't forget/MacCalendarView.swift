@@ -293,7 +293,7 @@ struct MacCalendarView: View {
         }
         PersistenceSafety.save(modelContext)
         setLastAction(.moved(entry, previousDate: previousDate))
-        let dateText = destination.formatted(.dateTime.day().month(.abbreviated).locale(locale))
+        let dateText = AppCalendar.localizedDate(destination, template: "dMMM")
         feedbackMessage = locale.localizedFormat("feedback.movedTo", entry.rawText, dateText)
         scheduleFeedbackDismissal()
         movingEntry = nil
@@ -446,7 +446,7 @@ private struct MacCalendarDay: View {
     @AppStorage(SettingsKeys.hasUsedMacAgendaInput) private var hasUsedAgendaInput = false
     @AppStorage(SettingsKeys.weekdayLabelLength) private var weekdayLabelLength = WeekdayLabelLengthOption.one.rawValue
 
-    private var isToday: Bool { AppCalendar.isSameDay(day.date, .now) }
+    private var isToday: Bool { AppCalendar.isToday(day.date) }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
