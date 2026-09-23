@@ -106,6 +106,9 @@ struct MacRootView: View {
     @State private var macAgendaCanUndo = false
     @FocusState private var isSearchFocused: Bool
     @State private var persistenceError: String?
+    @State private var isCloudRefreshRunning = false
+    @State private var cloudRefreshMessage: String?
+    @State private var cloudRefreshFailed = false
     @State private var hasAppliedInitialWindowSize = false
     @State private var hasLoadedRecurringBoard = false
     @State private var appActivityState = AppActivityState.shared
@@ -158,6 +161,17 @@ struct MacRootView: View {
         } message: {
             Text(persistenceError ?? "")
         }
+        .alert(
+            locale.localized(cloudRefreshFailed ? "iCloud-synchronisatie mislukt" : "iCloud bijgewerkt"),
+            isPresented: Binding(
+                get: { cloudRefreshMessage != nil },
+                set: { if !$0 { cloudRefreshMessage = nil } }
+            )
+        ) {
+            Button(locale.localized("OK"), role: .cancel) {}
+        } message: {
+            Text(cloudRefreshMessage ?? "")
+        }
     }
 
     private var inspectorPresented: Binding<Bool> {
@@ -205,16 +219,37 @@ struct MacRootView: View {
                     }
                 }
                 Spacer()
-                Button(action: toggleSearch) {
-                    Image(systemName: "magnifyingglass")
-                        .font(.system(size: 14, weight: .semibold))
-                        .frame(width: 32, height: 32)
-                        .background(headerButtonBackground(isActive: isSearchPresented), in: Circle())
-                        .overlay { Circle().stroke(headerButtonBorder(isActive: isSearchPresented), lineWidth: 1.5) }
+                HStack(spacing: 8) {
+                    Button(action: refreshFromCloud) {
+                        Image(systemName: "arrow.clockwise")
+                            .font(.system(size: 14, weight: .semibold))
+                            .rotationEffect(.degrees(isCloudRefreshRunning ? 360 : 0))
+                            .animation(
+                                isCloudRefreshRunning
+                                    ? .linear(duration: 0.8).repeatForever(autoreverses: false)
+                                    : .default,
+                                value: isCloudRefreshRunning
+                            )
+                            .frame(width: 32, height: 32)
+                            .background(headerButtonBackground(isActive: isCloudRefreshRunning), in: Circle())
+                            .overlay { Circle().stroke(headerButtonBorder(isActive: isCloudRefreshRunning), lineWidth: 1.5) }
+                    }
+                    .buttonStyle(.plain)
+                    .foregroundStyle(Color.brandHardBlue)
+                    .disabled(isCloudRefreshRunning)
+                    .help(locale.localized("Vernieuwen vanuit iCloud"))
+
+                    Button(action: toggleSearch) {
+                        Image(systemName: "magnifyingglass")
+                            .font(.system(size: 14, weight: .semibold))
+                            .frame(width: 32, height: 32)
+                            .background(headerButtonBackground(isActive: isSearchPresented), in: Circle())
+                            .overlay { Circle().stroke(headerButtonBorder(isActive: isSearchPresented), lineWidth: 1.5) }
+                    }
+                    .buttonStyle(.plain)
+                    .foregroundStyle(Color.brandHardBlue)
+                    .help(locale.localized(isSearchPresented ? "Zoeken sluiten" : "Zoeken"))
                 }
-                .buttonStyle(.plain)
-                .foregroundStyle(Color.brandHardBlue)
-                .help(locale.localized(isSearchPresented ? "Zoeken sluiten" : "Zoeken"))
             }
         }
         .padding(.horizontal, 29)
@@ -252,6 +287,28 @@ struct MacRootView: View {
         else {
             isSearchPresented = true
             Task { @MainActor in isSearchFocused = true }
+        }
+    }
+
+    private func refreshFromCloud() {
+        guard !isCloudRefreshRunning else { return }
+        isCloudRefreshRunning = true
+
+        Task { @MainActor in
+            defer { isCloudRefreshRunning = false }
+            do {
+                let outcome = try await MacCloudSyncService.shared.refresh()
+                cloudRefreshFailed = false
+                switch outcome {
+                case .importCompleted:
+                    cloudRefreshMessage = locale.localized("De nieuwste iCloud-wijzigingen zijn opgehaald.")
+                case .cloudReachable:
+                    cloudRefreshMessage = locale.localized("iCloud is bereikbaar. macOS haalt wijzigingen automatisch op zodra het systeem de import uitvoert.")
+                }
+            } catch {
+                cloudRefreshFailed = true
+                cloudRefreshMessage = error.localizedDescription
+            }
         }
     }
 

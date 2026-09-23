@@ -691,7 +691,13 @@ private struct MacCalendarEntryRow: View {
             .tint(entryAccentColor)
             .fixedSize()
 
-            Button(action: complete) {
+            Button {
+                // This TextField edits a local draft. Commit it before the
+                // completed row is removed from the calendar's live query.
+                guard finishEditing() else { return }
+                isTextFocused = false
+                complete()
+            } label: {
                 Image(systemName: entry.isDone ? "checkmark.circle.fill" : "circle")
                     .font(.system(size: 17))
                     .foregroundStyle(entry.isDone ? .green : entryAccentColor)
@@ -729,17 +735,18 @@ private struct MacCalendarEntryRow: View {
         CGFloat(14 + max(0, AppCalendar.weekdayLabelLength - 1) * 8)
     }
 
-    private func finishEditing() {
+    @discardableResult
+    private func finishEditing() -> Bool {
         let cleanText = draftText.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !cleanText.isEmpty else {
             modelContext.delete(entry)
-            PersistenceSafety.save(modelContext)
-            return
+            _ = PersistenceSafety.save(modelContext)
+            return false
         }
         draftText = cleanText
         entry.rawText = cleanText
         entry.refreshParsedFields()
-        PersistenceSafety.save(modelContext)
+        return PersistenceSafety.save(modelContext)
     }
 
     private var entryAccentColor: Color {

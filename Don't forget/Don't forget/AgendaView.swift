@@ -3036,8 +3036,10 @@ struct AgendaEntryLine: View {
         }
     }
 
-    private func commitDraft() {
-        guard !isDeleting, let draftText else { return }
+    @discardableResult
+    private func commitDraft() -> Bool {
+        guard !isDeleting else { return false }
+        guard let draftText else { return true }
 
         initialTapProtectionTask?.cancel()
         initialTapProtectionTask = nil
@@ -3045,15 +3047,20 @@ struct AgendaEntryLine: View {
 
         if draftText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
             deleteEntry()
-            return
+            return false
         }
 
         if entry.rawText != draftText {
             entry.rawText = draftText
         }
         entry.refreshParsedFields()
+        guard PersistenceSafety.save(modelContext) else {
+            // Keep the draft visible when persistence fails. Completion must
+            // never make an unsaved edit disappear with the row.
+            return false
+        }
         self.draftText = nil
-        _ = PersistenceSafety.save(modelContext)
+        return true
     }
 
     private func deleteEntry() {
@@ -3106,6 +3113,12 @@ struct AgendaEntryLine: View {
 
     private func toggleDone() {
         guard !isDeleting else { return }
+
+        // A focused field owns the newest text in its local draft. Persist it
+        // before completion removes this row from the live Agenda query.
+        guard commitDraft() else { return }
+        focusedField.wrappedValue = nil
+        AppKeyboard.dismiss()
         isDeleting = true
 
         // Agenda owns completion batching. The row disappears immediately via

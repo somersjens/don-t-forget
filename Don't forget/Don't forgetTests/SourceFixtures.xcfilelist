@@ -27,6 +27,7 @@ $(SRCROOT)/Don't forget/HolidayCatalog.swift
 $(SRCROOT)/Don't forget/ICloudStatusService.swift
 $(SRCROOT)/Don't forget/Item.swift
 $(SRCROOT)/Don't forget/MacCalendarView.swift
+$(SRCROOT)/Don't forget/MacCloudSyncService.swift
 $(SRCROOT)/Don't forget/MacRootView.swift
 $(SRCROOT)/Don't forget/Models.swift
 $(SRCROOT)/Don't forget/PersistenceSafety.swift

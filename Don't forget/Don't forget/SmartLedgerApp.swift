@@ -22,6 +22,9 @@ struct SmartLedgerApp: App {
             // Observe from launch, so the quiet window used before the first
             // recurrence generation is measured from process start.
             CloudImportGate.start()
+#if os(macOS)
+            MacCloudSyncService.shared.start()
+#endif
         }
     }
 

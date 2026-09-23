@@ -1718,7 +1718,10 @@ private struct TodoLine: View {
             Spacer(minLength: 2)
 
             Button {
-                commitDraft()
+                // Persist the active edit before completion removes this row
+                // from the open-task query.
+                guard commitDraft() else { return }
+                dismissKeyboard()
                 todo.toggleDone()
                 // The row leaves the filtered query through the model change
                 // itself. Coalescing the store commit keeps rapid consecutive
@@ -1911,8 +1914,10 @@ private struct TodoLine: View {
         )
     }
 
-    private func commitDraft() {
-        guard !isDeleting, let draftText else { return }
+    @discardableResult
+    private func commitDraft() -> Bool {
+        guard !isDeleting else { return false }
+        guard let draftText else { return true }
 
         initialTapProtectionTask?.cancel()
         initialTapProtectionTask = nil
@@ -1920,14 +1925,19 @@ private struct TodoLine: View {
 
         if draftText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
             deleteTodo()
-            return
+            return false
         }
 
         if todo.text != draftText {
             todo.text = draftText
-            _ = PersistenceSafety.save(modelContext)
+            guard PersistenceSafety.save(modelContext) else {
+                // Leave the draft in place and keep the row open when saving
+                // fails, so completion cannot discard the user's new text.
+                return false
+            }
         }
         self.draftText = nil
+        return true
     }
 
     private func beginEditingAtEnd() {
